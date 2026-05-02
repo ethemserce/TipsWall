@@ -1,9 +1,7 @@
 using Serilog;
-using Microsoft.EntityFrameworkCore;
 using SportMonks.Core.Worker.WorkerServices;
 using SportMonks.Core.Worker.Mapping;
 using PreOddsApi.DataLayer;
-using Microsoft.Extensions.Options;
 using PreOddsApi.Core.Data.EntityFramework.Abstract;
 using PreOddsApi.Core.Data.EntityFramework.Concrete;
 
@@ -15,11 +13,7 @@ IHost host = Host.CreateDefaultBuilder(args)
                 .AddAutoMapper(typeof(CoreMapping))
                 .AddSingleton(typeof(IUpsertService<>), typeof(UpsertService<>))
                 .AddDbContext<PreOddsApiDbContext>(options => {
-                    options.UseMySql(
-                        configuration.Configuration.GetConnectionString("PreOddsApiMySqlDb"),
-                         ServerVersion.AutoDetect(configuration.Configuration.GetConnectionString("PreOddsApiMySqlDb"))
-                         );
-                    options.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
+                    PreOddsDatabaseOptions.Configure(options, configuration.Configuration, useNoTracking: true);
                     }
                 
                 );

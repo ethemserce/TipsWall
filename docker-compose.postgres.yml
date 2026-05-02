@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: preodds-postgres
+    environment:
+      POSTGRES_DB: preodds
+      POSTGRES_USER: preodds
+      POSTGRES_PASSWORD: preodds_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - preodds-postgres-data:/var/lib/postgresql/data
+      - ./database/postgres:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U preodds -d preodds"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  preodds-postgres-data:

@@ -6,7 +6,6 @@ using Microsoft.Extensions.Configuration;
 using PreOddsApi.BusinessLayer.Abstract;
 using PreOddsApi.BusinessLayer.Concrete;
 using PreOddsApi.Utils;
-using Microsoft.EntityFrameworkCore;
 
 namespace PreOddsApi.BusinessLayer.DependencyInjection
 {
@@ -14,11 +13,8 @@ namespace PreOddsApi.BusinessLayer.DependencyInjection
     {
         public static void SetDependencyTypes(IServiceCollection serviceCollection, IConfiguration configuration)
         {
-            var constr = configuration.GetConnectionString("PreOddsApiMySqlDb");
-
             serviceCollection.AddDbContext<PreOddsApiDbContext>(options =>
-                options.UseMySql(constr,
-                     ServerVersion.AutoDetect(constr)));
+                PreOddsDatabaseOptions.Configure(options, configuration));
 
             //DataLayer
             serviceCollection.AddTransient<IUnitOfWork<PreOddsApiDbContext>, UnitOfWork<PreOddsApiDbContext>>();

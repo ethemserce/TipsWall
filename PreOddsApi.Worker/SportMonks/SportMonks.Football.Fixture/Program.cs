@@ -1,5 +1,4 @@
 using Serilog;
-using Microsoft.EntityFrameworkCore;
 using SportMonks.Football.FixtureWorker.Services;
 using SportMonks.Football.FixtureWorker.Mapping;
 using PreOddsApi.DataLayer;
@@ -14,10 +13,7 @@ IHost host = Host.CreateDefaultBuilder(args)
                 .AddAutoMapper(typeof(FootballMapping))
                 .AddSingleton(typeof(IUpsertService<>), typeof(UpsertService<>))
               .AddDbContext<PreOddsApiDbContext>(options =>
-                options.UseMySql(
-                    configuration.Configuration.GetConnectionString("PreOddsApiMySqlDb"),
-                     ServerVersion.AutoDetect(configuration.Configuration.GetConnectionString("PreOddsApiMySqlDb"))
-                     ));
+                PreOddsDatabaseOptions.Configure(options, configuration.Configuration));
     })
     //.ConfigureAppConfiguration((hostContext, configBuilder) =>
     //{
