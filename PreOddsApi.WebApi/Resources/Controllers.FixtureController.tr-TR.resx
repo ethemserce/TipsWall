@@ -1,0 +1,2451 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="ChampionshipGroup" xml:space="preserve">
+    <value>Şampiyonluk Grubu</value>
+  </data>
+  <data name="ChampionshipRound" xml:space="preserve">
+    <value>Şampiyonluk Turu</value>
+  </data>
+  <data name="CleanSheetAway" xml:space="preserve">
+    <value>Deplasman Gol Yemez</value>
+  </data>
+  <data name="CleanSheetHome" xml:space="preserve">
+    <value>Ev Sahibi Gol Yemez</value>
+  </data>
+  <data name="Draw" xml:space="preserve">
+    <value>Berabere</value>
+  </data>
+  <data name="DrawAway" xml:space="preserve">
+    <value>Berabere / Deplasman</value>
+  </data>
+  <data name="DrawDraw" xml:space="preserve">
+    <value>Berabere / Berabere</value>
+  </data>
+  <data name="DrawNo" xml:space="preserve">
+    <value>Berabere / Hayır</value>
+  </data>
+  <data name="DrawOver" xml:space="preserve">
+    <value>Berabere / Üst</value>
+  </data>
+  <data name="DrawUnder" xml:space="preserve">
+    <value>Berabere / Alt</value>
+  </data>
+  <data name="DrawYes" xml:space="preserve">
+    <value>Berabere / Evet</value>
+  </data>
+  <data name="EighthCorner" xml:space="preserve">
+    <value>8. Korner</value>
+  </data>
+  <data name="EuropaLeaguePlayoffsFinal" xml:space="preserve">
+    <value>Avrupa Ligi Finalleri - Final</value>
+  </data>
+  <data name="EuropaLeaguePlayoffsQuarterfinals" xml:space="preserve">
+    <value>Avrupa Ligi Finalleri - Çeyrek Finaller</value>
+  </data>
+  <data name="EuropaLeaguePlayoffsSemifinals" xml:space="preserve">
+    <value>Avrupa Ligi Finalleri - Yarı Finaller</value>
+  </data>
+  <data name="Even" xml:space="preserve">
+    <value>Çift</value>
+  </data>
+  <data name="ExactGoalsNumber" xml:space="preserve">
+    <value>Gol Sayısı</value>
+  </data>
+  <data name="FifthCorner" xml:space="preserve">
+    <value>5. Korner</value>
+  </data>
+  <data name="FinalStage" xml:space="preserve">
+    <value>Final Devre</value>
+  </data>
+  <data name="First10minWinner" xml:space="preserve">
+    <value>İlk 10 Dakika Kazanır</value>
+  </data>
+  <data name="FirstCorner" xml:space="preserve">
+    <value>1. Korner</value>
+  </data>
+  <data name="FirstHalf" xml:space="preserve">
+    <value>1. Devre</value>
+  </data>
+  <data name="FirstHalfExactGoalsNumber" xml:space="preserve">
+    <value>1. Devre Gol Sayısı</value>
+  </data>
+  <data name="FirstHalfWinner" xml:space="preserve">
+    <value>1. Devre Kazanır</value>
+  </data>
+  <data name="FirstPhase" xml:space="preserve">
+    <value>1. Devre</value>
+  </data>
+  <data name="FirstStage" xml:space="preserve">
+    <value>1. Devre</value>
+  </data>
+  <data name="FourthCorner" xml:space="preserve">
+    <value>4. Korner</value>
+  </data>
+  <data name="Group1" xml:space="preserve">
+    <value>Grup 1</value>
+  </data>
+  <data name="Group2" xml:space="preserve">
+    <value>Grup 2</value>
+  </data>
+  <data name="GroupA" xml:space="preserve">
+    <value>Grup A</value>
+  </data>
+  <data name="GroupB" xml:space="preserve">
+    <value>Grup B</value>
+  </data>
+  <data name="HighestScoringHalf" xml:space="preserve">
+    <value>En Çok Gol Olacak Devre</value>
+  </data>
+  <data name="Home" xml:space="preserve">
+    <value>Ev Sahibi</value>
+  </data>
+  <data name="HomeAway" xml:space="preserve">
+    <value>Ev Sahibi/Deplasman</value>
+  </data>
+  <data name="HomeDraw" xml:space="preserve">
+    <value>Ev Sahibi / Berabere</value>
+  </data>
+  <data name="HomeNo" xml:space="preserve">
+    <value>Ev Sahibi / Hayır</value>
+  </data>
+  <data name="HomeOver" xml:space="preserve">
+    <value>Ev Sahibi / Üst</value>
+  </data>
+  <data name="HomeUnder" xml:space="preserve">
+    <value>Ev Sahibi / Alt</value>
+  </data>
+  <data name="HomeYes" xml:space="preserve">
+    <value>Ev Sahibi / Evet</value>
+  </data>
+  <data name="more3" xml:space="preserve">
+    <value>3 den Fazla</value>
+  </data>
+  <data name="more5" xml:space="preserve">
+    <value>5 den Fazla</value>
+  </data>
+  <data name="more7" xml:space="preserve">
+    <value>7 den Fazla</value>
+  </data>
+  <data name="NinthCorner" xml:space="preserve">
+    <value>9. Korner</value>
+  </data>
+  <data name="No" xml:space="preserve">
+    <value>Hayır</value>
+  </data>
+  <data name="Nogoal" xml:space="preserve">
+    <value>Gol Yok</value>
+  </data>
+  <data name="Odd" xml:space="preserve">
+    <value>Tek</value>
+  </data>
+  <data name="OddEven" xml:space="preserve">
+    <value>Tek - Çift</value>
+  </data>
+  <data name="OddEvenFirstHalf" xml:space="preserve">
+    <value>Tek - Çift 1. Devre</value>
+  </data>
+  <data name="Over" xml:space="preserve">
+    <value>Üst</value>
+  </data>
+  <data name="OverUnder" xml:space="preserve">
+    <value>Üst/Alt</value>
+  </data>
+  <data name="OverUnderFirstHalf" xml:space="preserve">
+    <value>Üst/Alt 1. Devre</value>
+  </data>
+  <data name="OverUnderSecondHalf" xml:space="preserve">
+    <value>Üst/Alt 2. Devre</value>
+  </data>
+  <data name="Raceto10Corners" xml:space="preserve">
+    <value>Takımın 10. Korneri</value>
+  </data>
+  <data name="Raceto1Corners" xml:space="preserve">
+    <value>Takımın 1. Korneri</value>
+  </data>
+  <data name="Raceto2Corners" xml:space="preserve">
+    <value>Takımın 2. Korneri</value>
+  </data>
+  <data name="Raceto3Corners" xml:space="preserve">
+    <value>Takımın 3. Korneri</value>
+  </data>
+  <data name="Raceto4Corners" xml:space="preserve">
+    <value>Takımın 4. Korneri</value>
+  </data>
+  <data name="Raceto5Corners" xml:space="preserve">
+    <value>Takımın 5. Korneri</value>
+  </data>
+  <data name="Raceto6Corners" xml:space="preserve">
+    <value>Takımın 6. Korneri</value>
+  </data>
+  <data name="Raceto7Corners" xml:space="preserve">
+    <value>Takımın 7. Korneri</value>
+  </data>
+  <data name="Raceto8Corners" xml:space="preserve">
+    <value>Takımın 8. Korneri</value>
+  </data>
+  <data name="Raceto9Corners" xml:space="preserve">
+    <value>Takımın 9. Korneri</value>
+  </data>
+  <data name="RegularSeason" xml:space="preserve">
+    <value>Sezon</value>
+  </data>
+  <data name="RelegationGroup" xml:space="preserve">
+    <value>Küme Düşme Grubu</value>
+  </data>
+  <data name="RelegationRound" xml:space="preserve">
+    <value>Küme Düşme Turu</value>
+  </data>
+  <data name="SecondCorner" xml:space="preserve">
+    <value>2. Korner</value>
+  </data>
+  <data name="SecondHalf" xml:space="preserve">
+    <value>2. Devre</value>
+  </data>
+  <data name="SecondHalfExactGoalsNumber" xml:space="preserve">
+    <value>2. Devre Gol Sayısı</value>
+  </data>
+  <data name="SecondPhase" xml:space="preserve">
+    <value>2. Devre</value>
+  </data>
+  <data name="SecondStage" xml:space="preserve">
+    <value>2. Devre</value>
+  </data>
+  <data name="SeventhCorner" xml:space="preserve">
+    <value>7. Korner</value>
+  </data>
+  <data name="SixthCorner" xml:space="preserve">
+    <value>6. Korner</value>
+  </data>
+  <data name="TenthCorner" xml:space="preserve">
+    <value>10. Korner</value>
+  </data>
+  <data name="ThirdCorner" xml:space="preserve">
+    <value>3. Korner</value>
+  </data>
+  <data name="Under" xml:space="preserve">
+    <value>Alt</value>
+  </data>
+  <data name="Yes" xml:space="preserve">
+    <value>Evet</value>
+  </data>
+  <data name="ArtificialTurf" xml:space="preserve">
+    <value>suni çim</value>
+  </data>
+  <data name="brokenclouds" xml:space="preserve">
+    <value>yer yer açık bulut</value>
+  </data>
+  <data name="clearsky" xml:space="preserve">
+    <value>açık hava</value>
+  </data>
+  <data name="drizzle" xml:space="preserve">
+    <value>çiseleme</value>
+  </data>
+  <data name="drizzlerain" xml:space="preserve">
+    <value>çiseleyen yağmur</value>
+  </data>
+  <data name="Excellent" xml:space="preserve">
+    <value>mükemmel</value>
+  </data>
+  <data name="fewclouds" xml:space="preserve">
+    <value>az bulutlu</value>
+  </data>
+  <data name="fog" xml:space="preserve">
+    <value>sisli</value>
+  </data>
+  <data name="Good" xml:space="preserve">
+    <value>iyi</value>
+  </data>
+  <data name="grass" xml:space="preserve">
+    <value>Çimen</value>
+  </data>
+  <data name="haze" xml:space="preserve">
+    <value>puslu</value>
+  </data>
+  <data name="heavyintensityrain" xml:space="preserve">
+    <value>şiddetli yağmur</value>
+  </data>
+  <data name="lightintensitydrizzle" xml:space="preserve">
+    <value>ışık yoğunluğu çiseleyen yağmur</value>
+  </data>
+  <data name="lightintensitydrizzlerain" xml:space="preserve">
+    <value>ışık yoğunluğu çiseleyen yağmur</value>
+  </data>
+  <data name="lightintensityshowerrain" xml:space="preserve">
+    <value>ışık yoğunluğu duş yağmur</value>
+  </data>
+  <data name="lightrain" xml:space="preserve">
+    <value>hafif yağmur</value>
+  </data>
+  <data name="lightshowersnow" xml:space="preserve">
+    <value>hafif duş kar</value>
+  </data>
+  <data name="lightsnow" xml:space="preserve">
+    <value>hafif kar</value>
+  </data>
+  <data name="mist" xml:space="preserve">
+    <value>sis</value>
+  </data>
+  <data name="moderaterain" xml:space="preserve">
+    <value>ılımlı yağmur</value>
+  </data>
+  <data name="overcastclouds" xml:space="preserve">
+    <value>bulutlu</value>
+  </data>
+  <data name="scatteredclouds" xml:space="preserve">
+    <value>dağınık bulutlar</value>
+  </data>
+  <data name="showerrain" xml:space="preserve">
+    <value>duş yağmuru</value>
+  </data>
+  <data name="showersleet" xml:space="preserve">
+    <value>sulu kar</value>
+  </data>
+  <data name="snow" xml:space="preserve">
+    <value>kar</value>
+  </data>
+  <data name="thunderstorm" xml:space="preserve">
+    <value>sağanak</value>
+  </data>
+  <data name="thunderstormwithrain" xml:space="preserve">
+    <value>sağanak yağmur</value>
+  </data>
+  <data name="Unevenandcuttingup" xml:space="preserve">
+    <value>düzensiz kesim</value>
+  </data>
+  <data name="Wet" xml:space="preserve">
+    <value>ıslak</value>
+  </data>
+  <data name="WetandFast" xml:space="preserve">
+    <value>Islak ve hızlı</value>
+  </data>
+  <data name="clouds" xml:space="preserve">
+    <value>bulutlu</value>
+  </data>
+  <data name="rain" xml:space="preserve">
+    <value>yağmurlu</value>
+  </data>
+  <data name="clear" xml:space="preserve">
+    <value>açık</value>
+  </data>
+  <data name="EighteenthCorner" xml:space="preserve">
+    <value>18. Korner</value>
+  </data>
+  <data name="EleventhCorner" xml:space="preserve">
+    <value>11. Korner</value>
+  </data>
+  <data name="FifteenthCorner" xml:space="preserve">
+    <value>15. Korner</value>
+  </data>
+  <data name="FourteenthCorner" xml:space="preserve">
+    <value>14. Korner</value>
+  </data>
+  <data name="NineteenthCorner" xml:space="preserve">
+    <value>19. Korner</value>
+  </data>
+  <data name="SeventeenthCorner" xml:space="preserve">
+    <value>17. Korner</value>
+  </data>
+  <data name="SixteenthCorner" xml:space="preserve">
+    <value>16. Korner</value>
+  </data>
+  <data name="ThirteenthCorner" xml:space="preserve">
+    <value>13. Korner</value>
+  </data>
+  <data name="TwelfthCorner" xml:space="preserve">
+    <value>12. Korner</value>
+  </data>
+  <data name="TwentiethCorner" xml:space="preserve">
+    <value>20. Korner</value>
+  </data>
+  <data name="TwentyFirstCorner" xml:space="preserve">
+    <value>21. Korner</value>
+  </data>
+  <data name="TwentySecondCorner" xml:space="preserve">
+    <value>22. Korner</value>
+  </data>
+  <data name="ash" xml:space="preserve">
+    <value>kül</value>
+  </data>
+  <data name="dust" xml:space="preserve">
+    <value>toz</value>
+  </data>
+  <data name="sand" xml:space="preserve">
+    <value>kum</value>
+  </data>
+  <data name="smoke" xml:space="preserve">
+    <value>duman</value>
+  </data>
+  <data name="squall" xml:space="preserve">
+    <value>fırtına</value>
+  </data>
+  <data name="_1st_Half" xml:space="preserve">
+    <value>1. Yarı</value>
+  </data>
+  <data name="_2nd_Half" xml:space="preserve">
+    <value>2. Yarı</value>
+  </data>
+  <data name="_Away" xml:space="preserve">
+    <value>2</value>
+  </data>
+  <data name="_Away_No" xml:space="preserve">
+    <value>2/Hayır</value>
+  </data>
+  <data name="_Away_Over" xml:space="preserve">
+    <value>2/Üst</value>
+  </data>
+  <data name="_Away_Under" xml:space="preserve">
+    <value>2/Alt</value>
+  </data>
+  <data name="_Away_Yes" xml:space="preserve">
+    <value>2/Evet</value>
+  </data>
+  <data name="_Draw" xml:space="preserve">
+    <value>X</value>
+  </data>
+  <data name="_Draw_Away" xml:space="preserve">
+    <value>X/2</value>
+  </data>
+  <data name="_Draw_No" xml:space="preserve">
+    <value>X/Hayır</value>
+  </data>
+  <data name="_Draw_Over" xml:space="preserve">
+    <value>X/Üst</value>
+  </data>
+  <data name="_Draw_Under" xml:space="preserve">
+    <value>X/Alt</value>
+  </data>
+  <data name="_Draw_Yes" xml:space="preserve">
+    <value>X/Evet</value>
+  </data>
+  <data name="_Even" xml:space="preserve">
+    <value>Çift</value>
+  </data>
+  <data name="_Home" xml:space="preserve">
+    <value>1</value>
+  </data>
+  <data name="_Home_Away" xml:space="preserve">
+    <value>1/2</value>
+  </data>
+  <data name="_Home_Draw" xml:space="preserve">
+    <value>1/X</value>
+  </data>
+  <data name="_Home_No" xml:space="preserve">
+    <value>1/Hayır</value>
+  </data>
+  <data name="_Home_Over" xml:space="preserve">
+    <value>1/Üst</value>
+  </data>
+  <data name="_Home_Under" xml:space="preserve">
+    <value>1/Alt</value>
+  </data>
+  <data name="_Home_Yes" xml:space="preserve">
+    <value>2/Evet</value>
+  </data>
+  <data name="_more_1" xml:space="preserve">
+    <value>1+</value>
+  </data>
+  <data name="_more_2" xml:space="preserve">
+    <value>2+</value>
+  </data>
+  <data name="_more_3" xml:space="preserve">
+    <value>3+</value>
+  </data>
+  <data name="_more_4" xml:space="preserve">
+    <value>4+</value>
+  </data>
+  <data name="_more_5" xml:space="preserve">
+    <value>5+</value>
+  </data>
+  <data name="_more_6" xml:space="preserve">
+    <value>6+</value>
+  </data>
+  <data name="_more_7" xml:space="preserve">
+    <value>7+</value>
+  </data>
+  <data name="_more_8" xml:space="preserve">
+    <value>8+</value>
+  </data>
+  <data name="_more_9" xml:space="preserve">
+    <value>9+</value>
+  </data>
+  <data name="_No" xml:space="preserve">
+    <value>Hayır</value>
+  </data>
+  <data name="_No_goal" xml:space="preserve">
+    <value>Gol Yok</value>
+  </data>
+  <data name="_Odd" xml:space="preserve">
+    <value>Tek</value>
+  </data>
+  <data name="_Over" xml:space="preserve">
+    <value>Üst</value>
+  </data>
+  <data name="_Under" xml:space="preserve">
+    <value>Alt</value>
+  </data>
+  <data name="_Yes" xml:space="preserve">
+    <value>Evet</value>
+  </data>
+  <data name="_1" xml:space="preserve">
+    <value>1</value>
+  </data>
+  <data name="_2" xml:space="preserve">
+    <value>2</value>
+  </data>
+  <data name="_X" xml:space="preserve">
+    <value>X</value>
+  </data>
+  <data name="_2nd_Division__Group_1" xml:space="preserve">
+    <value>2nd Division: Grup 1</value>
+  </data>
+  <data name="_2nd_Division__Group_2" xml:space="preserve">
+    <value>2nd Division: Grup 2</value>
+  </data>
+  <data name="_2nd_Division__Group_3" xml:space="preserve">
+    <value>2nd Division: Grup 3</value>
+  </data>
+  <data name="_2nd_Division__Group_A" xml:space="preserve">
+    <value>2nd Division: Grup A</value>
+  </data>
+  <data name="_2nd_Division__Group_B" xml:space="preserve">
+    <value>2nd Division: Grup B</value>
+  </data>
+  <data name="_2__Division__Group_1" xml:space="preserve">
+    <value>2. Division: Grup 1</value>
+  </data>
+  <data name="_2__Division__Group_2" xml:space="preserve">
+    <value>2. Division: Grup 2</value>
+  </data>
+  <data name="_3__Lig__Group_1" xml:space="preserve">
+    <value>3. Lig: Grup 1</value>
+  </data>
+  <data name="_3__Lig__Group_2" xml:space="preserve">
+    <value>3. Lig: Grup 2</value>
+  </data>
+  <data name="_3__Lig__Group_3" xml:space="preserve">
+    <value>3. Lig: Grup 3</value>
+  </data>
+  <data name="_Campeonato_de_Portugal_Prio__Group_A" xml:space="preserve">
+    <value>Campeonato de Portugal Prio: Grup A</value>
+  </data>
+  <data name="_Campeonato_de_Portugal_Prio__Group_B" xml:space="preserve">
+    <value>Campeonato de Portugal Prio: Grup B</value>
+  </data>
+  <data name="_Campeonato_de_Portugal_Prio__Group_C" xml:space="preserve">
+    <value>Campeonato de Portugal Prio: Grup C</value>
+  </data>
+  <data name="_Campeonato_de_Portugal_Prio__Group_D" xml:space="preserve">
+    <value>Campeonato de Portugal Prio: Grup D</value>
+  </data>
+  <data name="_Campeonato_de_Portugal_Prio__Group_E" xml:space="preserve">
+    <value>Campeonato de Portugal Prio: Grup E</value>
+  </data>
+  <data name="_Centro_Oriental" xml:space="preserve">
+    <value>Centro Oriental</value>
+  </data>
+  <data name="_Championship_Group" xml:space="preserve">
+    <value>Championship Grup</value>
+  </data>
+  <data name="_Deep_South_Division" xml:space="preserve">
+    <value>Deep South Division</value>
+  </data>
+  <data name="_Denmark_Series__Group_1" xml:space="preserve">
+    <value>Denmark Series: Grup 1</value>
+  </data>
+  <data name="_Denmark_Series__Group_2" xml:space="preserve">
+    <value>Denmark Series: Grup 2</value>
+  </data>
+  <data name="_Denmark_Series__Group_3" xml:space="preserve">
+    <value>Denmark Series: Grup 3</value>
+  </data>
+  <data name="_Denmark_Series__Group_4" xml:space="preserve">
+    <value>Denmark Series: Grup 4</value>
+  </data>
+  <data name="_Druha_Liga__Group_A" xml:space="preserve">
+    <value>Druha Liga: Grup A</value>
+  </data>
+  <data name="_Druha_Liga__Group_B" xml:space="preserve">
+    <value>Druha Liga: Grup B</value>
+  </data>
+  <data name="_Eastern_Conference" xml:space="preserve">
+    <value>Eastern Conference</value>
+  </data>
+  <data name="_Gamma_Ethniki__Group_1" xml:space="preserve">
+    <value>Gamma Ethniki: Grup 1</value>
+  </data>
+  <data name="_Gamma_Ethniki__Group_2" xml:space="preserve">
+    <value>Gamma Ethniki: Grup 2</value>
+  </data>
+  <data name="_Gamma_Ethniki__Group_3" xml:space="preserve">
+    <value>Gamma Ethniki: Grup 3</value>
+  </data>
+  <data name="_Gamma_Ethniki__Group_4" xml:space="preserve">
+    <value>Gamma Ethniki: Grup 4</value>
+  </data>
+  <data name="_Gamma_Ethniki__Group_5" xml:space="preserve">
+    <value>Gamma Ethniki: Grup 5</value>
+  </data>
+  <data name="_Gamma_Ethniki__Group_7" xml:space="preserve">
+    <value>Gamma Ethniki: Grup 7</value>
+  </data>
+  <data name="_Great_Lakes_Division" xml:space="preserve">
+    <value>Great Lakes Division</value>
+  </data>
+  <data name="_Group_1" xml:space="preserve">
+    <value>Grup 1</value>
+  </data>
+  <data name="_Group_10" xml:space="preserve">
+    <value>Grup 10</value>
+  </data>
+  <data name="_Group_11" xml:space="preserve">
+    <value>Grup 11</value>
+  </data>
+  <data name="_Group_12" xml:space="preserve">
+    <value>Grup 12</value>
+  </data>
+  <data name="_Group_13" xml:space="preserve">
+    <value>Grup 13</value>
+  </data>
+  <data name="_Group_14" xml:space="preserve">
+    <value>Grup 14</value>
+  </data>
+  <data name="_Group_15" xml:space="preserve">
+    <value>Grup 15</value>
+  </data>
+  <data name="_Group_16" xml:space="preserve">
+    <value>Grup 16</value>
+  </data>
+  <data name="_Group_17" xml:space="preserve">
+    <value>Grup 17</value>
+  </data>
+  <data name="_Group_1_North" xml:space="preserve">
+    <value>Grup 1 North</value>
+  </data>
+  <data name="_Group_1_South" xml:space="preserve">
+    <value>Grup 1 South</value>
+  </data>
+  <data name="_Group_2" xml:space="preserve">
+    <value>Grup 2</value>
+  </data>
+  <data name="_Group_2_North" xml:space="preserve">
+    <value>Grup 2 North</value>
+  </data>
+  <data name="_Group_2_South" xml:space="preserve">
+    <value>Grup 2 South</value>
+  </data>
+  <data name="_Group_3" xml:space="preserve">
+    <value>Grup 3</value>
+  </data>
+  <data name="_Group_4" xml:space="preserve">
+    <value>Grup 4</value>
+  </data>
+  <data name="_Group_5" xml:space="preserve">
+    <value>Grup 5</value>
+  </data>
+  <data name="_Group_6" xml:space="preserve">
+    <value>Grup 6</value>
+  </data>
+  <data name="_Group_7" xml:space="preserve">
+    <value>Grup 7</value>
+  </data>
+  <data name="_Group_8" xml:space="preserve">
+    <value>Grup 8</value>
+  </data>
+  <data name="_Group_9" xml:space="preserve">
+    <value>Grup 9</value>
+  </data>
+  <data name="_Group_A" xml:space="preserve">
+    <value>Grup A</value>
+  </data>
+  <data name="_Group_B" xml:space="preserve">
+    <value>Grup B</value>
+  </data>
+  <data name="_Group_C" xml:space="preserve">
+    <value>Grup C</value>
+  </data>
+  <data name="_Group_D" xml:space="preserve">
+    <value>Grup D</value>
+  </data>
+  <data name="_Group_E" xml:space="preserve">
+    <value>Grup E</value>
+  </data>
+  <data name="_Group_F" xml:space="preserve">
+    <value>Grup F</value>
+  </data>
+  <data name="_Group_G" xml:space="preserve">
+    <value>Grup G</value>
+  </data>
+  <data name="_Group_H" xml:space="preserve">
+    <value>Grup H</value>
+  </data>
+  <data name="_Group_I" xml:space="preserve">
+    <value>Grup I</value>
+  </data>
+  <data name="_Group_J" xml:space="preserve">
+    <value>Grup J</value>
+  </data>
+  <data name="_Group_K" xml:space="preserve">
+    <value>Grup K</value>
+  </data>
+  <data name="_Group_L" xml:space="preserve">
+    <value>Grup L</value>
+  </data>
+  <data name="_Heartland_Division" xml:space="preserve">
+    <value>Heartland Division</value>
+  </data>
+  <data name="_Kakkonen__Group_A" xml:space="preserve">
+    <value>Kakkonen: Grup A</value>
+  </data>
+  <data name="_Kakkonen__Group_B" xml:space="preserve">
+    <value>Kakkonen: Grup B</value>
+  </data>
+  <data name="_Kakkonen__Group_C" xml:space="preserve">
+    <value>Kakkonen: Grup C</value>
+  </data>
+  <data name="_Mid_Atlantic_Division" xml:space="preserve">
+    <value>Mid Atlantic Division</value>
+  </data>
+  <data name="_Mid_South_Division" xml:space="preserve">
+    <value>Mid South Division</value>
+  </data>
+  <data name="_Mountain_Division" xml:space="preserve">
+    <value>Mountain Division</value>
+  </data>
+  <data name="_National_2__Group_A" xml:space="preserve">
+    <value>National 2: Grup A</value>
+  </data>
+  <data name="_National_2__Group_B" xml:space="preserve">
+    <value>National 2: Grup B</value>
+  </data>
+  <data name="_National_2__Group_C" xml:space="preserve">
+    <value>National 2: Grup C</value>
+  </data>
+  <data name="_National_2__Group_D" xml:space="preserve">
+    <value>National 2: Grup D</value>
+  </data>
+  <data name="_National_3__Group_A" xml:space="preserve">
+    <value>National 3: Grup A</value>
+  </data>
+  <data name="_National_3__Group_B" xml:space="preserve">
+    <value>National 3: Grup B</value>
+  </data>
+  <data name="_National_3__Group_C" xml:space="preserve">
+    <value>National 3: Grup C</value>
+  </data>
+  <data name="_National_3__Group_D" xml:space="preserve">
+    <value>National 3: Grup D</value>
+  </data>
+  <data name="_National_3__Group_E" xml:space="preserve">
+    <value>National 3: Grup E</value>
+  </data>
+  <data name="_National_3__Group_F" xml:space="preserve">
+    <value>National 3: Grup F</value>
+  </data>
+  <data name="_National_3__Group_H" xml:space="preserve">
+    <value>National 3: Grup H</value>
+  </data>
+  <data name="_National_3__Group_I" xml:space="preserve">
+    <value>National 3: Grup I</value>
+  </data>
+  <data name="_National_3__Group_L" xml:space="preserve">
+    <value>National 3: Grup L</value>
+  </data>
+  <data name="_North" xml:space="preserve">
+    <value>North</value>
+  </data>
+  <data name="_Northeast_Division" xml:space="preserve">
+    <value>Northeast Division</value>
+  </data>
+  <data name="_Northern_Group_A" xml:space="preserve">
+    <value>Northern Grup A</value>
+  </data>
+  <data name="_Northern_Group_B" xml:space="preserve">
+    <value>Northern Grup B</value>
+  </data>
+  <data name="_Northern_Group_C" xml:space="preserve">
+    <value>Northern Grup C</value>
+  </data>
+  <data name="_Northern_Group_D" xml:space="preserve">
+    <value>Northern Grup D</value>
+  </data>
+  <data name="_Northern_Group_E" xml:space="preserve">
+    <value>Northern Grup E</value>
+  </data>
+  <data name="_Northern_Group_F" xml:space="preserve">
+    <value>Northern Grup F</value>
+  </data>
+  <data name="_Northern_Group_G" xml:space="preserve">
+    <value>Northern Grup G</value>
+  </data>
+  <data name="_Northern_Group_H" xml:space="preserve">
+    <value>Northern Grup H</value>
+  </data>
+  <data name="_Northwest_Division" xml:space="preserve">
+    <value>Northwest Division</value>
+  </data>
+  <data name="_Occidental" xml:space="preserve">
+    <value>Occidental</value>
+  </data>
+  <data name="_Ranking_of_second_placed_teams" xml:space="preserve">
+    <value>Ranking of second-placed teams</value>
+  </data>
+  <data name="_Ranking_of_third_placed_teams" xml:space="preserve">
+    <value>Ranking of third-placed teams</value>
+  </data>
+  <data name="_Relegation_Group" xml:space="preserve">
+    <value>Relegation Grup</value>
+  </data>
+  <data name="_Segunda_B__Group_1" xml:space="preserve">
+    <value>Segunda B: Grup 1</value>
+  </data>
+  <data name="_Segunda_B__Group_2" xml:space="preserve">
+    <value>Segunda B: Grup 2</value>
+  </data>
+  <data name="_Segunda_B__Group_3" xml:space="preserve">
+    <value>Segunda B: Grup 3</value>
+  </data>
+  <data name="_Segunda_B__Group_4" xml:space="preserve">
+    <value>Segunda B: Grup 4</value>
+  </data>
+  <data name="_Serie_D__Group_A" xml:space="preserve">
+    <value>Serie D: Grup A</value>
+  </data>
+  <data name="_Serie_D__Group_B" xml:space="preserve">
+    <value>Serie D: Grup B</value>
+  </data>
+  <data name="_Serie_D__Group_C" xml:space="preserve">
+    <value>Serie D: Grup C</value>
+  </data>
+  <data name="_Serie_D__Group_D" xml:space="preserve">
+    <value>Serie D: Grup D</value>
+  </data>
+  <data name="_Serie_D__Group_E" xml:space="preserve">
+    <value>Serie D: Grup E</value>
+  </data>
+  <data name="_Serie_D__Group_F" xml:space="preserve">
+    <value>Serie D: Grup F</value>
+  </data>
+  <data name="_Serie_D__Group_G" xml:space="preserve">
+    <value>Serie D: Grup G</value>
+  </data>
+  <data name="_Serie_D__Group_H" xml:space="preserve">
+    <value>Serie D: Grup H</value>
+  </data>
+  <data name="_Serie_D__Group_I" xml:space="preserve">
+    <value>Serie D: Grup I</value>
+  </data>
+  <data name="_South" xml:space="preserve">
+    <value>South</value>
+  </data>
+  <data name="_Southeast_Division" xml:space="preserve">
+    <value>Southeast Division</value>
+  </data>
+  <data name="_Southern_Group_A" xml:space="preserve">
+    <value>Southern Grup A</value>
+  </data>
+  <data name="_Southern_Group_B" xml:space="preserve">
+    <value>Southern Grup B</value>
+  </data>
+  <data name="_Southern_Group_C" xml:space="preserve">
+    <value>Southern Grup C</value>
+  </data>
+  <data name="_Southern_Group_D" xml:space="preserve">
+    <value>Southern Grup D</value>
+  </data>
+  <data name="_Southern_Group_E" xml:space="preserve">
+    <value>Southern Grup E</value>
+  </data>
+  <data name="_Southern_Group_F" xml:space="preserve">
+    <value>Southern Grup F</value>
+  </data>
+  <data name="_Southern_Group_G" xml:space="preserve">
+    <value>Southern Grup G</value>
+  </data>
+  <data name="_Southern_Group_H" xml:space="preserve">
+    <value>Southern Grup H</value>
+  </data>
+  <data name="_Southwest_Division" xml:space="preserve">
+    <value>Southwest Division</value>
+  </data>
+  <data name="_South_Atlantic_Division" xml:space="preserve">
+    <value>South Atlantic Division</value>
+  </data>
+  <data name="_Tercera_Division__Group_1" xml:space="preserve">
+    <value>Tercera Division: Grup 1</value>
+  </data>
+  <data name="_Tercera_Division__Group_10" xml:space="preserve">
+    <value>Tercera Division: Grup 10</value>
+  </data>
+  <data name="_Tercera_Division__Group_11" xml:space="preserve">
+    <value>Tercera Division: Grup 11</value>
+  </data>
+  <data name="_Tercera_Division__Group_12" xml:space="preserve">
+    <value>Tercera Division: Grup 12</value>
+  </data>
+  <data name="_Tercera_Division__Group_13" xml:space="preserve">
+    <value>Tercera Division: Grup 13</value>
+  </data>
+  <data name="_Tercera_Division__Group_14" xml:space="preserve">
+    <value>Tercera Division: Grup 14</value>
+  </data>
+  <data name="_Tercera_Division__Group_15" xml:space="preserve">
+    <value>Tercera Division: Grup 15</value>
+  </data>
+  <data name="_Tercera_Division__Group_16" xml:space="preserve">
+    <value>Tercera Division: Grup 16</value>
+  </data>
+  <data name="_Tercera_Division__Group_17" xml:space="preserve">
+    <value>Tercera Division: Grup 17</value>
+  </data>
+  <data name="_Tercera_Division__Group_18" xml:space="preserve">
+    <value>Tercera Division: Grup 18</value>
+  </data>
+  <data name="_Tercera_Division__Group_2" xml:space="preserve">
+    <value>Tercera Division: Grup 2</value>
+  </data>
+  <data name="_Tercera_Division__Group_3" xml:space="preserve">
+    <value>Tercera Division: Grup 3</value>
+  </data>
+  <data name="_Tercera_Division__Group_4" xml:space="preserve">
+    <value>Tercera Division: Grup 4</value>
+  </data>
+  <data name="_Tercera_Division__Group_5" xml:space="preserve">
+    <value>Tercera Division: Grup 5</value>
+  </data>
+  <data name="_Tercera_Division__Group_6" xml:space="preserve">
+    <value>Tercera Division: Grup 6</value>
+  </data>
+  <data name="_Tercera_Division__Group_7" xml:space="preserve">
+    <value>Tercera Division: Grup 7</value>
+  </data>
+  <data name="_Tercera_Division__Group_8" xml:space="preserve">
+    <value>Tercera Division: Grup 8</value>
+  </data>
+  <data name="_Tercera_Division__Group_9" xml:space="preserve">
+    <value>Tercera Division: Grup 9</value>
+  </data>
+  <data name="_Western_Conference" xml:space="preserve">
+    <value>Western Conference</value>
+  </data>
+  <data name="market1" xml:space="preserve">
+    <value>Maç Sonucu</value>
+  </data>
+  <data name="market10" xml:space="preserve">
+    <value>Ev Sahibi - Deplasman</value>
+  </data>
+  <data name="market101" xml:space="preserve">
+    <value>Ev S. - Dep.</value>
+  </data>
+  <data name="market11" xml:space="preserve">
+    <value>MS</value>
+  </data>
+  <data name="market12" xml:space="preserve">
+    <value>Üst / Alt</value>
+  </data>
+  <data name="market121" xml:space="preserve">
+    <value>Ü/A</value>
+  </data>
+  <data name="market14234040" xml:space="preserve">
+    <value>9. Korner</value>
+  </data>
+  <data name="market142340401" xml:space="preserve">
+    <value>9. Korner</value>
+  </data>
+  <data name="market14234050" xml:space="preserve">
+    <value>Tek / Çift</value>
+  </data>
+  <data name="market142340501" xml:space="preserve">
+    <value>Tek / Çift</value>
+  </data>
+  <data name="market14234105" xml:space="preserve">
+    <value>2. Devre Çifte Şans</value>
+  </data>
+  <data name="market142341051" xml:space="preserve">
+    <value>2. Yarı ÇŞ</value>
+  </data>
+  <data name="market2306278" xml:space="preserve">
+    <value>Tur Atlar</value>
+  </data>
+  <data name="market23062781" xml:space="preserve">
+    <value>Tur Atlar</value>
+  </data>
+  <data name="market28" xml:space="preserve">
+    <value>Handikap</value>
+  </data>
+  <data name="market281" xml:space="preserve">
+    <value>Handikap</value>
+  </data>
+  <data name="market37" xml:space="preserve">
+    <value>1. Devre Sonucu</value>
+  </data>
+  <data name="market371" xml:space="preserve">
+    <value>1. Yarı</value>
+  </data>
+  <data name="market38" xml:space="preserve">
+    <value>1. Devre Üst / Alt</value>
+  </data>
+  <data name="market381" xml:space="preserve">
+    <value>1. Yarı Ü/A</value>
+  </data>
+  <data name="market47" xml:space="preserve">
+    <value>2. Devre Üst / Alt</value>
+  </data>
+  <data name="market471" xml:space="preserve">
+    <value>2. Yarı Ü/A</value>
+  </data>
+  <data name="market53" xml:space="preserve">
+    <value>İY / MS </value>
+  </data>
+  <data name="market531" xml:space="preserve">
+    <value>İY / MS </value>
+  </data>
+  <data name="market59" xml:space="preserve">
+    <value>Karşılıklı Gol</value>
+  </data>
+  <data name="market591" xml:space="preserve">
+    <value>KG</value>
+  </data>
+  <data name="market63" xml:space="preserve">
+    <value>Çifte Şans</value>
+  </data>
+  <data name="market631" xml:space="preserve">
+    <value>ÇŞ</value>
+  </data>
+  <data name="market69" xml:space="preserve">
+    <value>İlk Gol</value>
+  </data>
+  <data name="market691" xml:space="preserve">
+    <value>İlk Gol</value>
+  </data>
+  <data name="market75" xml:space="preserve">
+    <value>Son Gol</value>
+  </data>
+  <data name="market751" xml:space="preserve">
+    <value>Son Gol</value>
+  </data>
+  <data name="market80" xml:space="preserve">
+    <value>2. Devre Sonucu</value>
+  </data>
+  <data name="market801" xml:space="preserve">
+    <value>2. Yarı DS</value>
+  </data>
+  <data name="market83" xml:space="preserve">
+    <value>Maç Sonucu Handikap</value>
+  </data>
+  <data name="market831" xml:space="preserve">
+    <value>Handikap</value>
+  </data>
+  <data name="market8594683" xml:space="preserve">
+    <value>Deplasman Gol Yemez</value>
+  </data>
+  <data name="market85946831" xml:space="preserve">
+    <value>Dep. Gol Yemez</value>
+  </data>
+  <data name="market975903" xml:space="preserve">
+    <value>1. Devre Üst / Alt</value>
+  </data>
+  <data name="market9759031" xml:space="preserve">
+    <value>1. Yarı Ü/A</value>
+  </data>
+  <data name="market975905" xml:space="preserve">
+    <value>İY / MS </value>
+  </data>
+  <data name="market9759051" xml:space="preserve">
+    <value>İY / MS </value>
+  </data>
+  <data name="market975909" xml:space="preserve">
+    <value>Skor</value>
+  </data>
+  <data name="market9759091" xml:space="preserve">
+    <value>Skor</value>
+  </data>
+  <data name="market975916" xml:space="preserve">
+    <value>1. Devre Skor</value>
+  </data>
+  <data name="market9759161" xml:space="preserve">
+    <value>1. Yarı Skor</value>
+  </data>
+  <data name="market975918" xml:space="preserve">
+    <value>Çifte Şans</value>
+  </data>
+  <data name="market9759181" xml:space="preserve">
+    <value>Çifte Şans</value>
+  </data>
+  <data name="market975923" xml:space="preserve">
+    <value>İlk Gol</value>
+  </data>
+  <data name="market9759231" xml:space="preserve">
+    <value>İlk Gol</value>
+  </data>
+  <data name="market975925" xml:space="preserve">
+    <value>1. Devre Asya Handikap</value>
+  </data>
+  <data name="market9759251" xml:space="preserve">
+    <value>1. Yarı Asya H.</value>
+  </data>
+  <data name="market975926" xml:space="preserve">
+    <value>1. Devre Çifte Şans</value>
+  </data>
+  <data name="market9759261" xml:space="preserve">
+    <value>1. Yarı ÇŞ</value>
+  </data>
+  <data name="market975929" xml:space="preserve">
+    <value>1. Devre Kazanır</value>
+  </data>
+  <data name="market9759291" xml:space="preserve">
+    <value>1. Yarı Kazanır</value>
+  </data>
+  <data name="market975930" xml:space="preserve">
+    <value>Tek / Çift</value>
+  </data>
+  <data name="market9759301" xml:space="preserve">
+    <value>Tek / Çift</value>
+  </data>
+  <data name="market975932" xml:space="preserve">
+    <value>1. Devre Tek / Çift</value>
+  </data>
+  <data name="market9759321" xml:space="preserve">
+    <value>1. Yarı Tek / Çift</value>
+  </data>
+  <data name="market976096" xml:space="preserve">
+    <value>Ev Sahibi Gol Yemez</value>
+  </data>
+  <data name="market9760961" xml:space="preserve">
+    <value>Ev S. Gol Yemez</value>
+  </data>
+  <data name="market976105" xml:space="preserve">
+    <value>Karşılıklı Gol</value>
+  </data>
+  <data name="market9761051" xml:space="preserve">
+    <value>KG</value>
+  </data>
+  <data name="market976144" xml:space="preserve">
+    <value>En Çok Gol Olacak Devre</value>
+  </data>
+  <data name="market9761441" xml:space="preserve">
+    <value>En Çok Gol Olacak Devre</value>
+  </data>
+  <data name="market976187" xml:space="preserve">
+    <value>Son Gol</value>
+  </data>
+  <data name="market9761871" xml:space="preserve">
+    <value>Son Gol</value>
+  </data>
+  <data name="market976193" xml:space="preserve">
+    <value>Her İki Devreyi Kazanır</value>
+  </data>
+  <data name="market9761931" xml:space="preserve">
+    <value>Her İki Devreyi Kazanır</value>
+  </data>
+  <data name="market976198" xml:space="preserve">
+    <value>Toplam Gol - Ev Sahibi</value>
+  </data>
+  <data name="market9761981" xml:space="preserve">
+    <value>TG - Ev S.</value>
+  </data>
+  <data name="market976204" xml:space="preserve">
+    <value>Toplam Gol - Deplasman</value>
+  </data>
+  <data name="market9762041" xml:space="preserve">
+    <value>TG - Dep.</value>
+  </data>
+  <data name="market976209" xml:space="preserve">
+    <value>1. Devre Handikap</value>
+  </data>
+  <data name="market9762091" xml:space="preserve">
+    <value>1. Yarı H.</value>
+  </data>
+  <data name="market976226" xml:space="preserve">
+    <value>1. Devre Karşılıklı Gol</value>
+  </data>
+  <data name="market9762261" xml:space="preserve">
+    <value>1. Yarı KG</value>
+  </data>
+  <data name="market976230" xml:space="preserve">
+    <value>2. Devre Karşılıklı Gol</value>
+  </data>
+  <data name="market9762301" xml:space="preserve">
+    <value>2. Yarı KG</value>
+  </data>
+  <data name="market976236" xml:space="preserve">
+    <value>Gol Yemeden Kazanır</value>
+  </data>
+  <data name="market9762361" xml:space="preserve">
+    <value>Gol Yemeden Kazanır</value>
+  </data>
+  <data name="market976241" xml:space="preserve">
+    <value>Gol Sayısı</value>
+  </data>
+  <data name="market9762411" xml:space="preserve">
+    <value>Gol Sayısı</value>
+  </data>
+  <data name="market976265" xml:space="preserve">
+    <value>1. Devre veya 2. Devre Kazanır</value>
+  </data>
+  <data name="market9762651" xml:space="preserve">
+    <value>1. Yarı veya 2. Yarı Kazanır</value>
+  </data>
+  <data name="market976270" xml:space="preserve">
+    <value>Ev Sahibi Gol Sayısı</value>
+  </data>
+  <data name="market9762701" xml:space="preserve">
+    <value>Ev S. Gol Sayısı</value>
+  </data>
+  <data name="market976286" xml:space="preserve">
+    <value>Deplasman Gol Sayısı</value>
+  </data>
+  <data name="market9762861" xml:space="preserve">
+    <value>Dep. Gol Sayısı</value>
+  </data>
+  <data name="market976298" xml:space="preserve">
+    <value>2. Devre Gol Sayısı</value>
+  </data>
+  <data name="market9762981" xml:space="preserve">
+    <value>2Y Gol Sayısı</value>
+  </data>
+  <data name="market976316" xml:space="preserve">
+    <value>Maç Sonucu / Karşılıklı Gol</value>
+  </data>
+  <data name="market9763161" xml:space="preserve">
+    <value>MS / KG</value>
+  </data>
+  <data name="market976334" xml:space="preserve">
+    <value>Maç Sonucu / Toplam Gol</value>
+  </data>
+  <data name="market9763341" xml:space="preserve">
+    <value>MS / TG</value>
+  </data>
+  <data name="market976348" xml:space="preserve">
+    <value>Ev Sahibi Gol Atar</value>
+  </data>
+  <data name="market9763481" xml:space="preserve">
+    <value>Ev S. Gol Atar</value>
+  </data>
+  <data name="market976360" xml:space="preserve">
+    <value>Deplasman Gol Atar</value>
+  </data>
+  <data name="market9763601" xml:space="preserve">
+    <value>Dep. Gol Atar</value>
+  </data>
+  <data name="market976373" xml:space="preserve">
+    <value>İlk 10 Dk Kazanır</value>
+  </data>
+  <data name="market9763731" xml:space="preserve">
+    <value>İlk 10 Dk Kazanır</value>
+  </data>
+  <data name="market976384" xml:space="preserve">
+    <value>Korner Üst / Alt</value>
+  </data>
+  <data name="market9763841" xml:space="preserve">
+    <value>Korner Ü/A</value>
+  </data>
+  <data name="market976389" xml:space="preserve">
+    <value>1. Devre Gol Sayısı</value>
+  </data>
+  <data name="market9763891" xml:space="preserve">
+    <value>1. Yarı Gol Sayısı</value>
+  </data>
+  <data name="market977179" xml:space="preserve">
+    <value>Korner</value>
+  </data>
+  <data name="market9771791" xml:space="preserve">
+    <value>Korner</value>
+  </data>
+  <data name="market977329" xml:space="preserve">
+    <value>2. Devre Skor</value>
+  </data>
+  <data name="market9773291" xml:space="preserve">
+    <value>2. Yarı Skor</value>
+  </data>
+  <data name="_11" xml:space="preserve">
+    <value>1</value>
+  </data>
+  <data name="_11th_Place_Final" xml:space="preserve">
+    <value> 11. Sıra Final</value>
+  </data>
+  <data name="_13th_Place_Final" xml:space="preserve">
+    <value> 13. Sıra Final</value>
+  </data>
+  <data name="_16th_Finals" xml:space="preserve">
+    <value> 16. Finals</value>
+  </data>
+  <data name="_1st_Half1" xml:space="preserve">
+    <value>1.Y.</value>
+  </data>
+  <data name="_1st_Phase" xml:space="preserve">
+    <value> 1. Aşama</value>
+  </data>
+  <data name="_1st_Phase___Final" xml:space="preserve">
+    <value> 1. Aşama - Final</value>
+  </data>
+  <data name="_1st_Phase___Semi_finals" xml:space="preserve">
+    <value> 1. Aşama - Yarı Final</value>
+  </data>
+  <data name="_1st_Preliminary_Round" xml:space="preserve">
+    <value> 1. Ön Tur</value>
+  </data>
+  <data name="_1st_Qualifying_Round" xml:space="preserve">
+    <value> 1. Eleme Tur</value>
+  </data>
+  <data name="_1st_Round" xml:space="preserve">
+    <value> 1. Tur</value>
+  </data>
+  <data name="_1st_Round_Qualifying" xml:space="preserve">
+    <value> 1. Tur Eleme</value>
+  </data>
+  <data name="_1st_Round_Qualifying_Replay" xml:space="preserve">
+    <value> 1. Tur Eleme Tekrar</value>
+  </data>
+  <data name="_1st_Round_Qualifying_Replays" xml:space="preserve">
+    <value> 1. Tur Eleme Tekrar</value>
+  </data>
+  <data name="_1st_Round_Replays" xml:space="preserve">
+    <value> 1. Tur Tekrar</value>
+  </data>
+  <data name="_21" xml:space="preserve">
+    <value>2</value>
+  </data>
+  <data name="_2nd_Half1" xml:space="preserve">
+    <value>2.Y.</value>
+  </data>
+  <data name="_2nd_Phase" xml:space="preserve">
+    <value> 2. Aşama</value>
+  </data>
+  <data name="_2nd_Phase_Reválida_1" xml:space="preserve">
+    <value> 2. Aşama Reválida 1</value>
+  </data>
+  <data name="_2nd_Phase___Final" xml:space="preserve">
+    <value> 2. Aşama - Final</value>
+  </data>
+  <data name="_2nd_Phase___Semi_finals" xml:space="preserve">
+    <value> 2. Aşama - Yarı Final</value>
+  </data>
+  <data name="_2nd_Preliminary_Round" xml:space="preserve">
+    <value> 2. Ön Tur</value>
+  </data>
+  <data name="_2nd_Qualifying_Round" xml:space="preserve">
+    <value> 2. Eleme Tur</value>
+  </data>
+  <data name="_2nd_Round" xml:space="preserve">
+    <value> 2. Tur</value>
+  </data>
+  <data name="_2nd_Round_Qualifying" xml:space="preserve">
+    <value> 2. Tur Eleme</value>
+  </data>
+  <data name="_2nd_Round_Qualifying_Replays" xml:space="preserve">
+    <value> 2. Tur Eleme Tekrar</value>
+  </data>
+  <data name="_2nd_Round_Replay" xml:space="preserve">
+    <value> 2. Tur Tekrar</value>
+  </data>
+  <data name="_2nd_Round_Replays" xml:space="preserve">
+    <value> 2. Tur Tekrar</value>
+  </data>
+  <data name="_2nd_Stage" xml:space="preserve">
+    <value> 2. Aşama</value>
+  </data>
+  <data name="_32nd_Finals" xml:space="preserve">
+    <value> 32. Final</value>
+  </data>
+  <data name="_3rd_Phase" xml:space="preserve">
+    <value> 3. Aşama</value>
+  </data>
+  <data name="_3rd_Place_Final" xml:space="preserve">
+    <value> 3. Sıra Final</value>
+  </data>
+  <data name="_3rd_Qualifying_Round" xml:space="preserve">
+    <value> 3. Eleme Tur</value>
+  </data>
+  <data name="_3rd_Round" xml:space="preserve">
+    <value> 3. Tur</value>
+  </data>
+  <data name="_3rd_Round_Qualifying" xml:space="preserve">
+    <value> 3. Tur Eleme</value>
+  </data>
+  <data name="_3rd_Round_Qualifying_Replays" xml:space="preserve">
+    <value> 3. Tur Eleme Tekrar</value>
+  </data>
+  <data name="_3rd_Round_Replays" xml:space="preserve">
+    <value> 3. Tur Tekrar</value>
+  </data>
+  <data name="_4th_Round" xml:space="preserve">
+    <value> 4. Tur</value>
+  </data>
+  <data name="_4th_Round_Qualifying" xml:space="preserve">
+    <value> 4. Tur Eleme</value>
+  </data>
+  <data name="_4th_Round_Qualifying_Replays" xml:space="preserve">
+    <value> 4. Tur Eleme Tekrar</value>
+  </data>
+  <data name="_4th_Round_Replays" xml:space="preserve">
+    <value> 4. Tur Tekrar</value>
+  </data>
+  <data name="_5th_Place_Final" xml:space="preserve">
+    <value> 5. Sıra Final</value>
+  </data>
+  <data name="_5th_Place_Play_off" xml:space="preserve">
+    <value> 5. Sıra Play-off</value>
+  </data>
+  <data name="_5th_Round" xml:space="preserve">
+    <value> 5. Tur</value>
+  </data>
+  <data name="_5th_Round_Replays" xml:space="preserve">
+    <value> 5. Tur Tekrar</value>
+  </data>
+  <data name="_64th_Finals" xml:space="preserve">
+    <value> 64. Finals</value>
+  </data>
+  <data name="_6th_Round" xml:space="preserve">
+    <value> 6. Tur</value>
+  </data>
+  <data name="_7th_Place_Final" xml:space="preserve">
+    <value> 7. Sıra Final</value>
+  </data>
+  <data name="_7th_Round" xml:space="preserve">
+    <value> 7. Tur</value>
+  </data>
+  <data name="_8th_Finals" xml:space="preserve">
+    <value> 8. Final</value>
+  </data>
+  <data name="_8th_Round" xml:space="preserve">
+    <value> 8. Tur</value>
+  </data>
+  <data name="_9th_Place_Final" xml:space="preserve">
+    <value> 9. Sıra Final</value>
+  </data>
+  <data name="_Apertura" xml:space="preserve">
+    <value> Apertura</value>
+  </data>
+  <data name="_Apertura___3rd_Place_Finals" xml:space="preserve">
+    <value> Apertura - 3. Sıra Final</value>
+  </data>
+  <data name="_Apertura___8th_Finals" xml:space="preserve">
+    <value> Apertura - 8. Final</value>
+  </data>
+  <data name="_Apertura___Championship_Decider" xml:space="preserve">
+    <value> Apertura - Şampiyonluk </value>
+  </data>
+  <data name="_Apertura___Final" xml:space="preserve">
+    <value> Apertura - Final</value>
+  </data>
+  <data name="_Apertura___Finals" xml:space="preserve">
+    <value> Apertura - Final</value>
+  </data>
+  <data name="_Apertura___Grand_Final" xml:space="preserve">
+    <value> Apertura - Büyük Final</value>
+  </data>
+  <data name="_Apertura___Play_offs" xml:space="preserve">
+    <value> Apertura - Play-off</value>
+  </data>
+  <data name="_Apertura___Preliminary_Play_offs" xml:space="preserve">
+    <value> Apertura - Ön Play-off</value>
+  </data>
+  <data name="_Apertura___Preliminary_Semi_finals" xml:space="preserve">
+    <value> Apertura - Ön Yarı Final</value>
+  </data>
+  <data name="_Apertura___Quadrangular" xml:space="preserve">
+    <value> Apertura - Quadrangular</value>
+  </data>
+  <data name="_Apertura___Quarter_finals" xml:space="preserve">
+    <value> Apertura - Çeyrek Final</value>
+  </data>
+  <data name="_Apertura___Semi_finals" xml:space="preserve">
+    <value> Apertura - Yarı Final</value>
+  </data>
+  <data name="_Away1" xml:space="preserve">
+    <value>2</value>
+  </data>
+  <data name="_Away_No1" xml:space="preserve">
+    <value>2/H</value>
+  </data>
+  <data name="_Away_Over1" xml:space="preserve">
+    <value>2/Ü</value>
+  </data>
+  <data name="_Away_Under1" xml:space="preserve">
+    <value>2/A</value>
+  </data>
+  <data name="_Away_Yes1" xml:space="preserve">
+    <value>2/E</value>
+  </data>
+  <data name="_Bayern" xml:space="preserve">
+    <value> Bayern</value>
+  </data>
+  <data name="_Center" xml:space="preserve">
+    <value> Merkez</value>
+  </data>
+  <data name="_Central" xml:space="preserve">
+    <value> Merkezi</value>
+  </data>
+  <data name="_Championship_Round" xml:space="preserve">
+    <value> Şampiyonluk Tur</value>
+  </data>
+  <data name="_Championship___3rd_Place_Final" xml:space="preserve">
+    <value> Şampiyonluk - 3. Sıra Final</value>
+  </data>
+  <data name="_Championship___Final" xml:space="preserve">
+    <value> Şampiyonluk - Final</value>
+  </data>
+  <data name="_Championship___Finals" xml:space="preserve">
+    <value> Şampiyonluk - Final</value>
+  </data>
+  <data name="_Championship___Quarter_finals" xml:space="preserve">
+    <value> Şampiyonluk - Çeyrek Final</value>
+  </data>
+  <data name="_Championship___Semi_finals" xml:space="preserve">
+    <value> Şampiyonluk - Yarı Final</value>
+  </data>
+  <data name="_Champion_Play_offs___Final" xml:space="preserve">
+    <value> Şampiyon Play-off - Final</value>
+  </data>
+  <data name="_Clausura" xml:space="preserve">
+    <value> Clausura</value>
+  </data>
+  <data name="_Clausura___8th_Finals" xml:space="preserve">
+    <value> Clausura - 8. Final</value>
+  </data>
+  <data name="_Clausura___Championship_Decider" xml:space="preserve">
+    <value> Clausura - Şampiyonluk </value>
+  </data>
+  <data name="_Clausura___Final" xml:space="preserve">
+    <value> Clausura - Final</value>
+  </data>
+  <data name="_Clausura___Finals" xml:space="preserve">
+    <value> Clausura - Final</value>
+  </data>
+  <data name="_Clausura___Play_offs" xml:space="preserve">
+    <value> Clausura - Play-off</value>
+  </data>
+  <data name="_Clausura___Preliminary_Play_offs" xml:space="preserve">
+    <value> Clausura - Ön Play-off</value>
+  </data>
+  <data name="_Clausura___Preliminary_Semi_finals" xml:space="preserve">
+    <value> Clausura - Ön Yarı Final</value>
+  </data>
+  <data name="_Clausura___Quarter_finals" xml:space="preserve">
+    <value> Clausura - Çeyrek Final</value>
+  </data>
+  <data name="_Clausura___Semi_finals" xml:space="preserve">
+    <value> Clausura - Yarı Final</value>
+  </data>
+  <data name="_Closing" xml:space="preserve">
+    <value> Kapanış</value>
+  </data>
+  <data name="_Club_Friendlies_1" xml:space="preserve">
+    <value> Kulüp Dostluk 1</value>
+  </data>
+  <data name="_Club_Friendlies_2" xml:space="preserve">
+    <value> Kulüp Dostluk 2</value>
+  </data>
+  <data name="_Club_Friendlies_3" xml:space="preserve">
+    <value> Kulüp Dostluk 3</value>
+  </data>
+  <data name="_Club_Friendlies_4" xml:space="preserve">
+    <value> Kulüp Dostluk 4</value>
+  </data>
+  <data name="_Conference_Play_offs" xml:space="preserve">
+    <value> Konferans Play-off</value>
+  </data>
+  <data name="_Conference___Finals" xml:space="preserve">
+    <value> Konferans - Final</value>
+  </data>
+  <data name="_Conference___Quarter_finals" xml:space="preserve">
+    <value> Konferans - Çeyrek Final</value>
+  </data>
+  <data name="_Conference___Semi_finals" xml:space="preserve">
+    <value> Konferans - Yarı Final</value>
+  </data>
+  <data name="_Copa_Sudamericana_Play_offs___1st_Phase_Finals" xml:space="preserve">
+    <value> Copa Sudamericana Play-off - 1. Aşama Finals</value>
+  </data>
+  <data name="_Copa_Sudamericana_Play_offs___2nd_Phase_Finals" xml:space="preserve">
+    <value> Copa Sudamericana Play-off - 2. Aşama Finals</value>
+  </data>
+  <data name="_Copa_Sudamericana_Play_offs___Final" xml:space="preserve">
+    <value> Copa Sudamericana Play-off - Final</value>
+  </data>
+  <data name="_Cuyo" xml:space="preserve">
+    <value> Cuyo</value>
+  </data>
+  <data name="_Cymru_Alliance" xml:space="preserve">
+    <value> Cymru Alliance</value>
+  </data>
+  <data name="_Draw1" xml:space="preserve">
+    <value>X</value>
+  </data>
+  <data name="_Draw_Away1" xml:space="preserve">
+    <value>X/2</value>
+  </data>
+  <data name="_Draw_No1" xml:space="preserve">
+    <value>X/H</value>
+  </data>
+  <data name="_Draw_Over1" xml:space="preserve">
+    <value>X/Ü</value>
+  </data>
+  <data name="_Draw_Under1" xml:space="preserve">
+    <value>X/A</value>
+  </data>
+  <data name="_Draw_Yes1" xml:space="preserve">
+    <value>X/E</value>
+  </data>
+  <data name="_East" xml:space="preserve">
+    <value> East</value>
+  </data>
+  <data name="_Elimination_Finals" xml:space="preserve">
+    <value> Eleme Finals</value>
+  </data>
+  <data name="_Elite_Round" xml:space="preserve">
+    <value> Elite Tur</value>
+  </data>
+  <data name="_Europa_League_Play_offs___1st_Round" xml:space="preserve">
+    <value> Avrupa Ligi Play-off - 1. Tur</value>
+  </data>
+  <data name="_Europa_League_Play_offs___2nd_Round" xml:space="preserve">
+    <value> Avrupa Ligi Play-off - 2. Tur</value>
+  </data>
+  <data name="_Europa_League_Play_offs___Final" xml:space="preserve">
+    <value> Avrupa Ligi Play-off - Final</value>
+  </data>
+  <data name="_Europa_League_Play_offs___Finals" xml:space="preserve">
+    <value> Avrupa Ligi Play-off - Final</value>
+  </data>
+  <data name="_Europa_League_Play_offs___Quarter_finals" xml:space="preserve">
+    <value> Avrupa Ligi Play-off - Çeyrek Final</value>
+  </data>
+  <data name="_Europa_League_Play_offs___Semi_finals" xml:space="preserve">
+    <value> Avrupa Ligi Play-off - Yarı Final</value>
+  </data>
+  <data name="_Even1" xml:space="preserve">
+    <value>Ç</value>
+  </data>
+  <data name="_Extra_Preliminary_Round" xml:space="preserve">
+    <value> Extra Ön Tur</value>
+  </data>
+  <data name="_Extra_Preliminary_Round_Replays" xml:space="preserve">
+    <value> Extra Ön Tur Tekrar</value>
+  </data>
+  <data name="_Fall_Season" xml:space="preserve">
+    <value> Sonbahar Sezonu</value>
+  </data>
+  <data name="_Final" xml:space="preserve">
+    <value> Final</value>
+  </data>
+  <data name="_Finals" xml:space="preserve">
+    <value> Final</value>
+  </data>
+  <data name="_Final_Decider" xml:space="preserve">
+    <value> Final </value>
+  </data>
+  <data name="_Final_Group" xml:space="preserve">
+    <value> Final Grup</value>
+  </data>
+  <data name="_Final_Round" xml:space="preserve">
+    <value> Final Tur</value>
+  </data>
+  <data name="_Final_Stage" xml:space="preserve">
+    <value> Final Aşama</value>
+  </data>
+  <data name="_Friendlies_1" xml:space="preserve">
+    <value> Dostluk 1</value>
+  </data>
+  <data name="_Friendlies_2" xml:space="preserve">
+    <value> Dostluk 2</value>
+  </data>
+  <data name="_Friendlies_3" xml:space="preserve">
+    <value> Dostluk 3</value>
+  </data>
+  <data name="_Grand_Final" xml:space="preserve">
+    <value> Büyük Final</value>
+  </data>
+  <data name="_Group_18" xml:space="preserve">
+    <value> Grup 1</value>
+  </data>
+  <data name="_Group_21" xml:space="preserve">
+    <value> Grup 2</value>
+  </data>
+  <data name="_Group_31" xml:space="preserve">
+    <value> Grup 3</value>
+  </data>
+  <data name="_Group_41" xml:space="preserve">
+    <value> Grup 4</value>
+  </data>
+  <data name="_Group_51" xml:space="preserve">
+    <value> Grup 5</value>
+  </data>
+  <data name="_Group_61" xml:space="preserve">
+    <value> Grup 6</value>
+  </data>
+  <data name="_Group_A1" xml:space="preserve">
+    <value> Grup A</value>
+  </data>
+  <data name="_Group_A___1st_Round_Qualifying" xml:space="preserve">
+    <value> Grup A - 1. Tur Eleme</value>
+  </data>
+  <data name="_Group_A___2nd_Round_Qualifying" xml:space="preserve">
+    <value> Grup A - 2. Tur Eleme</value>
+  </data>
+  <data name="_Group_B1" xml:space="preserve">
+    <value> Grup B</value>
+  </data>
+  <data name="_Group_B___1st_Round_Qualifying" xml:space="preserve">
+    <value> Grup B - 1. Tur Eleme</value>
+  </data>
+  <data name="_Group_B___2nd_Round_Qualifying" xml:space="preserve">
+    <value> Grup B - 2. Tur Eleme</value>
+  </data>
+  <data name="_Group_F1" xml:space="preserve">
+    <value> Grup F</value>
+  </data>
+  <data name="_Group_I1" xml:space="preserve">
+    <value> Grup I</value>
+  </data>
+  <data name="_Group_L1" xml:space="preserve">
+    <value> Grup L</value>
+  </data>
+  <data name="_Group_Stage" xml:space="preserve">
+    <value> Grup Aşama</value>
+  </data>
+  <data name="_Hexagonal_Final" xml:space="preserve">
+    <value> Hexagonal Final</value>
+  </data>
+  <data name="_Highland_League" xml:space="preserve">
+    <value> Highland Ligi</value>
+  </data>
+  <data name="_Home1" xml:space="preserve">
+    <value>1</value>
+  </data>
+  <data name="_Home_Away1" xml:space="preserve">
+    <value>1/2</value>
+  </data>
+  <data name="_Home_Draw1" xml:space="preserve">
+    <value>1/X</value>
+  </data>
+  <data name="_Home_No1" xml:space="preserve">
+    <value>1/H</value>
+  </data>
+  <data name="_Home_Over1" xml:space="preserve">
+    <value>1/Ü</value>
+  </data>
+  <data name="_Home_Under1" xml:space="preserve">
+    <value>1/A</value>
+  </data>
+  <data name="_Home_Yes1" xml:space="preserve">
+    <value>2/E</value>
+  </data>
+  <data name="_Intermediate_Round" xml:space="preserve">
+    <value> Intermediate Tur</value>
+  </data>
+  <data name="_Intermediate_Round___Final" xml:space="preserve">
+    <value> Intermediate Tur - Final</value>
+  </data>
+  <data name="_Inter_zonal_Finals" xml:space="preserve">
+    <value> Inter-zonal Final</value>
+  </data>
+  <data name="_Inter_zonal_Semi_Finals" xml:space="preserve">
+    <value> Inter-zonal Yarı Final</value>
+  </data>
+  <data name="_Isthmian" xml:space="preserve">
+    <value> Isthmian</value>
+  </data>
+  <data name="_Isthmian_Play_offs___Final" xml:space="preserve">
+    <value> Isthmian Play-off - Final</value>
+  </data>
+  <data name="_Isthmian_Play_offs___Semi_finals" xml:space="preserve">
+    <value> Isthmian Play-off - Yarı Final</value>
+  </data>
+  <data name="_League_A" xml:space="preserve">
+    <value> Lig A</value>
+  </data>
+  <data name="_League_B" xml:space="preserve">
+    <value> Lig B</value>
+  </data>
+  <data name="_League_C" xml:space="preserve">
+    <value> Lig C</value>
+  </data>
+  <data name="_League_D" xml:space="preserve">
+    <value> Lig D</value>
+  </data>
+  <data name="_Liguilla" xml:space="preserve">
+    <value> Liguilla</value>
+  </data>
+  <data name="_Litoral_North" xml:space="preserve">
+    <value> Litoral Kuzey</value>
+  </data>
+  <data name="_Litoral_South" xml:space="preserve">
+    <value> Litoral Güney</value>
+  </data>
+  <data name="_Lower_Table_Round" xml:space="preserve">
+    <value> Lower Table Tur</value>
+  </data>
+  <data name="_Lowland_League" xml:space="preserve">
+    <value> Lowland Ligi</value>
+  </data>
+  <data name="_MLS_Cup___Conference_Finals" xml:space="preserve">
+    <value> MLS Cup - Konferans Finals</value>
+  </data>
+  <data name="_MLS_Cup___Conference_Semi_finals" xml:space="preserve">
+    <value> MLS Cup - Konferans Yarı Final</value>
+  </data>
+  <data name="_MLS_Cup___Final" xml:space="preserve">
+    <value> MLS Cup - Final</value>
+  </data>
+  <data name="_more_11" xml:space="preserve">
+    <value>1+</value>
+  </data>
+  <data name="_more_21" xml:space="preserve">
+    <value>2+</value>
+  </data>
+  <data name="_more_31" xml:space="preserve">
+    <value>3+</value>
+  </data>
+  <data name="_more_41" xml:space="preserve">
+    <value>4+</value>
+  </data>
+  <data name="_more_51" xml:space="preserve">
+    <value>5+</value>
+  </data>
+  <data name="_more_61" xml:space="preserve">
+    <value>6+</value>
+  </data>
+  <data name="_more_71" xml:space="preserve">
+    <value>7+</value>
+  </data>
+  <data name="_more_81" xml:space="preserve">
+    <value>8+</value>
+  </data>
+  <data name="_more_91" xml:space="preserve">
+    <value>9+</value>
+  </data>
+  <data name="_MSFL" xml:space="preserve">
+    <value> MSFL</value>
+  </data>
+  <data name="_No1" xml:space="preserve">
+    <value>H</value>
+  </data>
+  <data name="_Non_FIFA_Friendlies" xml:space="preserve">
+    <value> Non-FIFA Dostluk</value>
+  </data>
+  <data name="_Nord___Nordost" xml:space="preserve">
+    <value> Nord / Nordost</value>
+  </data>
+  <data name="_North1" xml:space="preserve">
+    <value> Kuzey</value>
+  </data>
+  <data name="_Northern" xml:space="preserve">
+    <value>Kuzey</value>
+  </data>
+  <data name="_Northern_Play_offs___Final" xml:space="preserve">
+    <value>Kuzey Play-off - Final</value>
+  </data>
+  <data name="_Northern_Play_offs___Semi_finals" xml:space="preserve">
+    <value>Kuzey Play-off - Yarı Final</value>
+  </data>
+  <data name="_North_East" xml:space="preserve">
+    <value> Kuzey-East</value>
+  </data>
+  <data name="_North_Promotion_Play_offs___Final" xml:space="preserve">
+    <value> Kuzey Promotion Play-off - Final</value>
+  </data>
+  <data name="_North_Promotion_Play_offs___Qualifying_Round" xml:space="preserve">
+    <value> Kuzey Promotion Play-off - Eleme Tur</value>
+  </data>
+  <data name="_North_Promotion_Play_offs___Semi_finals" xml:space="preserve">
+    <value> Kuzey Promotion Play-off - Yarı Final</value>
+  </data>
+  <data name="_No_goal1" xml:space="preserve">
+    <value>GY</value>
+  </data>
+  <data name="_Odd1" xml:space="preserve">
+    <value>T</value>
+  </data>
+  <data name="_Opening" xml:space="preserve">
+    <value> Açılış</value>
+  </data>
+  <data name="_Opening___Finals" xml:space="preserve">
+    <value> Açılış - Final</value>
+  </data>
+  <data name="_Opening___Semi_finals" xml:space="preserve">
+    <value> Açılış - Yarı Final</value>
+  </data>
+  <data name="_Over1" xml:space="preserve">
+    <value>Ü</value>
+  </data>
+  <data name="_Ovest" xml:space="preserve">
+    <value> Ovest</value>
+  </data>
+  <data name="_Pampeana_North" xml:space="preserve">
+    <value> Pampeana Kuzey</value>
+  </data>
+  <data name="_Pampeana_South" xml:space="preserve">
+    <value> Pampeana Güney</value>
+  </data>
+  <data name="_Patagónica" xml:space="preserve">
+    <value> Patagónica</value>
+  </data>
+  <data name="_Plate_Semi_finals" xml:space="preserve">
+    <value> Plate Yarı Final</value>
+  </data>
+  <data name="_Playoffs" xml:space="preserve">
+    <value> Playoffs</value>
+  </data>
+  <data name="_Playoffs_1_2" xml:space="preserve">
+    <value> Playoffs 1/2</value>
+  </data>
+  <data name="_Playoffs_2_3" xml:space="preserve">
+    <value> Playoffs 2/3</value>
+  </data>
+  <data name="_Play_In_Round" xml:space="preserve">
+    <value> Play-In Tur</value>
+  </data>
+  <data name="_Play_In_Round___Finals" xml:space="preserve">
+    <value> Play-In Tur - Final</value>
+  </data>
+  <data name="_Play_offs" xml:space="preserve">
+    <value> Play-off</value>
+  </data>
+  <data name="_Play_offs_1_2" xml:space="preserve">
+    <value> Play-off 1/2</value>
+  </data>
+  <data name="_Play_offs_I" xml:space="preserve">
+    <value> Play-off I</value>
+  </data>
+  <data name="_Play_offs_Kaya_4" xml:space="preserve">
+    <value> Play-off Kaya 4</value>
+  </data>
+  <data name="_Play_offs_Round" xml:space="preserve">
+    <value> Play-off Tur</value>
+  </data>
+  <data name="_Play_offs___1st_Round" xml:space="preserve">
+    <value> Play-off - 1. Tur</value>
+  </data>
+  <data name="_Play_offs___2nd_Round" xml:space="preserve">
+    <value> Play-off - 2. Tur</value>
+  </data>
+  <data name="_Play_offs___Final" xml:space="preserve">
+    <value> Play-off - Final</value>
+  </data>
+  <data name="_Play_offs___Finals" xml:space="preserve">
+    <value> Play-off - Final</value>
+  </data>
+  <data name="_Play_offs___Quarter_finals" xml:space="preserve">
+    <value> Play-off - Çeyrek Final</value>
+  </data>
+  <data name="_Play_offs___Semi_finals" xml:space="preserve">
+    <value> Play-off - Yarı Final</value>
+  </data>
+  <data name="_Preliminary_Final" xml:space="preserve">
+    <value> Ön Final</value>
+  </data>
+  <data name="_Preliminary_Play_offs" xml:space="preserve">
+    <value> Ön Play-off</value>
+  </data>
+  <data name="_Preliminary_Round" xml:space="preserve">
+    <value> Ön Tur</value>
+  </data>
+  <data name="_Preliminary_Round_Replays" xml:space="preserve">
+    <value> Ön Tur Tekrar</value>
+  </data>
+  <data name="_Preliminary_Round___Final" xml:space="preserve">
+    <value> Ön Tur - Final</value>
+  </data>
+  <data name="_Preliminary_Round___Semi_Finals" xml:space="preserve">
+    <value> Ön Tur - Yarı Final</value>
+  </data>
+  <data name="_Pre_Qualifying_Round" xml:space="preserve">
+    <value> Pre-Eleme Tur</value>
+  </data>
+  <data name="_Promotion_Decider" xml:space="preserve">
+    <value> Promotion </value>
+  </data>
+  <data name="_Promotion_Final" xml:space="preserve">
+    <value> Promotion Final</value>
+  </data>
+  <data name="_Promotion_Finals" xml:space="preserve">
+    <value> Promotion Finals</value>
+  </data>
+  <data name="_Promotion_Play_offs" xml:space="preserve">
+    <value> Promotion Play-off</value>
+  </data>
+  <data name="_Promotion_Play_offs___1st_Round" xml:space="preserve">
+    <value> Promotion Play-off - 1. Tur</value>
+  </data>
+  <data name="_Promotion_Play_offs___1st_Round_Finals" xml:space="preserve">
+    <value> Promotion Play-off - 1. Tur Final</value>
+  </data>
+  <data name="_Promotion_Play_offs___2nd_Round" xml:space="preserve">
+    <value> Promotion Play-off - 2. Tur</value>
+  </data>
+  <data name="_Promotion_Play_offs___2nd_Round_Finals" xml:space="preserve">
+    <value> Promotion Play-off - 2. Tur Final</value>
+  </data>
+  <data name="_Promotion_Play_offs___3rd_Place_Final" xml:space="preserve">
+    <value> Promotion Play-off - 3. Sıra Final</value>
+  </data>
+  <data name="_Promotion_Play_offs___3rd_Round" xml:space="preserve">
+    <value> Promotion Play-off - 3. Tur</value>
+  </data>
+  <data name="_Promotion_Play_offs___4th_Round" xml:space="preserve">
+    <value> Promotion Play-off - 4. Tur</value>
+  </data>
+  <data name="_Promotion_Play_offs___5th_Round" xml:space="preserve">
+    <value> Promotion Play-off - 5. Tur</value>
+  </data>
+  <data name="_Promotion_Play_offs___Final" xml:space="preserve">
+    <value> Promotion Play-off - Final</value>
+  </data>
+  <data name="_Promotion_Play_offs___Finals" xml:space="preserve">
+    <value> Promotion Play-off - Final</value>
+  </data>
+  <data name="_Promotion_Play_offs___Qualifying_Round" xml:space="preserve">
+    <value> Promotion Play-off - Eleme Tur</value>
+  </data>
+  <data name="_Promotion_Play_offs___Quarter_finals" xml:space="preserve">
+    <value> Promotion Play-off - Çeyrek Final</value>
+  </data>
+  <data name="_Promotion_Play_offs___Semi_finals" xml:space="preserve">
+    <value> Promotion Play-off - Yarı Final</value>
+  </data>
+  <data name="_Promotion_Round" xml:space="preserve">
+    <value> Promotion Tur</value>
+  </data>
+  <data name="_Promotion_Semi_finals" xml:space="preserve">
+    <value> Promotion Yarı Final</value>
+  </data>
+  <data name="_Quadrangular_Final" xml:space="preserve">
+    <value> Quadrangular Final</value>
+  </data>
+  <data name="_Qualification_Finals" xml:space="preserve">
+    <value> Qualification Final</value>
+  </data>
+  <data name="_Qualification_Round" xml:space="preserve">
+    <value> Qualification Tur</value>
+  </data>
+  <data name="_Qualifying_Play_offs_Route_A___Final" xml:space="preserve">
+    <value> Eleme Play-off Yolu A - Final</value>
+  </data>
+  <data name="_Qualifying_Play_offs_Route_A___Semi_Finals" xml:space="preserve">
+    <value> Eleme Play-off Yolu A - Yarı Final</value>
+  </data>
+  <data name="_Qualifying_Play_offs_Route_B___Final" xml:space="preserve">
+    <value> Eleme Play-off Yolu B - Final</value>
+  </data>
+  <data name="_Qualifying_Play_offs_Route_B___Semi_Finals" xml:space="preserve">
+    <value> Eleme Play-off Yolu B - Yarı Final</value>
+  </data>
+  <data name="_Qualifying_Play_offs_Route_C___Final" xml:space="preserve">
+    <value> Eleme Play-off Yolu C - Final</value>
+  </data>
+  <data name="_Qualifying_Play_offs_Route_C___Semi_Finals" xml:space="preserve">
+    <value> Eleme Play-off Yolu C - Yarı Final</value>
+  </data>
+  <data name="_Qualifying_Play_offs_Route_D___Final" xml:space="preserve">
+    <value> Eleme Play-off Yolu D - Final</value>
+  </data>
+  <data name="_Qualifying_Play_offs_Route_D___Semi_Finals" xml:space="preserve">
+    <value> Eleme Play-off Yolu D - Yarı Final</value>
+  </data>
+  <data name="_Qualifying_Round" xml:space="preserve">
+    <value> Eleme Tur</value>
+  </data>
+  <data name="_Quarter_finals" xml:space="preserve">
+    <value> Çeyrek Final</value>
+  </data>
+  <data name="_Quarter_finals_Replays" xml:space="preserve">
+    <value> Çeyrek Final Tekrar</value>
+  </data>
+  <data name="_Regular_Season" xml:space="preserve">
+    <value> Normal Sezon</value>
+  </data>
+  <data name="_Relegation_Play_offs" xml:space="preserve">
+    <value> Küme Düşme Play-off</value>
+  </data>
+  <data name="_Relegation_Play_offs___Final" xml:space="preserve">
+    <value> Küme Düşme Play-off - Final</value>
+  </data>
+  <data name="_Relegation_Play_offs___Finals" xml:space="preserve">
+    <value> Küme Düşme Play-off - Final</value>
+  </data>
+  <data name="_Relegation_Play_out" xml:space="preserve">
+    <value> Küme Düşme Play-out</value>
+  </data>
+  <data name="_Relegation_Round" xml:space="preserve">
+    <value> Küme Düşme Tur</value>
+  </data>
+  <data name="_Semi_final" xml:space="preserve">
+    <value> Yarı Final</value>
+  </data>
+  <data name="_Semi_finals" xml:space="preserve">
+    <value> Yarı Final</value>
+  </data>
+  <data name="_Semi_finals_Replay" xml:space="preserve">
+    <value> Yarı Final Tekrar</value>
+  </data>
+  <data name="_South1" xml:space="preserve">
+    <value> Güney</value>
+  </data>
+  <data name="_Southern_Central" xml:space="preserve">
+    <value> Güney Merkezi</value>
+  </data>
+  <data name="_Southern_Play_offs___Final" xml:space="preserve">
+    <value> Güney Play-off - Final</value>
+  </data>
+  <data name="_Southern_Play_offs___Semi_finals" xml:space="preserve">
+    <value> Güney Play-off - Yarı Final</value>
+  </data>
+  <data name="_Southern_South" xml:space="preserve">
+    <value> Güney Güney</value>
+  </data>
+  <data name="_South_Promotion_Play_offs___Final" xml:space="preserve">
+    <value> Güney Promotion Play-off - Final</value>
+  </data>
+  <data name="_South_Promotion_Play_offs___Qualifying_Round" xml:space="preserve">
+    <value> Güney Promotion Play-off - Eleme Tur</value>
+  </data>
+  <data name="_South_Promotion_Play_offs___Semi_finals" xml:space="preserve">
+    <value> Güney Promotion Play-off - Yarı Final</value>
+  </data>
+  <data name="_Spring_Season" xml:space="preserve">
+    <value> Bahar Sezonu</value>
+  </data>
+  <data name="_Série_de_Clôture" xml:space="preserve">
+    <value> Série de Clôture</value>
+  </data>
+  <data name="_Série_de_Clôture___Finals" xml:space="preserve">
+    <value> Série de Clôture - Final</value>
+  </data>
+  <data name="_Série_de_Clôture___Quarter_finals" xml:space="preserve">
+    <value> Série de Clôture - Çeyrek Final</value>
+  </data>
+  <data name="_Série_de_Clôture___Semi_finals" xml:space="preserve">
+    <value> Série de Clôture - Yarı Final</value>
+  </data>
+  <data name="_Série_de_Ouverture" xml:space="preserve">
+    <value> Série de Ouverture</value>
+  </data>
+  <data name="_Série_de_Ouverture___Finals" xml:space="preserve">
+    <value> Série de Ouverture - Final</value>
+  </data>
+  <data name="_Série_de_Ouverture___Quarter_finals" xml:space="preserve">
+    <value> Série de Ouverture - Çeyrek Final</value>
+  </data>
+  <data name="_Série_de_Ouverture___Semi_finals" xml:space="preserve">
+    <value>Série de Ouverture - Yarı Final</value>
+  </data>
+  <data name="_Süd___Südwest" xml:space="preserve">
+    <value> Süd / Südwest</value>
+  </data>
+  <data name="_Taça_Guanabara" xml:space="preserve">
+    <value> Taça Guanabara</value>
+  </data>
+  <data name="_Taça_Rio" xml:space="preserve">
+    <value> Taça Rio</value>
+  </data>
+  <data name="_Torneo_de_Verano" xml:space="preserve">
+    <value> Torneo de Verano</value>
+  </data>
+  <data name="_Torneo_de_Verano___Finals" xml:space="preserve">
+    <value> Torneo de Verano - Final</value>
+  </data>
+  <data name="_Troféu_do_Interior___Semi_Finals" xml:space="preserve">
+    <value> Troféu do Interior - Yarı Finals</value>
+  </data>
+  <data name="_Under1" xml:space="preserve">
+    <value>A</value>
+  </data>
+  <data name="_Ural_Povolzhye" xml:space="preserve">
+    <value> Ural-Povolzhye</value>
+  </data>
+  <data name="_West" xml:space="preserve">
+    <value> West</value>
+  </data>
+  <data name="_Western_Australia" xml:space="preserve">
+    <value> Western Australia</value>
+  </data>
+  <data name="_World_Cup_Play_off" xml:space="preserve">
+    <value> World Cup Play-off</value>
+  </data>
+  <data name="_X1" xml:space="preserve">
+    <value>X</value>
+  </data>
+  <data name="_Yes1" xml:space="preserve">
+    <value>E</value>
+  </data>
+  <data name="_Zonal_Finals" xml:space="preserve">
+    <value> Bölgesel Finals</value>
+  </data>
+  <data name="_Zonal_Semi_Finals" xml:space="preserve">
+    <value> Bölgesel Yarı Final</value>
+  </data>
+  <data name="_Zone_1" xml:space="preserve">
+    <value> Bölge 1</value>
+  </data>
+  <data name="_Zone_2" xml:space="preserve">
+    <value> Bölge 2</value>
+  </data>
+  <data name="_Zone_3" xml:space="preserve">
+    <value> Bölge 3</value>
+  </data>
+  <data name="_Zone_4" xml:space="preserve">
+    <value> Bölge 4</value>
+  </data>
+  <data name="_ČFL" xml:space="preserve">
+    <value> ČFL</value>
+  </data>
+  <data name="_12" xml:space="preserve">
+    <value>12</value>
+  </data>
+  <data name="_1X" xml:space="preserve">
+    <value>1X</value>
+  </data>
+  <data name="_X2" xml:space="preserve">
+    <value>X2</value>
+  </data>
+  <data name="ABAN" xml:space="preserve">
+    <value>Ertelendi</value>
+  </data>
+  <data name="ABAN_Short" xml:space="preserve">
+    <value>ERT</value>
+  </data>
+  <data name="AET" xml:space="preserve">
+    <value>Bitti</value>
+  </data>
+  <data name="AET_Short" xml:space="preserve">
+    <value>MS</value>
+  </data>
+  <data name="AU" xml:space="preserve">
+    <value>Beklemede</value>
+  </data>
+  <data name="AU_Short" xml:space="preserve">
+    <value>BKM.</value>
+  </data>
+  <data name="AWARDED" xml:space="preserve">
+    <value>Ertelendi</value>
+  </data>
+  <data name="AWARDED_Short" xml:space="preserve">
+    <value>ERT</value>
+  </data>
+  <data name="BREAK" xml:space="preserve">
+    <value>Normal Süre Bitti</value>
+  </data>
+  <data name="BREAK_Short" xml:space="preserve">
+    <value>MS</value>
+  </data>
+  <data name="CANCL" xml:space="preserve">
+    <value>İptal Edildi</value>
+  </data>
+  <data name="CANCL_Short" xml:space="preserve">
+    <value>İPT</value>
+  </data>
+  <data name="DELAYED" xml:space="preserve">
+    <value>Ertelendi</value>
+  </data>
+  <data name="DELAYED_Short" xml:space="preserve">
+    <value>ERT</value>
+  </data>
+  <data name="DELETED" xml:space="preserve">
+    <value>Kapatıldı</value>
+  </data>
+  <data name="DELETED_Short" xml:space="preserve">
+    <value>KPT</value>
+  </data>
+  <data name="ET" xml:space="preserve">
+    <value>Uzatmalar</value>
+  </data>
+  <data name="ET_Short" xml:space="preserve">
+    <value>UZ</value>
+  </data>
+  <data name="FT" xml:space="preserve">
+    <value>Bitti</value>
+  </data>
+  <data name="FT_PEN" xml:space="preserve">
+    <value>Bitti</value>
+  </data>
+  <data name="FT_PEN_Short" xml:space="preserve">
+    <value>MS</value>
+  </data>
+  <data name="FT_Short" xml:space="preserve">
+    <value>MS</value>
+  </data>
+  <data name="HT" xml:space="preserve">
+    <value>Devre Arası</value>
+  </data>
+  <data name="HT_Short" xml:space="preserve">
+    <value>İY</value>
+  </data>
+  <data name="INT" xml:space="preserve">
+    <value>Durduruldu</value>
+  </data>
+  <data name="INT_Short" xml:space="preserve">
+    <value>DRD</value>
+  </data>
+  <data name="LIVE" xml:space="preserve">
+    <value>Oynanıyor</value>
+  </data>
+  <data name="LIVE_Short" xml:space="preserve">
+    <value>CANLI</value>
+  </data>
+  <data name="NS" xml:space="preserve">
+    <value>Başlamadı</value>
+  </data>
+  <data name="NS_Short" xml:space="preserve">
+    <value>BŞLM</value>
+  </data>
+  <data name="PEN_LIVE" xml:space="preserve">
+    <value>Penaltılar</value>
+  </data>
+  <data name="PEN_LIVE_Short" xml:space="preserve">
+    <value>PEN</value>
+  </data>
+  <data name="POSTP" xml:space="preserve">
+    <value>Ertelendi</value>
+  </data>
+  <data name="POSTP_Short" xml:space="preserve">
+    <value>ERT</value>
+  </data>
+  <data name="SUSP" xml:space="preserve">
+    <value>Ertelendi</value>
+  </data>
+  <data name="SUSP_Short" xml:space="preserve">
+    <value>ERT</value>
+  </data>
+  <data name="TBA" xml:space="preserve">
+    <value>Açıklanacak</value>
+  </data>
+  <data name="TBA_Short" xml:space="preserve">
+    <value>ERT</value>
+  </data>
+  <data name="WO" xml:space="preserve">
+    <value>Hükmen</value>
+  </data>
+  <data name="WO_Short" xml:space="preserve">
+    <value>HK</value>
+  </data>
+  <data name="_Elimination_Round" xml:space="preserve">
+    <value>Eleme Turu</value>
+  </data>
+  <data name="_Major_Semi_finals" xml:space="preserve">
+    <value>Majör Yarı Finaller</value>
+  </data>
+  <data name="_Minor_Semi_finals" xml:space="preserve">
+    <value>İkincil Yarı Finaller</value>
+  </data>
+  <data name="_Preliminary_Semi_finals" xml:space="preserve">
+    <value>Ön Yarı Finaller</value>
+  </data>
+</root>

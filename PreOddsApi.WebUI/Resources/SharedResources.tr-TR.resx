@@ -1,0 +1,801 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="All" xml:space="preserve">
+    <value>HEPSİ</value>
+  </data>
+  <data name="AnalysisFilter" xml:space="preserve">
+    <value>ANALİZ FİLTRESİ</value>
+  </data>
+  <data name="Attacks" xml:space="preserve">
+    <value>ATAK</value>
+  </data>
+  <data name="AwayTeam" xml:space="preserve">
+    <value>DEPLASMAN</value>
+  </data>
+  <data name="BallSafe" xml:space="preserve">
+    <value>TOP ÇALMA</value>
+  </data>
+  <data name="Bench" xml:space="preserve">
+    <value>YEDEKLER</value>
+  </data>
+  <data name="Contact" xml:space="preserve">
+    <value>İLETİŞİM</value>
+  </data>
+  <data name="Corners" xml:space="preserve">
+    <value>KORNER</value>
+  </data>
+  <data name="Date" xml:space="preserve">
+    <value>TARİH</value>
+  </data>
+  <data name="Discipline" xml:space="preserve">
+    <value>DİSİPLİN</value>
+  </data>
+  <data name="DrawShort" xml:space="preserve">
+    <value>B</value>
+  </data>
+  <data name="EarningAnalysis" xml:space="preserve">
+    <value>KAR-ZARAR ANALİZİ</value>
+  </data>
+  <data name="EarningRates" xml:space="preserve">
+    <value>KAR-ZARAR YÜZDESİ</value>
+  </data>
+  <data name="Events" xml:space="preserve">
+    <value>OLAYLAR</value>
+  </data>
+  <data name="FinalTimeGoals" xml:space="preserve">
+    <value>MAÇ SONU GOL</value>
+  </data>
+  <data name="Football" xml:space="preserve">
+    <value>FUTBOL</value>
+  </data>
+  <data name="Formations" xml:space="preserve">
+    <value>KADRO</value>
+  </data>
+  <data name="Forms" xml:space="preserve">
+    <value>SON MAÇLAR</value>
+  </data>
+  <data name="Fouls" xml:space="preserve">
+    <value>FAUL</value>
+  </data>
+  <data name="Freekicks" xml:space="preserve">
+    <value>SERBEST VURUŞ</value>
+  </data>
+  <data name="GoalAgainst" xml:space="preserve">
+    <value>YEDİĞİ GOL</value>
+  </data>
+  <data name="GoalFor" xml:space="preserve">
+    <value>ATTIĞI</value>
+  </data>
+  <data name="GoalKick" xml:space="preserve">
+    <value>GOL VURUŞU</value>
+  </data>
+  <data name="GoalTotal" xml:space="preserve">
+    <value>TOPLAM GOL</value>
+  </data>
+  <data name="HalfTimeGoals" xml:space="preserve">
+    <value>1. DEVRE GOL</value>
+  </data>
+  <data name="Help" xml:space="preserve">
+    <value>YARDIM</value>
+  </data>
+  <data name="HomeTeam" xml:space="preserve">
+    <value>EV SAHİBİ</value>
+  </data>
+  <data name="HotRates" xml:space="preserve">
+    <value>SICAK ORANLAR</value>
+  </data>
+  <data name="HotRatesAnalysis" xml:space="preserve">
+    <value>SICAK ORAN ANALİZİ</value>
+  </data>
+  <data name="Hth" xml:space="preserve">
+    <value>HTH</value>
+  </data>
+  <data name="InPlay" xml:space="preserve">
+    <value>CANLI</value>
+  </data>
+  <data name="Last" xml:space="preserve">
+    <value>SON</value>
+  </data>
+  <data name="Last10MatchesHeader" xml:space="preserve">
+    <value>MAÇ ORTALAMASI</value>
+  </data>
+  <data name="League" xml:space="preserve">
+    <value>LİG</value>
+  </data>
+  <data name="Live" xml:space="preserve">
+    <value>CANLI</value>
+  </data>
+  <data name="LoadingMatchDetail" xml:space="preserve">
+    <value>MAÇ DETAYI YÜKLENİYOR...</value>
+  </data>
+  <data name="LoadingMatches" xml:space="preserve">
+    <value>MAÇLAR YÜKLENİYOR...</value>
+  </data>
+  <data name="LostShort" xml:space="preserve">
+    <value>M</value>
+  </data>
+  <data name="MatchDetail" xml:space="preserve">
+    <value>MAÇ DETAY</value>
+  </data>
+  <data name="MatchesAnalysing" xml:space="preserve">
+    <value>MAÇLAR ANALİZ EDİLİYOR...</value>
+  </data>
+  <data name="MatchesFilterButton" xml:space="preserve">
+    <value>FİLTRELE</value>
+  </data>
+  <data name="News" xml:space="preserve">
+    <value>HABERLER</value>
+  </data>
+  <data name="NoData" xml:space="preserve">
+    <value>KAYIT BULUNAMADI</value>
+  </data>
+  <data name="NumberShort" xml:space="preserve">
+    <value>NUMARA</value>
+  </data>
+  <data name="OddsAnalysis" xml:space="preserve">
+    <value>ORAN ANALİZ</value>
+  </data>
+  <data name="Offsides" xml:space="preserve">
+    <value>OFSAYT</value>
+  </data>
+  <data name="Passes" xml:space="preserve">
+    <value>PAS</value>
+  </data>
+  <data name="PassesAccurate" xml:space="preserve">
+    <value>İSABETLİ PAS</value>
+  </data>
+  <data name="PlayerNameShort" xml:space="preserve">
+    <value>İSİM</value>
+  </data>
+  <data name="PointShort" xml:space="preserve">
+    <value>PUAN</value>
+  </data>
+  <data name="Position" xml:space="preserve">
+    <value>POZİSYON</value>
+  </data>
+  <data name="PositionShort" xml:space="preserve">
+    <value>P</value>
+  </data>
+  <data name="Possession" xml:space="preserve">
+    <value>TOPLA OYNAMA</value>
+  </data>
+  <data name="RedCards" xml:space="preserve">
+    <value>KIRMIZI KART</value>
+  </data>
+  <data name="Score" xml:space="preserve">
+    <value>SKOR</value>
+  </data>
+  <data name="SetPlay" xml:space="preserve">
+    <value>DURAN TOP</value>
+  </data>
+  <data name="Shots" xml:space="preserve">
+    <value>ŞUT</value>
+  </data>
+  <data name="ShotsBlocked" xml:space="preserve">
+    <value>ENGELLENEN ŞUT</value>
+  </data>
+  <data name="ShotsInsideBox" xml:space="preserve">
+    <value>İSBAETLİ ŞUT</value>
+  </data>
+  <data name="ShotsOffTarget" xml:space="preserve">
+    <value>KALEYİ BULMAYAN ŞUT</value>
+  </data>
+  <data name="ShotsOnTarget" xml:space="preserve">
+    <value>KALEYİ BULAN ŞUT</value>
+  </data>
+  <data name="ShotsOutsideBox" xml:space="preserve">
+    <value>İSABETSİZ ŞUT</value>
+  </data>
+  <data name="ShotsSaves" xml:space="preserve">
+    <value>KURTARIŞ</value>
+  </data>
+  <data name="Sidelined" xml:space="preserve">
+    <value>KADRO DIŞI</value>
+  </data>
+  <data name="Standing" xml:space="preserve">
+    <value>PUAN DURUMU</value>
+  </data>
+  <data name="Statistics" xml:space="preserve">
+    <value>İSTATİSTİK</value>
+  </data>
+  <data name="StatisticsAnalysis" xml:space="preserve">
+    <value>İSTATİSTİK ANALİZ</value>
+  </data>
+  <data name="Substitutions" xml:space="preserve">
+    <value>OYUNCU DEĞİŞİKLİĞİ</value>
+  </data>
+  <data name="SuccessPasses" xml:space="preserve">
+    <value>BAŞARILI PAS</value>
+  </data>
+  <data name="ThrowIn" xml:space="preserve">
+    <value>TAÇ</value>
+  </data>
+  <data name="TipsHeader" xml:space="preserve">
+    <value>GÜNÜN TAHMİNLERİ</value>
+  </data>
+  <data name="TotalPasses" xml:space="preserve">
+    <value>TOPLAM PAS</value>
+  </data>
+  <data name="TotalPointShort" xml:space="preserve">
+    <value>T</value>
+  </data>
+  <data name="TotalShots" xml:space="preserve">
+    <value>TOPLAM ŞUT</value>
+  </data>
+  <data name="WinningAnalysis" xml:space="preserve">
+    <value>KAZANMA YÜZDESİ ANALİZİ</value>
+  </data>
+  <data name="WinningRates" xml:space="preserve">
+    <value>KAZANMA YÜZDESİ</value>
+  </data>
+  <data name="WinShort" xml:space="preserve">
+    <value>G</value>
+  </data>
+  <data name="YellowCards" xml:space="preserve">
+    <value>SARI KART</value>
+  </data>
+  <data name="Lost" xml:space="preserve">
+    <value>KY.</value>
+  </data>
+  <data name="Month1" xml:space="preserve">
+    <value>1 AY</value>
+  </data>
+  <data name="Month3" xml:space="preserve">
+    <value>3 AY</value>
+  </data>
+  <data name="Month6" xml:space="preserve">
+    <value>6 AY</value>
+  </data>
+  <data name="NotStarted" xml:space="preserve">
+    <value>BAŞLAMAMIŞ</value>
+  </data>
+  <data name="Odds" xml:space="preserve">
+    <value>ORAN</value>
+  </data>
+  <data name="OddsType" xml:space="preserve">
+    <value>ORAN TİPİ</value>
+  </data>
+  <data name="Prob" xml:space="preserve">
+    <value>OLA.</value>
+  </data>
+  <data name="Profit" xml:space="preserve">
+    <value>KR.</value>
+  </data>
+  <data name="Win" xml:space="preserve">
+    <value>KZ.</value>
+  </data>
+  <data name="Year1" xml:space="preserve">
+    <value>1 YIL</value>
+  </data>
+  <data name="LostDesc" xml:space="preserve">
+    <value>KAYBETME SAYISI</value>
+  </data>
+  <data name="ProbDesc" xml:space="preserve">
+    <value>OLASILIK YÜZDESİ</value>
+  </data>
+  <data name="ProfitDesc" xml:space="preserve">
+    <value>KAR YÜZDESİ</value>
+  </data>
+  <data name="WinDesc" xml:space="preserve">
+    <value>KAZANMA SAYISI</value>
+  </data>
+  <data name="WinPercDesc" xml:space="preserve">
+    <value>KAZANMA YÜZDESİ</value>
+  </data>
+  <data name="AnalysisPeriod" xml:space="preserve">
+    <value>ANALİZ ARALIĞI</value>
+  </data>
+  <data name="MinRate" xml:space="preserve">
+    <value>MİNİMUM ORAN</value>
+  </data>
+  <data name="Clouds" xml:space="preserve">
+    <value>BULUT</value>
+  </data>
+  <data name="Stadium" xml:space="preserve">
+    <value>STADYUM</value>
+  </data>
+  <data name="Temparature" xml:space="preserve">
+    <value>SICAKLIK</value>
+  </data>
+  <data name="WeatherForecast" xml:space="preserve">
+    <value>HAVA DURUMU</value>
+  </data>
+  <data name="WindDegree" xml:space="preserve">
+    <value>RÜZGAR</value>
+  </data>
+  <data name="WindSpeed" xml:space="preserve">
+    <value>RÜZGAR HIZI</value>
+  </data>
+  <data name="Draw" xml:space="preserve">
+    <value>BERABERE</value>
+  </data>
+  <data name="InjuryTime" xml:space="preserve">
+    <value>EKLENEN SÜRE</value>
+  </data>
+  <data name="CountryList" xml:space="preserve">
+    <value>ÜLKE LİSTESİ</value>
+  </data>
+  <data name="FavoriteMatches" xml:space="preserve">
+    <value>FAVORİ MAÇLAR</value>
+  </data>
+  <data name="AssistsScorers" xml:space="preserve">
+    <value>ASİST KRALLIĞI</value>
+  </data>
+  <data name="Average" xml:space="preserve">
+    <value>AVE.</value>
+  </data>
+  <data name="CardScorers" xml:space="preserve">
+    <value>KART KRALLIĞI</value>
+  </data>
+  <data name="GoalAgainstShort" xml:space="preserve">
+    <value>YG</value>
+  </data>
+  <data name="GoalScorers" xml:space="preserve">
+    <value>GOL KRALLIĞI</value>
+  </data>
+  <data name="GoalScoreShort" xml:space="preserve">
+    <value>AG</value>
+  </data>
+  <data name="Mp" xml:space="preserve">
+    <value>OM</value>
+  </data>
+  <data name="Point" xml:space="preserve">
+    <value>PUAN</value>
+  </data>
+  <data name="Pos" xml:space="preserve">
+    <value>POZ.</value>
+  </data>
+  <data name="Team" xml:space="preserve">
+    <value>TAKIM</value>
+  </data>
+  <data name="FixtureOfRound" xml:space="preserve">
+    <value>HAFTANIN MAÇLARI</value>
+  </data>
+  <data name="AboutUs" xml:space="preserve">
+    <value>HAKKIMIZDA</value>
+  </data>
+  <data name="AboutUs1" xml:space="preserve">
+    <value>CANLI MAÇ DETAYLARI</value>
+  </data>
+  <data name="AboutUs2" xml:space="preserve">
+    <value>AVRUPA ORANLARI VE DETAYLI ANALİZLERİ (KAZANMA YÜZDESİ, KAR-ZARAR YÜZDESİ, ORAN GRUBU YÜZDESİ, KAZANMA-KAYBETME SAYILARI)</value>
+  </data>
+  <data name="AboutUs3" xml:space="preserve">
+    <value>TAKIM İSTATİSTİKLERİ</value>
+  </data>
+  <data name="AboutUs4" xml:space="preserve">
+    <value>DETAYLI MAÇ İSTATİSTİKLERİ VE ANALİZLERİ</value>
+  </data>
+  <data name="AboutUs5" xml:space="preserve">
+    <value>PREOODS'UN AMACI ORAN ANALİZİ VE İSTATİSTİKSEL İNCELEME YAPMANIZA YARDIMCI OLMAKTIR. HİÇBİR ŞEKİLDE YASAL OLAN VEYA OLMAYAN BAHİS BÜROSUNDA BAHİS OYNAMANIZI DESTEKLEYEN VEYA BU BÜROLARA YÖNLENDİRME YAPAN BİR İÇERİK BULUNMAMAKTADIR.</value>
+  </data>
+  <data name="AboutUs6" xml:space="preserve">
+    <value>EĞER BAHİS VEYA KUMAR BAĞIMLISIYSANIZ AŞAĞIDAKİ SAYFADAN YARDIM ALMANIZI ÖNERİRİZ.</value>
+  </data>
+  <data name="AboutUs7" xml:space="preserve">
+    <value>PREODDS, DÜNYA ÇAPINDA 852 FUTBOL LİGİNİN DETAYLI İSTATİSTİK VE ORAN ANALİZLERİNİ SİZLERE SUNMAKTADIR.</value>
+  </data>
+  <data name="AimofPreodds" xml:space="preserve">
+    <value>PREODDS AMACI NEDİR?</value>
+  </data>
+  <data name="ContactUs" xml:space="preserve">
+    <value>İLETİŞİM</value>
+  </data>
+  <data name="Fixtures" xml:space="preserve">
+    <value>FİKSTÜR</value>
+  </data>
+  <data name="Follow" xml:space="preserve">
+    <value>TAKİP ET</value>
+  </data>
+  <data name="FollowUs" xml:space="preserve">
+    <value>BİZİ TAKİP ET</value>
+  </data>
+  <data name="GamblingTherapy" xml:space="preserve">
+    <value>KUMAR BAĞIMLILIĞI</value>
+  </data>
+  <data name="GamblingTherapyLink" xml:space="preserve">
+    <value>https://www.yesilay.org.tr/tr/bagimlilik/kumar-bagimliligi</value>
+  </data>
+  <data name="HelpHeader" xml:space="preserve">
+    <value>PREODDS HESAPLAMA MANTIĞI </value>
+  </data>
+  <data name="LiveScore" xml:space="preserve">
+    <value>CANLI SKOR</value>
+  </data>
+  <data name="PreOddsInformation" xml:space="preserve">
+    <value>Preodds.com'da yer alan tüm sayısal veriler, iddaa maç kodları, iddaa oranları, iddaa programı, maç sonuçları, puan durumu, istatistik ve tahmin bilgileri sadece bilgilendirme amaçlıdır. Bilgilerin doğruluğunu ve güncelliğini sağlamak için gereken gayret gösterilmektedir ancak bilgilerin doğruluğunun kontrolü kullanıcıların kendi sorumluluğundadır. Oluşabilecek hatalardan, maddi/manevi zararlardan Preodds.com sorumlu tutulamaz.</value>
+  </data>
+  <data name="PrivacyTerm" xml:space="preserve">
+    <value>GİZLİLİK POLİTİKASI</value>
+  </data>
+  <data name="ProbDescText1" xml:space="preserve">
+    <value>Olasılık Yüzdesi hesaplanma mantığı</value>
+  </data>
+  <data name="ProbDescText10" xml:space="preserve">
+    <value>DAĞITILACAK TUTAR ORANI: 100 * DAĞITILACAK TUTAR</value>
+  </data>
+  <data name="ProbDescText11" xml:space="preserve">
+    <value>Şimdi de oranların yüzdelik dilimlerini hesaplayalım.</value>
+  </data>
+  <data name="ProbDescText12" xml:space="preserve">
+    <value>M1: 1 / (DAĞITILACAK TUTAR ORANI * M1)</value>
+  </data>
+  <data name="ProbDescText13" xml:space="preserve">
+    <value>M0: 1 / (DAĞITILACAK TUTAR ORANI * M0)</value>
+  </data>
+  <data name="ProbDescText14" xml:space="preserve">
+    <value>M2: 1 / (DAĞITILACAK TUTAR ORANI * M2)</value>
+  </data>
+  <data name="ProbDescText15" xml:space="preserve">
+    <value>Şimdi bu hesaplamamızı yukarıdaki oranlarla hesaplayalım.</value>
+  </data>
+  <data name="ProbDescText16" xml:space="preserve">
+    <value>KAR PAYI: (1/2.00) + (1/3.00) + (1/2.70) = 0,50 + 0,33 + 0,37 = 1,20</value>
+  </data>
+  <data name="ProbDescText17" xml:space="preserve">
+    <value>DAĞITILACAK TUTAR: 1/1.20 = 0,83</value>
+  </data>
+  <data name="ProbDescText18" xml:space="preserve">
+    <value>DAĞITILACAK TUTAR ORANI: 0,83 * 100 = %83</value>
+  </data>
+  <data name="ProbDescText19" xml:space="preserve">
+    <value>yani 1 TL için 0, 83 TL para dağıtılması beklenmektedir.Bu oran grubunda karı payı 0, 17 TL dir.</value>
+  </data>
+  <data name="ProbDescText2" xml:space="preserve">
+    <value>Oranın kendi bahis grubu içerisindeki kazanma şansını vermektedir.</value>
+  </data>
+  <data name="ProbDescText20" xml:space="preserve">
+    <value>M1: (1 / 2.00) * 0,83 = 0,415 * 100 = % 41,5</value>
+  </data>
+  <data name="ProbDescText21" xml:space="preserve">
+    <value>M0: (1 / 3.00) * 0,83 = 0,276 * 100 = % 27,6</value>
+  </data>
+  <data name="ProbDescText22" xml:space="preserve">
+    <value>M2: (1 / 2.70) * 0,83 = 0,307 * 100 = % 30,7</value>
+  </data>
+  <data name="ProbDescText23" xml:space="preserve">
+    <value>Hesaplamalar sonucunda her bir oranın Kazanma Olasılık Yüzdesini bulmuş olduk.</value>
+  </data>
+  <data name="ProbDescText3" xml:space="preserve">
+    <value>Bu hesaplamayı bir örnek ile açıklayalım;</value>
+  </data>
+  <data name="ProbDescText4" xml:space="preserve">
+    <value>Maç sonucu bahis grubunu ele alalım. Maç Sonu bahis grubunda MS1 (Maç Sonu 1), MS0 (Maç Sonu 0) ve MS2 (Maç Sonu 2) olarak 3 farklı bahis türü bulunmaktadır.</value>
+  </data>
+  <data name="ProbDescText5" xml:space="preserve">
+    <value>MS1: 2.00 MS0: 3.00 MS2: 2.70 olarak ele alalım.</value>
+  </data>
+  <data name="ProbDescText6" xml:space="preserve">
+    <value>KAR hesaplaması : (1/M1) + (1/M0) + (1/M2) toplamı KAR payını vermektedir. Bu oran ne kadar düşük olursa bahis firmasının kar oranı da o kadar düşük olur. Bu oranın düşük olduğu maçlara oynamak aslında bahisçiler için daha fazla kazanma şansı getirdiği de söylenmektedir.</value>
+  </data>
+  <data name="ProbDescText7" xml:space="preserve">
+    <value>KAR PAYI: (1/M1) + (1/M0) + (1/M2)</value>
+  </data>
+  <data name="ProbDescText8" xml:space="preserve">
+    <value>yukarıdaki hesaplamaya göre 1 TL için dağıtılacak toplam tutar ise;</value>
+  </data>
+  <data name="ProbDescText9" xml:space="preserve">
+    <value>DAĞITILACAK TUTAR: 1 / KAR PAYI</value>
+  </data>
+  <data name="ProfitDescText1" xml:space="preserve">
+    <value>Kar-Zarar Yüzdesi hesaplanma mantığı</value>
+  </data>
+  <data name="ProfitDescText10" xml:space="preserve">
+    <value>Kazanma Yüzdesi: ((13,75 – 22) / 22) * 100 = % -37.5</value>
+  </data>
+  <data name="ProfitDescText11" xml:space="preserve">
+    <value>İlgili oranın Kar-Zarar hesaplaması sonucunda 8,25 TL kaybetmiş oldu. Bu hesaba göre Kar-Zarar yüzdesi % - 37.5 olarak görünmektedir.</value>
+  </data>
+  <data name="ProfitDescText2" xml:space="preserve">
+    <value>Oranın kazanma sayısı, kaybetme sayısı ve oranın kendisi kullanılarak yapılan hesaplama ile oranın %(yüzdelik) olarak Kar-Zarar performansını bize vermektedir.</value>
+  </data>
+  <data name="ProfitDescText3" xml:space="preserve">
+    <value>Kar-Zarar Yüzdesi hesapkamasını bir örnek ile açıklayalım;</value>
+  </data>
+  <data name="ProfitDescText4" xml:space="preserve">
+    <value>Maç sonucu 1 için 2.75 oranını ele alalım. MS1 - 2,75 oranı şu ana kadar 22 defa verilmiş olsun 5 defa kazanmış ve 17 defa kaybettiğini düşünelim.</value>
+  </data>
+  <data name="ProfitDescText5" xml:space="preserve">
+    <value>Kazanan maç sayısı: 5</value>
+  </data>
+  <data name="ProfitDescText6" xml:space="preserve">
+    <value>Kaybeden maç sayısı: 17</value>
+  </data>
+  <data name="ProfitDescText7" xml:space="preserve">
+    <value>Toplam Bahis Tutarı: 1 x 22 = 22 TL</value>
+  </data>
+  <data name="ProfitDescText8" xml:space="preserve">
+    <value>Kazandığımız Tutar: 2.75 x 5 = 13,75 TL</value>
+  </data>
+  <data name="ProfitDescText9" xml:space="preserve">
+    <value>Toplam Bakiye : 13,75 - 22 = - 8,25 TL</value>
+  </data>
+  <data name="Standings" xml:space="preserve">
+    <value>PUAN DURUMU</value>
+  </data>
+  <data name="WhatsPreOdds" xml:space="preserve">
+    <value>PREODDS NEDİR?</value>
+  </data>
+  <data name="WinningRatesText1" xml:space="preserve">
+    <value>Kazanma Yüzdesi hesaplanma mantığı</value>
+  </data>
+  <data name="WinningRatesText2" xml:space="preserve">
+    <value>Oranın kazanma ve kaybetme sayılarını kullanarak yapılan hesaplama ile oranın %(yüzdelik) olarak kazanma performansını bize vermektedir.</value>
+  </data>
+  <data name="WinningRatesText3" xml:space="preserve">
+    <value>Bu hesaplamayı bir örnek ile açıklayalım;</value>
+  </data>
+  <data name="WinningRatesText4" xml:space="preserve">
+    <value>Maç sonucu 1 için 2.75 oranını ele alalım. MS1 - 2,75 oranı şu ana kadar 22 defa verilmiş olsun 5 defa kazanmış ve 17 defa kaybettiğini düşünelim.</value>
+  </data>
+  <data name="WinningRatesText5" xml:space="preserve">
+    <value>Kazanan maç sayısı: 5</value>
+  </data>
+  <data name="WinningRatesText6" xml:space="preserve">
+    <value>Kaybeden maç sayısı: 17</value>
+  </data>
+  <data name="WinningRatesText7" xml:space="preserve">
+    <value>Kazanma Yüzdesi : (5 / 22) * 100 = %22.73</value>
+  </data>
+  <data name="WinningRatesText8" xml:space="preserve">
+    <value>Kazanma Yüzdesi hesaplaması ile ilgili oranın kazanma şansı: %22.73 olarak çıkmaktadır.</value>
+  </data>
+  <data name="Assists" xml:space="preserve">
+    <value>ASİST</value>
+  </data>
+  <data name="DIFF" xml:space="preserve">
+    <value>AVERAJ</value>
+  </data>
+  <data name="DIFFShort" xml:space="preserve">
+    <value>AVE.</value>
+  </data>
+  <data name="GlossaryTerms" xml:space="preserve">
+    <value>KISALTMA SÖZLÜĞÜ</value>
+  </data>
+  <data name="Goal" xml:space="preserve">
+    <value>GOL</value>
+  </data>
+  <data name="GoalScore" xml:space="preserve">
+    <value>ATTIĞI GOL</value>
+  </data>
+  <data name="LostText" xml:space="preserve">
+    <value>KAYBETME</value>
+  </data>
+  <data name="PenGoal" xml:space="preserve">
+    <value>PEN. GOL</value>
+  </data>
+  <data name="TopScorer" xml:space="preserve">
+    <value>İSTATİSTİK</value>
+  </data>
+  <data name="TotalMatch" xml:space="preserve">
+    <value>OYNANAN MAÇ SAYISI</value>
+  </data>
+  <data name="TotalMatchShort" xml:space="preserve">
+    <value>OM</value>
+  </data>
+  <data name="WinText" xml:space="preserve">
+    <value>GALİBİYET</value>
+  </data>
+  <data name="AvgGoalsPerMatch" xml:space="preserve">
+    <value>GOL ORTALAMASI</value>
+  </data>
+  <data name="AvgRedcardsPerMatch" xml:space="preserve">
+    <value>KIRMIZI KART ORTALAMASI</value>
+  </data>
+  <data name="AvgYellowcardsPerMatch" xml:space="preserve">
+    <value>SARI KART ORTALAMASI</value>
+  </data>
+  <data name="AvgYellowredcardsPerMatch" xml:space="preserve">
+    <value>2. SARI KART ORTALAMASI</value>
+  </data>
+  <data name="GoalkeeperMostCleansheets" xml:space="preserve">
+    <value>EN ÇOK GOL YEMEDEN MAÇ BİTİREN</value>
+  </data>
+  <data name="leagueStatistics" xml:space="preserve">
+    <value>LİG İSTATİSTİK</value>
+  </data>
+  <data name="MatchesBothTeamsScored" xml:space="preserve">
+    <value>KARŞILIKLI GOL MAÇ SAYISI</value>
+  </data>
+  <data name="NumberOfClubs" xml:space="preserve">
+    <value>TAKIM SAYISI</value>
+  </data>
+  <data name="NumberOfGoals" xml:space="preserve">
+    <value>GOL SAYISI</value>
+  </data>
+  <data name="NumberOfMatches" xml:space="preserve">
+    <value>MAÇ SAYISI</value>
+  </data>
+  <data name="NumberOfMatchesPlayed" xml:space="preserve">
+    <value>OYNANAN MAÇ SAYISI</value>
+  </data>
+  <data name="NumberOfRedcards" xml:space="preserve">
+    <value>KIRMIZI KART SAYISI</value>
+  </data>
+  <data name="NumberOfYellowcards" xml:space="preserve">
+    <value>SARI KART SAYISI</value>
+  </data>
+  <data name="NumberOfYellowredcards" xml:space="preserve">
+    <value>2. SARI KART SAYISI</value>
+  </data>
+  <data name="SeasonAssistTopscorer" xml:space="preserve">
+    <value>EN ÇOK ASİST YAPAN</value>
+  </data>
+  <data name="SeasonTopscorer" xml:space="preserve">
+    <value>EN ÇOK GOL ATAN</value>
+  </data>
+  <data name="TeamMostCleansheets" xml:space="preserve">
+    <value>GOL YEMEDEN  EN ÇOK MAÇ BİTİREN TAKIM</value>
+  </data>
+  <data name="TeamWithMostConcededGoals" xml:space="preserve">
+    <value>EN ÇOK GOL YİYEN TAKIM</value>
+  </data>
+  <data name="TeamWithMostGoals" xml:space="preserve">
+    <value>EN ÇOK GOL ATAN TAKIM</value>
+  </data>
+  <data name="TeamWithMostGoalsPerMatch" xml:space="preserve">
+    <value>MAÇ BAŞI GOL ORTALAMASI EN İYİ TAKIM</value>
+  </data>
+  <data name="Detail" xml:space="preserve">
+    <value>DETAY</value>
+  </data>
+  <data name="GoalsScoredMinutes" xml:space="preserve">
+    <value>GOL ATILAN DAKIKA ORANLARI</value>
+  </data>
+  <data name="HalfTimeShort" xml:space="preserve">
+    <value>İY</value>
+  </data>
+  <data name="GoalScoredEveryMinutes" xml:space="preserve">
+    <value>KAÇ DAKİKADA BİR GOL OLDU? </value>
+  </data>
+  <data name="NoLiveMatches" xml:space="preserve">
+    <value>ŞU AN CANLI MAÇ YOK</value>
+  </data>
+  <data name="Leagues" xml:space="preserve">
+    <value>LİGLER</value>
+  </data>
+  <data name="MajorLeagues" xml:space="preserve">
+    <value>LİGLER</value>
+  </data>
+  <data name="MajorCups" xml:space="preserve">
+    <value>KUPALAR</value>
+  </data>
+  <data name="SeeAllLeagues" xml:space="preserve">
+    <value>TÜM LİGLER</value>
+  </data>
+  <data name="LoadingOdds" xml:space="preserve">
+    <value>ORANLAR YÜKLENİYOR...</value>
+  </data>
+  <data name="LeagueDetail" xml:space="preserve">
+    <value>LİG DETAY</value>
+  </data>
+  <data name="AllTips" xml:space="preserve">
+    <value>TÜM TAHMİNLER</value>
+  </data>
+  <data name="TipsPaging" xml:space="preserve">
+    <value>TAHMİNLER YÜKLENİYOR...</value>
+  </data>
+  <data name="Clear" xml:space="preserve">
+    <value>TEMİZLE</value>
+  </data>
+  <data name="CollapseAll" xml:space="preserve">
+    <value>HAPSİNİ KAPAT</value>
+  </data>
+</root>

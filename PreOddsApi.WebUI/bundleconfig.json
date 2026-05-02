@@ -1,0 +1,91 @@
+﻿// Configure bundling and minification for the project.
+// More info at https://go.microsoft.com/fwlink/?LinkId=808241
+[
+  {
+    "outputFileName": "wwwroot/css/site.min.css",
+    // An array of relative input file paths. Globbing patterns supported
+    "inputFiles": [
+      "wwwroot/css/style.css",
+      //"wwwroot/css/bootstrap.css",
+      "wwwroot/css/fonts.css",
+      "wwwroot/css/bootstrap-datepicker.css",
+      "wwwroot/css/bootstrap-datepicker3.css"
+    ]
+  },
+  {
+    "outputFileName": "wwwroot/js/site.min.js",
+    "inputFiles": [
+      "wwwroot/js/core.min.js",
+      "wwwroot/js/script.js"
+    ],
+    // Optionally specify minification options
+    "minify": {
+      "enabled": true,
+      "renameLocals": true
+    },
+    // Optionally generate .map file
+    "sourceMap": false
+  },
+  {
+    "outputFileName": "wwwroot/lib/views/league/fixture-of-round.min.js",
+    "inputFiles": [
+      "wwwroot/js/views/fixtureOfRound/render.js"
+    ]
+  },
+  {
+    "outputFileName": "wwwroot/lib/views/analysis/hotrates.min.js",
+    "inputFiles": [
+      "wwwroot/js/views/analysis/hotrates/render.js"
+    ]
+  },
+  {
+    "outputFileName": "wwwroot/lib/views/analysis/winning.min.js",
+    "inputFiles": [
+      "wwwroot/js/views/analysis/winning/render.js"
+    ]
+  },
+  {
+    "outputFileName": "wwwroot/lib/views/analysis/earning.min.js",
+    "inputFiles": [
+      "wwwroot/js/views/analysis/earning/render.js"
+    ]
+  },
+  {
+    "outputFileName": "wwwroot/lib/views/shared/layout.min.js",
+    "inputFiles": [
+      "wwwroot/vendor/jsrender/jsrender.js",
+      "wwwroot/js/views/layout/render.js",
+      //"wwwroot/js/views/shared/layout/coupon.js",
+      //"wwwroot/js/views/shared/layout/facebook.js",
+      //"wwwroot/js/views/shared/layout/google.js",
+      //"wwwroot/js/views/shared/layout/login.js",
+      //"wwwroot/js/views/shared/layout/render.js",
+      //"wwwroot/vendor/toastr/toastr.min.js",
+      "wwwroot/js/preodds.js"
+    ]
+  },
+  {
+    "outputFileName": "wwwroot/lib/views/fixture/fixtureDetail.min.js",
+    "inputFiles": [
+      "wwwroot/js/views/fixture/fixtureDetail/render.js"
+    ]
+  },
+  {
+    "outputFileName": "wwwroot/lib/views/fixture/fixtureOfDate.min.js",
+    "inputFiles": [
+      "wwwroot/js/views/fixture/fixtureOfDate/render.js"
+    ]
+  },
+  {
+    "outputFileName": "wwwroot/lib/views/league/league.min.js",
+    "inputFiles": [
+      "wwwroot/js/views/league/render.js"
+    ]
+  },
+  {
+    "outputFileName": "wwwroot/lib/views/tips/tips.min.js",
+    "inputFiles": [
+      "wwwroot/js/views/tips/render.js"
+    ]
+  }
+]

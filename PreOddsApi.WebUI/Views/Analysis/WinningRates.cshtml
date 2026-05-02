@@ -1,0 +1,298 @@
+﻿@using Microsoft.Extensions.Localization;
+@inject IStringLocalizer<SharedResources> SharedLocalizer
+@{
+    ViewData["Title"] = "WinningRates";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+
+@* <section class="section section-sm bg-gray-100" style="padding:0px 0px 10px 0px;">
+    <div class="container">
+        <div style="text-align:center; margin-bottom:10px;">
+            <script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+            <ins class="adsbygoogle example_responsive_1" style="display:block;" data-ad-client="ca-pub-6855594242204807" data-ad-slot="9451536421" data-ad-format="auto" data-full-width-responsive="true"></ins>
+            <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+        </div>
+    </div>
+</section> *@
+
+<section class="section section-sm bg-gray-100">
+    <div class="container">
+        <div class="row row-50">
+            <div class="col-xl-9">
+                <!-- Heading Component-->
+                <article class="heading-component">
+                    <div class="heading-component-inner">
+                        <h5 class="heading-component-title">
+                            @SharedLocalizer.GetString("WinningAnalysis")
+                        </h5>
+
+                    </div>
+                </article>
+
+                <div class="row row-30" id="divWinning">
+
+                </div>
+                <div class="text-center" id="divLoadMore" style="display: none; padding-top:25px;">
+                    <button onclick="renderMore()" class="button button-secondary-outline">Daha fazla yükle</button>
+                </div>
+                <div class="text-center" id="divLoading" style="display: none; padding-top:25px;">
+                    <img src="/images/loading.gif" alt="loading" style="width: 25px;" />
+                    <p class="game-info-subtitle" style="font-size:1.2em;">
+                       @SharedLocalizer.GetString("MatchesAnalysing")
+                    </p>
+                </div>
+
+            </div>
+            <div class="col-xl-3">
+                <article class="heading-component">
+                    <div class="heading-component-inner">
+                        <h5 class="heading-component-title">
+                            @SharedLocalizer.GetString("AnalysisFilter")
+                        </h5>
+                    </div>
+                </article>
+
+                <input type="text" id="winningDatetime" readonly class="form-input"  style="padding: 10px 15px; min-height:unset;" />
+                <article class="heading-component" style="padding-top:15px;">
+                    <div class="heading-component-inner">
+                        <h6 class="heading-component-title">
+                            @SharedLocalizer.GetString("OddsType")
+                        </h6>
+                    </div>
+                </article>
+                <select id="marketId" class="select select-sport-result" data-dropdown-class="select-sport-result-dropdown" style="min-width: 124px; padding-top:5px;">
+                    @foreach (var market in Model)
+                    {
+                        if (market.Id == 1)
+                        {
+                            <option value="@market.Id" selected="selected">@market.Name</option>
+                        }
+                        else
+                        {
+                            <option value="@market.Id">@market.Name</option>
+                        }
+                    }
+                </select>
+                <article class="heading-component" style="padding-top:15px;">
+                    <div class="heading-component-inner">
+                        <h6 class="heading-component-title">
+                            @SharedLocalizer.GetString("AnalysisPeriod")
+                        </h6>
+                    </div>
+                </article>
+                <select id="analysisPeriodId" class="select select-sport-result" data-dropdown-class="select-sport-result-dropdown" style="min-width: 124px; padding-top:5px;">
+                    <option value="0" selected="selected">@SharedLocalizer.GetString("Month1")</option>
+                    <option value="1">@SharedLocalizer.GetString("Month3")</option>
+                    <option value="2">@SharedLocalizer.GetString("Month6")</option>
+                    <option value="3">@SharedLocalizer.GetString("Year1")</option>
+                    <option value="4">@SharedLocalizer.GetString("All")</option>
+                </select>
+                <article class="heading-component" style="padding-top:15px;">
+                    <div class="heading-component-inner">
+                        <h6 class="heading-component-title">
+                            @SharedLocalizer.GetString("WinningRates")
+                        </h6>
+                    </div>
+                </article>
+                <select id="winningId" class="select select-sport-result" data-dropdown-class="select-sport-result-dropdown" style="min-width: 124px; padding-top:5px;">
+                    <option value="0">%0</option>
+                    <option value="10">%10</option>
+                    <option value="20">%20</option>
+                    <option value="30">%30</option>
+                    <option value="40">%40</option>
+                    <option value="50">%50</option>
+                    <option value="60" selected="selected">%60</option>
+                    <option value="70">%70</option>
+                    <option value="80">%80</option>
+                    <option value="90">%90</option>
+                </select>
+                <article class="heading-component" style="padding-top:15px;">
+                    <div class="heading-component-inner">
+                        <h6 class="heading-component-title">
+                            @SharedLocalizer.GetString("MinRate")
+                        </h6>
+                    </div>
+                </article>
+                <select id="minRateId" class="select select-sport-result" data-dropdown-class="select-sport-result-dropdown" style="min-width: 124px; padding-top:5px;">
+                    <option value="0">1,00</option>
+                    <option value="1">1,10</option>
+                    <option value="2" selected="selected">1,25</option>
+                    <option value="3">1,50</option>
+                    <option value="4">2,00</option>
+                    <option value="5">5,00</option>
+                    <option value="6">10,00</option>
+                </select>
+                <select id="matchStateId" class="select select-sport-result" data-dropdown-class="select-sport-result-dropdown" style="min-width: 124px; padding-top:15px;">
+                        <option value="0" selected="selected">@SharedLocalizer.GetString("NotStarted")</option>
+                        <option value="1">@SharedLocalizer.GetString("All")</option>
+                </select>
+                    <button class="button button-lg button-primary-outline" onclick="getList()">@SharedLocalizer.GetString("MatchesFilterButton")</button>
+
+                <div class="col-md-6 col-lg-12">
+                    <div style="text-align:center; margin-bottom:20px;">
+                        <script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+                        <ins class="adsbygoogle example_responsive_1" style="display:block;" data-ad-client="ca-pub-6855594242204807" data-ad-slot="9451536421" data-ad-format="auto" data-full-width-responsive="true"></ins>
+                        <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+@section scripts {
+    <script src="/vendor/jsrender/jsrender.min.js"></script>
+    <script src="/vendor/datepicker/bootstrap-datepicker.js"></script>
+<script src="/vendor/datepicker/bootstrap-datepicker.tr.js"></script>
+
+    <script id="movieTemplate" type="text/x-jsrender">
+        <!-- Game Result Classic-->
+        <div class="col-md-6">
+            <article class="game-result game-result-classic" style="padding:10px 0px 0px 0px;">
+                <p class="game-info-subtitle" style="text-align:left; margin-left:10px;">
+                    <img src="{{:country.logo}}" alt="" width="32" height="32" /> {{:country.name}}
+                    <span style="float: right;margin: 5px 10px 0px 0px;">
+                        {{:league.name}}
+                    </span>
+                </p>
+                <hr>
+                <p class="game-info-subtitle">
+                    <time class="time-big" datetime="2018-04-17">
+                        <span class="heading-4">{{:timeStartingAtDateTime.substring(11,16)}}</span> {{:timeStartingAtDateTime.substring(0,10)}}
+                    </time>
+                </p>
+                @*<p class="game-info-subtitle" style="margin-bottom:0px;">
+                    {{:timeStartingAtDateTime.substring(0,16)}}
+                </p>*@
+                <div class="game-result-main" style="padding:10px 5px;">
+                    <div class="game-result-team game-result-team-first" style="max-width: 115px;">
+                        <figure class="game-result-team-figure game-result-team-figure-big">
+                            <img src="{{:localTeam.logoPath}}" alt="" width="55" height="55" />
+                        </figure>
+                    </div>
+                    <a href="/fixtureDetail/{{:id}}" target="_blank">
+                        <div class="game-result-middle" style="min-width: 100px;">
+                            {{if ftScore != null}}
+                            <div class="game-result-score-wrap">
+
+                                {{if localTeamScore > visitorTeamScore}}
+                                <div class="game-result-score game-result-team-win">
+                                    {{:localTeamScore}}
+                                    <span class="game-result-team-label game-result-team-label-top">@SharedLocalizer.GetString("Win")</span>
+                                </div>
+                                {{else}}
+                                <div class="game-result-score">
+                                    {{:localTeamScore}}
+                                </div>
+                                {{/if}}
+                                <div class="game-result-score-divider">
+                                    <svg x="0px" y="0px" width="7px" height="21px" viewbox="0 0 7 21" enable-background="new 0 0 7 21" xml:space="preserve">
+                                    <g>
+                                    <circle cx="3.5" cy="3.5" r="3"></circle>
+                                    <path d="M3.5,1C4.879,1,6,2.122,6,3.5S4.879,6,3.5,6S1,4.878,1,3.5S2.122,1,3.5,1 M3.5,0C1.567,0,0,1.567,0,3.5S1.567,7,3.5,7      S7,5.433,7,3.5S5.433,0,3.5,0L3.5,0z"></path>
+                          </g>
+                                    <g>
+                                    <circle cx="3.695" cy="17.5" r="3"></circle>
+                                    <path d="M3.695,15c1.378,0,2.5,1.122,2.5,2.5S5.073,20,3.695,20s-2.5-1.122-2.5-2.5S2.316,15,3.695,15 M3.695,14      c-1.933,0-3.5,1.567-3.5,3.5s1.567,3.5,3.5,3.5s3.5-1.567,3.5-3.5S5.628,14,3.695,14L3.695,14z"></path>
+                          </g>
+                        </svg>
+                                </div>
+                                {{if visitorTeamScore > localTeamScore}}
+
+                                <div class="game-result-score game-result-team-win">
+                                    {{:visitorTeamScore}}
+                                    <span class="game-result-team-label game-result-team-label-top">@SharedLocalizer.GetString("Win")</span>
+                                </div>
+                                {{else}}
+                                <div class="game-result-score">
+                                    {{:visitorTeamScore}}
+                                </div>
+                                {{/if}}
+
+                            </div>
+                            {{if visitorTeamScore > localTeamScore}}
+
+                            <div class="game-results-status">@SharedLocalizer.GetString("AwayTeam")</div>
+
+                            {{else localTeamScore > visitorTeamScore}}
+
+                            <div class="game-results-status">@SharedLocalizer.GetString("HomeTeam")</div>
+                            {{else}}
+                            <div class="game-results-status">@SharedLocalizer.GetString("Draw")</div>
+                            {{/if}}
+                            {{else}}
+                            <div class="game-result-divider-wrap"><span class="game-info-team-divider">VS</span></div>
+                            {{/if}}
+
+                        </div>
+                        </a>
+                        <div class="game-result-team game-result-team-second" style="max-width: 115px;">
+                            <figure class="game-result-team-figure game-result-team-figure-big">
+                                <img src="{{:visitorTeam.logoPath}}" alt="" width="55" height="55" />
+                            </figure>
+                        </div>
+</div>
+                <div class="game-result-main" style="padding:0px 5px;">
+                    <div class="game-result-team game-result-team-first" style="max-width: 100px;">
+                        <div class="game-result-team-name">{{:localTeam.name}}</div>
+                        @*<div class="game-result-team-country">{{:localTeam.shortCode}}</div>*@
+                    </div>
+                    
+                    <div class="game-result-team game-result-team-second" style="max-width: 100px;">
+                        <div class="game-result-team-name">{{:visitorTeam.name}}</div>
+                        @*<div class="game-result-team-country">{{:visitorTeam.shortCode}}</div>*@
+                    </div>
+                </div>
+                <div class="table-game-info-wrap">
+                    <span class="table-game-info-title">@SharedLocalizer.GetString("OddsAnalysis")<span></span></span>
+                    <div class="table-game-info-main table-custom-responsive" style="border:0; padding:12px 0px 12px 0px;">
+                        <table class="table-custom table-game-info" style="font-size:12px; border-spacing: 0px 1px;">
+                            <tbody>
+                                <tr>
+                                    <td class="table-game-info-category" style="min-width:130px; font-size:1.0em; color:#353535; background-color:#f3c73b;">@SharedLocalizer.GetString("OddsType")</td>
+                                    <td class="table-game-info-number" style="min-width:30px; color:#353535; font-size:1.0em; background-color:#f3c73b;">@SharedLocalizer.GetString("Odds")</td>
+                                    <td class="table-game-info-number" title="@SharedLocalizer.GetString("WinDesc")" style="min-width:30px; color:#353535; font-size:1.0em; background-color:#f3c73b;">@SharedLocalizer.GetString("Win")</td>
+                                    <td class="table-game-info-number" title="@SharedLocalizer.GetString("LostDesc")" style="min-width:30px; color:#353535; font-size:1.0em; background-color:#f3c73b;">@SharedLocalizer.GetString("Lost")</td>
+                                    <td class="table-game-info-number" title="@SharedLocalizer.GetString("WinPercDesc")" style="min-width:30px; color:#353535; font-size:1.0em; background-color:#f3c73b;">@SharedLocalizer.GetString("Win")</td>
+                                    <td class="table-game-info-number" title="@SharedLocalizer.GetString("ProfitDesc")" style="min-width:30px; color:#353535; font-size:1.0em; background-color:#f3c73b;">@SharedLocalizer.GetString("Profit")</td>
+                                    <td class="table-game-info-number" title="@SharedLocalizer.GetString("ProbDesc")" style="min-width:30px; color:#353535; font-size:1.0em; background-color:#f3c73b;">@SharedLocalizer.GetString("Prob")</td>
+                                </tr>
+                                {{for odds tmpl="columnTemplate"/}}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="game-result-footer">
+                    <ul class="game-result-details">
+                        @*<li>New Yorkers Stadium</li>*@
+                        <li>
+                            <a class="button button-xs button-gray-outline table-game-info-category" href="/fixtureDetail/{{:id}}" target="_blank" style="max-width:100%; flex-basis:100%;"><span>@SharedLocalizer.GetString("MatchDetail")</span></a>
+                        </li>
+                    </ul>
+                </div>
+            </article>
+        </div>
+        <!-- Game Result Classic-->
+    </script>
+    <script id="columnTemplate" type="text/x-jsrender">
+        <tr>
+            <td class="table-game-info-category" style="min-width:130px; font-size:1.0em; color:#353535;">{{:market.name}} <br><span style="color:#64b000; font-size:1.0em;"> {{:oddLabel}} {{:oddHandicap}} {{:oddTotal}}</span></td>
+            {{if oddWinning == true}}
+            <td class="table-game-info-number" style="min-width:30px; color:#fff; font-size:1.0em;  background:#35363c;">{{:oddValue}}</td>
+            {{else oddWinning == false}}
+            <td class="table-game-info-number" style="min-width:30px; color:#fff; font-size:1.0em;  background:#35363c;">{{:oddValue}}</td>
+            {{else}}
+            <td class="table-game-info-number" style="min-width:30px; color:#fff; font-size:1.0em;  background:#35363c;">{{:oddValue}}</td>
+            {{/if}}
+            {{for oddAnalysis}}
+            <td class="table-game-info-number" style="min-width:30px; color:#353535; font-size:1.2em; background:none;">{{:winCount}}</td>
+            <td class="table-game-info-number" style="min-width:30px; color:#353535; font-size:1.2em; background:none;">{{:lostCount}}</td>
+            <td class="table-game-info-number" style="min-width:30px; color:#ff4f2e; font-size:1.2em; background:none;">%{{:winningPercent}}</td>
+            <td class="table-game-info-number" style="min-width:30px; color:#63af00; font-size:1.2em; background:none;">%{{:earningPercent}}</td>
+            <td class="table-game-info-number" style="min-width:30px; color:#3B7CC0; font-size:1.2em; background:none;">%{{:oddGroupPercent}}</td>
+            {{/for}}
+        </tr>
+    </script>
+    <script src="/lib/views/analysis/winning.min.js" type="text/javascript" charset="utf-8"></script>
+}

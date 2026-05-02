@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>dotnet-PreOddsApi.Worker.SportMonks.Core-16d14fda-cec2-47a6-97c6-e2067f9fa3a1</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AutoMapper" Version="13.0.1" />
+    <PackageReference Include="EFCore.BulkExtensions" Version="8.1.2" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
+    <PackageReference Include="MySql.EntityFrameworkCore" Version="8.0.2" />
+    <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.2" />
+    <PackageReference Include="Serilog.AspNetCore" Version="8.0.1" />
+    <PackageReference Include="Serilog.Sinks.File" Version="5.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\PreOddsApi.Core.Data.EntityFramework\PreOddsApi.Core.Data.EntityFramework.csproj" />
+    <ProjectReference Include="..\..\..\PreOddsApi.DataLayer\PreOddsApi.DataLayer.csproj" />
+    <ProjectReference Include="..\..\..\PreOddsApi.Entities\PreOddsApi.Entities.csproj" />
+    <ProjectReference Include="..\..\..\PreOddsApi.ExternalApis\PreOddsApi.ExternalApis.csproj" />
+  </ItemGroup>
+</Project>

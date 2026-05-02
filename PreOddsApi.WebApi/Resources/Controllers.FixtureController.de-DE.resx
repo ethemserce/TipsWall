@@ -1,0 +1,1143 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="ArtificialTurf" xml:space="preserve">
+    <value>Kunstrasen</value>
+  </data>
+  <data name="AsianHandicapFirstHalf" xml:space="preserve">
+    <value>Asiatisches Handicap 1. Hälfte</value>
+  </data>
+  <data name="Away" xml:space="preserve">
+    <value>Weg</value>
+  </data>
+  <data name="AwayNo" xml:space="preserve">
+    <value>Weg / Nr</value>
+  </data>
+  <data name="AwayOver" xml:space="preserve">
+    <value>Weg / über</value>
+  </data>
+  <data name="AwayTeamExactGoalsNumber" xml:space="preserve">
+    <value>Genaue Anzahl der Auswärtsteams</value>
+  </data>
+  <data name="AwayTeamScoreaGoal" xml:space="preserve">
+    <value>Gastmannschaft Ein Tor erzielen</value>
+  </data>
+  <data name="AwayUnder" xml:space="preserve">
+    <value>Weg / Unter</value>
+  </data>
+  <data name="AwayYes" xml:space="preserve">
+    <value>Weg / Ja</value>
+  </data>
+  <data name="BothTeamsToScore" xml:space="preserve">
+    <value>Beide Teams erzielen Punkte</value>
+  </data>
+  <data name="BothTeamsToScoreFirstHalf" xml:space="preserve">
+    <value>Beide Teams erzielen 1. Hälfte</value>
+  </data>
+  <data name="BothTeamsToScoreSecondHalf" xml:space="preserve">
+    <value>Beide Teams erzielen 2. Hälfte</value>
+  </data>
+  <data name="brokenclouds" xml:space="preserve">
+    <value>aufgelockert bewölkt</value>
+  </data>
+  <data name="ChampionshipGroup" xml:space="preserve">
+    <value>Championship Group</value>
+  </data>
+  <data name="ChampionshipRound" xml:space="preserve">
+    <value>Championship Round</value>
+  </data>
+  <data name="CleanSheetAway" xml:space="preserve">
+    <value>Clean Sheet Away</value>
+  </data>
+  <data name="CleanSheetHome" xml:space="preserve">
+    <value>Clean Sheet Home</value>
+  </data>
+  <data name="clear" xml:space="preserve">
+    <value>clear</value>
+  </data>
+  <data name="clearsky" xml:space="preserve">
+    <value>clear sky</value>
+  </data>
+  <data name="clouds" xml:space="preserve">
+    <value>clouds</value>
+  </data>
+  <data name="Corners1x2" xml:space="preserve">
+    <value>Corners 1x2</value>
+  </data>
+  <data name="CornersOverUnder" xml:space="preserve">
+    <value>Corners Over / Under</value>
+  </data>
+  <data name="CorrectScore" xml:space="preserve">
+    <value>Correct Score</value>
+  </data>
+  <data name="CorrectScoreFirstHalf" xml:space="preserve">
+    <value>CorrectScore 1. Half</value>
+  </data>
+  <data name="Denmark" xml:space="preserve">
+    <value>Denmark</value>
+  </data>
+  <data name="DoubleChance" xml:space="preserve">
+    <value>Double Chance</value>
+  </data>
+  <data name="DoubleChanceFirstHalf" xml:space="preserve">
+    <value>Double Chance 1. Half</value>
+  </data>
+  <data name="Draw" xml:space="preserve">
+    <value>Draw</value>
+  </data>
+  <data name="DrawAway" xml:space="preserve">
+    <value>Draw/Away</value>
+  </data>
+  <data name="DrawDraw" xml:space="preserve">
+    <value>Draw/Draw</value>
+  </data>
+  <data name="DrawNo" xml:space="preserve">
+    <value>Draw / No</value>
+  </data>
+  <data name="DrawOver" xml:space="preserve">
+    <value>Draw / Over</value>
+  </data>
+  <data name="DrawUnder" xml:space="preserve">
+    <value>Draw / Under</value>
+  </data>
+  <data name="DrawYes" xml:space="preserve">
+    <value>Draw / Yes</value>
+  </data>
+  <data name="drizzle" xml:space="preserve">
+    <value>drizzle</value>
+  </data>
+  <data name="drizzlerain" xml:space="preserve">
+    <value>drizzle rain</value>
+  </data>
+  <data name="EighteenthCorner" xml:space="preserve">
+    <value>18. Corner</value>
+  </data>
+  <data name="EighthCorner" xml:space="preserve">
+    <value>8. Corner</value>
+  </data>
+  <data name="EleventhCorner" xml:space="preserve">
+    <value>11. Corner</value>
+  </data>
+  <data name="EuropaLeaguePlayoffsFinal" xml:space="preserve">
+    <value>Europa League Playoffs - Final</value>
+  </data>
+  <data name="EuropaLeaguePlayoffsQuarterfinals" xml:space="preserve">
+    <value>Europa League Playoffs - Quarter Finals</value>
+  </data>
+  <data name="EuropaLeaguePlayoffsSemifinals" xml:space="preserve">
+    <value>Europa League Playoffs - Semi Finals</value>
+  </data>
+  <data name="Europe" xml:space="preserve">
+    <value>Europe</value>
+  </data>
+  <data name="Even" xml:space="preserve">
+    <value>Even</value>
+  </data>
+  <data name="ExactGoalsNumber" xml:space="preserve">
+    <value>Exact Goals Number</value>
+  </data>
+  <data name="Excellent" xml:space="preserve">
+    <value>Excellent</value>
+  </data>
+  <data name="fewclouds" xml:space="preserve">
+    <value>few clouds</value>
+  </data>
+  <data name="FifteenthCorner" xml:space="preserve">
+    <value>15. Corner</value>
+  </data>
+  <data name="FifthCorner" xml:space="preserve">
+    <value>5. Corner</value>
+  </data>
+  <data name="FinalStage" xml:space="preserve">
+    <value>Final Stage</value>
+  </data>
+  <data name="First10minWinner" xml:space="preserve">
+    <value>First 10 min Winner</value>
+  </data>
+  <data name="FirstCorner" xml:space="preserve">
+    <value>1. Corner</value>
+  </data>
+  <data name="FirstHalf" xml:space="preserve">
+    <value>1. Half</value>
+  </data>
+  <data name="FirstHalfExactGoalsNumber" xml:space="preserve">
+    <value>1. Half Exact Goals Number</value>
+  </data>
+  <data name="FirstHalfWinner" xml:space="preserve">
+    <value>1. Half Winner</value>
+  </data>
+  <data name="FirstPhase" xml:space="preserve">
+    <value>1. Phase</value>
+  </data>
+  <data name="FirstStage" xml:space="preserve">
+    <value>1. Stage</value>
+  </data>
+  <data name="fog" xml:space="preserve">
+    <value>fog</value>
+  </data>
+  <data name="FourteenthCorner" xml:space="preserve">
+    <value>14. Corner</value>
+  </data>
+  <data name="FourthCorner" xml:space="preserve">
+    <value>4. Corner</value>
+  </data>
+  <data name="GoalsOverUnderFirstHalf" xml:space="preserve">
+    <value>Goals Over / Under 1. Half</value>
+  </data>
+  <data name="Good" xml:space="preserve">
+    <value>Good</value>
+  </data>
+  <data name="grass" xml:space="preserve">
+    <value>Grass</value>
+  </data>
+  <data name="Group1" xml:space="preserve">
+    <value>Group 1</value>
+  </data>
+  <data name="Group2" xml:space="preserve">
+    <value>Group 2</value>
+  </data>
+  <data name="GroupA" xml:space="preserve">
+    <value>Group A</value>
+  </data>
+  <data name="GroupB" xml:space="preserve">
+    <value>Group B</value>
+  </data>
+  <data name="Handicap" xml:space="preserve">
+    <value>Handicap</value>
+  </data>
+  <data name="HandicapResultFirstHalf" xml:space="preserve">
+    <value>Handicap Result 1. Half</value>
+  </data>
+  <data name="haze" xml:space="preserve">
+    <value>haze</value>
+  </data>
+  <data name="heavyintensityrain" xml:space="preserve">
+    <value>heavy intensity rain</value>
+  </data>
+  <data name="HighestScoringHalf" xml:space="preserve">
+    <value>Highest Scoring Half</value>
+  </data>
+  <data name="Home" xml:space="preserve">
+    <value>Home</value>
+  </data>
+  <data name="HomeAway" xml:space="preserve">
+    <value>Home/Away</value>
+  </data>
+  <data name="HomeDraw" xml:space="preserve">
+    <value>Home/Draw</value>
+  </data>
+  <data name="HomeNo" xml:space="preserve">
+    <value>Home / No</value>
+  </data>
+  <data name="HomeOver" xml:space="preserve">
+    <value>Home / Over</value>
+  </data>
+  <data name="HomeTeamExactGoalsNumber" xml:space="preserve">
+    <value>Home Team Exact Goals Number</value>
+  </data>
+  <data name="HomeTeamScoreaGoal" xml:space="preserve">
+    <value>Home Team Score a Goal</value>
+  </data>
+  <data name="HomeUnder" xml:space="preserve">
+    <value>Home / Under</value>
+  </data>
+  <data name="HomeYes" xml:space="preserve">
+    <value>Home / Yes</value>
+  </data>
+  <data name="HTFTDouble" xml:space="preserve">
+    <value>HT/FT Double</value>
+  </data>
+  <data name="lightintensitydrizzle" xml:space="preserve">
+    <value>light intensity drizzle</value>
+  </data>
+  <data name="lightintensitydrizzlerain" xml:space="preserve">
+    <value>light intensity drizzle rain</value>
+  </data>
+  <data name="lightintensityshowerrain" xml:space="preserve">
+    <value>light intensity shower rain</value>
+  </data>
+  <data name="lightrain" xml:space="preserve">
+    <value>light rain</value>
+  </data>
+  <data name="lightshowersnow" xml:space="preserve">
+    <value>light shower snow</value>
+  </data>
+  <data name="lightsnow" xml:space="preserve">
+    <value>light snow</value>
+  </data>
+  <data name="mist" xml:space="preserve">
+    <value>mist</value>
+  </data>
+  <data name="moderaterain" xml:space="preserve">
+    <value>moderate rain</value>
+  </data>
+  <data name="more3" xml:space="preserve">
+    <value>more 3</value>
+  </data>
+  <data name="more5" xml:space="preserve">
+    <value>more 5</value>
+  </data>
+  <data name="more7" xml:space="preserve">
+    <value>more 7</value>
+  </data>
+  <data name="NineteenthCorner" xml:space="preserve">
+    <value>19. Corner</value>
+  </data>
+  <data name="NinthCorner" xml:space="preserve">
+    <value>9. Corner</value>
+  </data>
+  <data name="No" xml:space="preserve">
+    <value>No</value>
+  </data>
+  <data name="Nogoal" xml:space="preserve">
+    <value>No goal</value>
+  </data>
+  <data name="NorthernEurope" xml:space="preserve">
+    <value>Northern Europe</value>
+  </data>
+  <data name="Odd" xml:space="preserve">
+    <value>Odd</value>
+  </data>
+  <data name="OddEven" xml:space="preserve">
+    <value>Odd / Even</value>
+  </data>
+  <data name="OddEvenFirstHalf" xml:space="preserve">
+    <value>Odd / Even 1. Half</value>
+  </data>
+  <data name="Over" xml:space="preserve">
+    <value>Over</value>
+  </data>
+  <data name="overcastclouds" xml:space="preserve">
+    <value>overcast clouds</value>
+  </data>
+  <data name="OverUnder" xml:space="preserve">
+    <value>Over / Under</value>
+  </data>
+  <data name="OverUnderFirstHalf" xml:space="preserve">
+    <value>Over / Under 1. Half</value>
+  </data>
+  <data name="OverUnderSecondHalf" xml:space="preserve">
+    <value>Over/ Under 2. Half</value>
+  </data>
+  <data name="Raceto10Corners" xml:space="preserve">
+    <value>Race to 10 Corners</value>
+  </data>
+  <data name="Raceto1Corners" xml:space="preserve">
+    <value>Race to 1 Corners</value>
+  </data>
+  <data name="Raceto2Corners" xml:space="preserve">
+    <value>Race to 2 Corners</value>
+  </data>
+  <data name="Raceto3Corners" xml:space="preserve">
+    <value>Race to 3 Corners</value>
+  </data>
+  <data name="Raceto4Corners" xml:space="preserve">
+    <value>Race to 4 Corners</value>
+  </data>
+  <data name="Raceto5Corners" xml:space="preserve">
+    <value>Race to 5 Corners</value>
+  </data>
+  <data name="Raceto6Corners" xml:space="preserve">
+    <value>Race to 6 Corners</value>
+  </data>
+  <data name="Raceto7Corners" xml:space="preserve">
+    <value>Race to 7 Corners</value>
+  </data>
+  <data name="Raceto8Corners" xml:space="preserve">
+    <value>Race to 8 Corners</value>
+  </data>
+  <data name="Raceto9Corners" xml:space="preserve">
+    <value>Race to 9 Corners</value>
+  </data>
+  <data name="rain" xml:space="preserve">
+    <value>rain</value>
+  </data>
+  <data name="RegularSeason" xml:space="preserve">
+    <value>Regular Season</value>
+  </data>
+  <data name="RelegationGroup" xml:space="preserve">
+    <value>Relegation Group</value>
+  </data>
+  <data name="RelegationRound" xml:space="preserve">
+    <value>Relegation Round</value>
+  </data>
+  <data name="ResultsBothTeamsToScore" xml:space="preserve">
+    <value>Results - Both Teams To Score</value>
+  </data>
+  <data name="ResultTotalGoals" xml:space="preserve">
+    <value>Result - Total Goals</value>
+  </data>
+  <data name="scatteredclouds" xml:space="preserve">
+    <value>scattered clouds</value>
+  </data>
+  <data name="Scotland" xml:space="preserve">
+    <value>Scotland</value>
+  </data>
+  <data name="SecondCorner" xml:space="preserve">
+    <value>2. Corner</value>
+  </data>
+  <data name="SecondHalf" xml:space="preserve">
+    <value>2. Half</value>
+  </data>
+  <data name="SecondHalfExactGoalsNumber" xml:space="preserve">
+    <value>2. Half Exact Goals Number</value>
+  </data>
+  <data name="SecondPhase" xml:space="preserve">
+    <value>2. Phase</value>
+  </data>
+  <data name="SecondStage" xml:space="preserve">
+    <value>2. Stage</value>
+  </data>
+  <data name="SeventeenthCorner" xml:space="preserve">
+    <value>17. Corner</value>
+  </data>
+  <data name="SeventhCorner" xml:space="preserve">
+    <value>7. Corner</value>
+  </data>
+  <data name="showerrain" xml:space="preserve">
+    <value>shower rain</value>
+  </data>
+  <data name="showersleet" xml:space="preserve">
+    <value>shower sleet</value>
+  </data>
+  <data name="SixteenthCorner" xml:space="preserve">
+    <value>16. Corner</value>
+  </data>
+  <data name="SixthCorner" xml:space="preserve">
+    <value>6. Corner</value>
+  </data>
+  <data name="snow" xml:space="preserve">
+    <value>snow</value>
+  </data>
+  <data name="TeamToScoreFirst" xml:space="preserve">
+    <value>Team To Score First</value>
+  </data>
+  <data name="TeamToScoreLast" xml:space="preserve">
+    <value>Team To Score Last</value>
+  </data>
+  <data name="TenthCorner" xml:space="preserve">
+    <value>10. Corner</value>
+  </data>
+  <data name="ThirdCorner" xml:space="preserve">
+    <value>3. Corner</value>
+  </data>
+  <data name="ThirteenthCorner" xml:space="preserve">
+    <value>13. Corner</value>
+  </data>
+  <data name="ThreeWayHandicap" xml:space="preserve">
+    <value>3 Way Handicap</value>
+  </data>
+  <data name="ThreeWayResult" xml:space="preserve">
+    <value>3 Way Result</value>
+  </data>
+  <data name="ThreeWayResultFirstHalf" xml:space="preserve">
+    <value>3 Way Result 1. Half</value>
+  </data>
+  <data name="ThreeWayResultSecondHalf" xml:space="preserve">
+    <value>3 Way Result 2. Half</value>
+  </data>
+  <data name="thunderstorm" xml:space="preserve">
+    <value>thunderstorm</value>
+  </data>
+  <data name="thunderstormwithrain" xml:space="preserve">
+    <value>thunderstorm with rain</value>
+  </data>
+  <data name="TotalAway" xml:space="preserve">
+    <value>Total - Away</value>
+  </data>
+  <data name="TotalHome" xml:space="preserve">
+    <value>Total - Home</value>
+  </data>
+  <data name="ToWinEitherHalf" xml:space="preserve">
+    <value>To Win Either Half</value>
+  </data>
+  <data name="TwelfthCorner" xml:space="preserve">
+    <value>12. Corner</value>
+  </data>
+  <data name="TwentiethCorner" xml:space="preserve">
+    <value>20. Corner</value>
+  </data>
+  <data name="TwentyFirstCorner" xml:space="preserve">
+    <value>21. Corner</value>
+  </data>
+  <data name="TwentySecondCorner" xml:space="preserve">
+    <value>22. Corner</value>
+  </data>
+  <data name="Under" xml:space="preserve">
+    <value>Under</value>
+  </data>
+  <data name="Unevenandcuttingup" xml:space="preserve">
+    <value>Uneven and cutting up</value>
+  </data>
+  <data name="Wet" xml:space="preserve">
+    <value>Wet</value>
+  </data>
+  <data name="WetandFast" xml:space="preserve">
+    <value>Wet and Fast</value>
+  </data>
+  <data name="WinBothHalves" xml:space="preserve">
+    <value>Win Both Halves</value>
+  </data>
+  <data name="WinToNil" xml:space="preserve">
+    <value>Win To Nil</value>
+  </data>
+  <data name="Yes" xml:space="preserve">
+    <value>Yes</value>
+  </data>
+  <data name="A11240938" xml:space="preserve">
+    <value>Asien</value>
+  </data>
+  <data name="A143" xml:space="preserve">
+    <value>Österreich</value>
+  </data>
+  <data name="A2453" xml:space="preserve">
+    <value>Aserbaidschan</value>
+  </data>
+  <data name="A2454" xml:space="preserve">
+    <value>Albanien</value>
+  </data>
+  <data name="A2931" xml:space="preserve">
+    <value>Andorra</value>
+  </data>
+  <data name="A44" xml:space="preserve">
+    <value>Argentinien</value>
+  </data>
+  <data name="A44569" xml:space="preserve">
+    <value>Aruba</value>
+  </data>
+  <data name="A614" xml:space="preserve">
+    <value>Algerien</value>
+  </data>
+  <data name="A911" xml:space="preserve">
+    <value>Angola</value>
+  </data>
+  <data name="A919" xml:space="preserve">
+    <value>Armenien</value>
+  </data>
+  <data name="A98" xml:space="preserve">
+    <value>Australien</value>
+  </data>
+  <data name="Africa" xml:space="preserve">
+    <value>Afrika</value>
+  </data>
+  <data name="Asia" xml:space="preserve">
+    <value>Asien</value>
+  </data>
+  <data name="B144816" xml:space="preserve">
+    <value>Belize</value>
+  </data>
+  <data name="B15326" xml:space="preserve">
+    <value>Bermuda</value>
+  </data>
+  <data name="B155043" xml:space="preserve">
+    <value>Bangladesch</value>
+  </data>
+  <data name="B190321" xml:space="preserve">
+    <value>Bahrain</value>
+  </data>
+  <data name="B191038" xml:space="preserve">
+    <value>Botswana</value>
+  </data>
+  <data name="B212" xml:space="preserve">
+    <value>Weißrussland</value>
+  </data>
+  <data name="B224" xml:space="preserve">
+    <value>Bulgarien</value>
+  </data>
+  <data name="B33497" xml:space="preserve">
+    <value>Barbados</value>
+  </data>
+  <data name="B5" xml:space="preserve">
+    <value>Brasilien</value>
+  </data>
+  <data name="B507" xml:space="preserve">
+    <value>Bosnien und Herzegowina</value>
+  </data>
+  <data name="B556" xml:space="preserve">
+    <value>Belgien</value>
+  </data>
+  <data name="B607" xml:space="preserve">
+    <value>Burkina Faso</value>
+  </data>
+  <data name="B7598" xml:space="preserve">
+    <value>Bolivien</value>
+  </data>
+  <data name="B7830" xml:space="preserve">
+    <value>Benin</value>
+  </data>
+  <data name="B911987" xml:space="preserve">
+    <value>Bhutan</value>
+  </data>
+  <data name="C1004" xml:space="preserve">
+    <value>Kanada</value>
+  </data>
+  <data name="C116" xml:space="preserve">
+    <value>Zypern</value>
+  </data>
+  <data name="C1560" xml:space="preserve">
+    <value>Kongo</value>
+  </data>
+  <data name="C1739" xml:space="preserve">
+    <value>Costa Rica</value>
+  </data>
+  <data name="C213370" xml:space="preserve">
+    <value>Chinesisches Taipei</value>
+  </data>
+  <data name="C23" xml:space="preserve">
+    <value>Elfenbeinküste</value>
+  </data>
+  <data name="C245" xml:space="preserve">
+    <value>Tschechische Republik</value>
+  </data>
+  <data name="C266" xml:space="preserve">
+    <value>Kroatien</value>
+  </data>
+  <data name="C353" xml:space="preserve">
+    <value>Kolumbien</value>
+  </data>
+  <data name="C5618" xml:space="preserve">
+    <value>China PR</value>
+  </data>
+  <data name="C593" xml:space="preserve">
+    <value>Kamerun</value>
+  </data>
+  <data name="C80" xml:space="preserve">
+    <value>Chile</value>
+  </data>
+  <data name="C909440" xml:space="preserve">
+    <value>Kambodscha</value>
+  </data>
+  <data name="D320" xml:space="preserve">
+    <value>Dänemark</value>
+  </data>
+  <data name="D79146" xml:space="preserve">
+    <value>Dominikanische Republik</value>
+  </data>
+  <data name="E2405" xml:space="preserve">
+    <value>Estland</value>
+  </data>
+  <data name="E35008" xml:space="preserve">
+    <value>El Salvador</value>
+  </data>
+  <data name="E41" xml:space="preserve">
+    <value>Europa</value>
+  </data>
+  <data name="E44983" xml:space="preserve">
+    <value>Äthiopien</value>
+  </data>
+  <data name="E459" xml:space="preserve">
+    <value>Ecuador</value>
+  </data>
+  <data name="E462" xml:space="preserve">
+    <value>England</value>
+  </data>
+  <data name="E886" xml:space="preserve">
+    <value>Ägypten</value>
+  </data>
+  <data name="Europe1" xml:space="preserve">
+    <value>Europa</value>
+  </data>
+  <data name="F1233" xml:space="preserve">
+    <value>Finnland</value>
+  </data>
+  <data name="F17" xml:space="preserve">
+    <value>Frankreich</value>
+  </data>
+  <data name="F2154" xml:space="preserve">
+    <value>Färöer Inseln</value>
+  </data>
+  <data name="F866998" xml:space="preserve">
+    <value>Fidschi</value>
+  </data>
+  <data name="G11" xml:space="preserve">
+    <value>Deutschland</value>
+  </data>
+  <data name="G119" xml:space="preserve">
+    <value>Georgia</value>
+  </data>
+  <data name="G125" xml:space="preserve">
+    <value>Griechenland</value>
+  </data>
+  <data name="G1703" xml:space="preserve">
+    <value>Guinea</value>
+  </data>
+  <data name="G26833" xml:space="preserve">
+    <value>Grenada</value>
+  </data>
+  <data name="G3374" xml:space="preserve">
+    <value>Gibraltar</value>
+  </data>
+  <data name="G3662" xml:space="preserve">
+    <value>Gabun</value>
+  </data>
+  <data name="G3779" xml:space="preserve">
+    <value>Guadeloupe</value>
+  </data>
+  <data name="G468" xml:space="preserve">
+    <value>Ghana</value>
+  </data>
+  <data name="G53128" xml:space="preserve">
+    <value>Guatemala</value>
+  </data>
+  <data name="H1176" xml:space="preserve">
+    <value>Honduras</value>
+  </data>
+  <data name="H2177" xml:space="preserve">
+    <value>Haiti</value>
+  </data>
+  <data name="H64306" xml:space="preserve">
+    <value>Hongkong</value>
+  </data>
+  <data name="H674" xml:space="preserve">
+    <value>Ungarn</value>
+  </data>
+  <data name="I107" xml:space="preserve">
+    <value>Irak</value>
+  </data>
+  <data name="I153732" xml:space="preserve">
+    <value>Indien</value>
+  </data>
+  <data name="I1796" xml:space="preserve">
+    <value>Island</value>
+  </data>
+  <data name="I190324" xml:space="preserve">
+    <value>International</value>
+  </data>
+  <data name="I251" xml:space="preserve">
+    <value>Italien</value>
+  </data>
+  <data name="I488" xml:space="preserve">
+    <value>Ich rannte</value>
+  </data>
+  <data name="I802" xml:space="preserve">
+    <value>Israel</value>
+  </data>
+  <data name="I88407" xml:space="preserve">
+    <value>Indonesien</value>
+  </data>
+  <data name="International" xml:space="preserve">
+    <value>International</value>
+  </data>
+  <data name="J1640" xml:space="preserve">
+    <value>Jamaika</value>
+  </data>
+  <data name="J479" xml:space="preserve">
+    <value>Japan</value>
+  </data>
+  <data name="J97374" xml:space="preserve">
+    <value>Jordan</value>
+  </data>
+  <data name="K1179" xml:space="preserve">
+    <value>Kenia</value>
+  </data>
+  <data name="K122" xml:space="preserve">
+    <value>Kosovo</value>
+  </data>
+  <data name="K21462" xml:space="preserve">
+    <value>Kuwait</value>
+  </data>
+  <data name="K2427" xml:space="preserve">
+    <value>Kasachstan</value>
+  </data>
+  <data name="K49438" xml:space="preserve">
+    <value>Kirgisistan</value>
+  </data>
+  <data name="K712" xml:space="preserve">
+    <value>Koreanische Republik</value>
+  </data>
+  <data name="L16175" xml:space="preserve">
+    <value>Libyen</value>
+  </data>
+  <data name="L2079" xml:space="preserve">
+    <value>Litauen</value>
+  </data>
+  <data name="L3126" xml:space="preserve">
+    <value>Luxemburg</value>
+  </data>
+  <data name="L45412" xml:space="preserve">
+    <value>Libanon</value>
+  </data>
+  <data name="L482134" xml:space="preserve">
+    <value>Lesotho</value>
+  </data>
+  <data name="L748" xml:space="preserve">
+    <value>Lettland</value>
+  </data>
+  <data name="M1424" xml:space="preserve">
+    <value>Marokko</value>
+  </data>
+  <data name="M201580" xml:space="preserve">
+    <value>Malediven</value>
+  </data>
+  <data name="M20802" xml:space="preserve">
+    <value>Malawi</value>
+  </data>
+  <data name="M2345" xml:space="preserve">
+    <value>Moldawien</value>
+  </data>
+  <data name="M2493" xml:space="preserve">
+    <value>Mauretanien</value>
+  </data>
+  <data name="M26" xml:space="preserve">
+    <value>Mali</value>
+  </data>
+  <data name="M2756" xml:space="preserve">
+    <value>Malta</value>
+  </data>
+  <data name="M360931" xml:space="preserve">
+    <value>Mauritius</value>
+  </data>
+  <data name="M3995" xml:space="preserve">
+    <value>Malaysia</value>
+  </data>
+  <data name="M458" xml:space="preserve">
+    <value>Mexiko</value>
+  </data>
+  <data name="M57142" xml:space="preserve">
+    <value>Mazedonien FYR</value>
+  </data>
+  <data name="M6783" xml:space="preserve">
+    <value>Mosambik</value>
+  </data>
+  <data name="M998" xml:space="preserve">
+    <value>Montenegro</value>
+  </data>
+  <data name="Melanesia" xml:space="preserve">
+    <value>Melanesien</value>
+  </data>
+  <data name="MiddleAfrica" xml:space="preserve">
+    <value>Mittelafrika</value>
+  </data>
+  <data name="N1578" xml:space="preserve">
+    <value>Norwegen</value>
+  </data>
+  <data name="N2817" xml:space="preserve">
+    <value>Neuseeland</value>
+  </data>
+  <data name="N344167" xml:space="preserve">
+    <value>N / C Amerika</value>
+  </data>
+  <data name="N38" xml:space="preserve">
+    <value>Niederlande</value>
+  </data>
+  <data name="N3990" xml:space="preserve">
+    <value>Nicaragua</value>
+  </data>
+  <data name="N491" xml:space="preserve">
+    <value>Nordirland</value>
+  </data>
+  <data name="N5790" xml:space="preserve">
+    <value>Namibia</value>
+  </data>
+  <data name="N716" xml:space="preserve">
+    <value>Nigeria</value>
+  </data>
+  <data name="N862868" xml:space="preserve">
+    <value>Nepal</value>
+  </data>
+  <data name="NorthAmerica" xml:space="preserve">
+    <value>Nordamerika</value>
+  </data>
+  <data name="NorthernAfrica" xml:space="preserve">
+    <value>Nordafrika</value>
+  </data>
+  <data name="NorthernAmerica" xml:space="preserve">
+    <value>Nordamerika</value>
+  </data>
+  <data name="NorthernEurope1" xml:space="preserve">
+    <value>Nordeuropa</value>
+  </data>
+  <data name="O7091" xml:space="preserve">
+    <value>Oman</value>
+  </data>
+  <data name="Oceania" xml:space="preserve">
+    <value>Ozeanien</value>
+  </data>
+  <data name="P1190" xml:space="preserve">
+    <value>Paraguay</value>
+  </data>
+  <data name="P2" xml:space="preserve">
+    <value>Polen</value>
+  </data>
+  <data name="P20" xml:space="preserve">
+    <value>Portugal</value>
+  </data>
+  <data name="P338" xml:space="preserve">
+    <value>Peru</value>
+  </data>
+  <data name="P48946" xml:space="preserve">
+    <value>Palästina</value>
+  </data>
+  <data name="P50809" xml:space="preserve">
+    <value>Philippinen</value>
+  </data>
+  <data name="P52126" xml:space="preserve">
+    <value>Pakistan</value>
+  </data>
+  <data name="P65437" xml:space="preserve">
+    <value>Panama</value>
+  </data>
+  <data name="Q74505" xml:space="preserve">
+    <value>Katar</value>
+  </data>
+  <data name="R155" xml:space="preserve">
+    <value>Rumänien</value>
+  </data>
+  <data name="R227" xml:space="preserve">
+    <value>Russland</value>
+  </data>
+  <data name="R455" xml:space="preserve">
+    <value>Irische Republik</value>
+  </data>
+  <data name="R88137" xml:space="preserve">
+    <value>Ruanda</value>
+  </data>
+  <data name="S11555657" xml:space="preserve">
+    <value>Südamerika</value>
+  </data>
+  <data name="S1161" xml:space="preserve">
+    <value>Schottland</value>
+  </data>
+  <data name="S146" xml:space="preserve">
+    <value>Südafrika</value>
+  </data>
+  <data name="S1638" xml:space="preserve">
+    <value>Slowenien</value>
+  </data>
+  <data name="S200" xml:space="preserve">
+    <value>Senegal</value>
+  </data>
+  <data name="S2088" xml:space="preserve">
+    <value>Suriname</value>
+  </data>
+  <data name="S213955" xml:space="preserve">
+    <value>Singapur</value>
+  </data>
+  <data name="S296" xml:space="preserve">
+    <value>Serbien</value>
+  </data>
+  <data name="S32" xml:space="preserve">
+    <value>Spanien</value>
+  </data>
+  <data name="S3347" xml:space="preserve">
+    <value>San Marino</value>
+  </data>
+  <data name="S35376" xml:space="preserve">
+    <value>Saudi Arabien</value>
+  </data>
+  <data name="S3677" xml:space="preserve">
+    <value>Syrien</value>
+  </data>
+  <data name="S401" xml:space="preserve">
+    <value>Slowakei</value>
+  </data>
+  <data name="S47" xml:space="preserve">
+    <value>Schweden</value>
+  </data>
+  <data name="S56518" xml:space="preserve">
+    <value>Sudan</value>
+  </data>
+  <data name="S62" xml:space="preserve">
+    <value>Schweiz</value>
+  </data>
+  <data name="S7563" xml:space="preserve">
+    <value>Somalia</value>
+  </data>
+  <data name="SouthAmerica" xml:space="preserve">
+    <value>Südamerika</value>
+  </data>
+  <data name="SouthEasternAsia" xml:space="preserve">
+    <value>Südostasien</value>
+  </data>
+  <data name="SouthernAfrica" xml:space="preserve">
+    <value>Südafrika</value>
+  </data>
+  <data name="SouthernAsia" xml:space="preserve">
+    <value>Südasien</value>
+  </data>
+  <data name="SouthernEurope" xml:space="preserve">
+    <value>Südeuropa</value>
+  </data>
+  <data name="T1439" xml:space="preserve">
+    <value>Tunesien</value>
+  </data>
+  <data name="T2228" xml:space="preserve">
+    <value>Trinidad und Tobago</value>
+  </data>
+  <data name="T3039" xml:space="preserve">
+    <value>Gehen</value>
+  </data>
+  <data name="T35210" xml:space="preserve">
+    <value>Tansania</value>
+  </data>
+  <data name="T404" xml:space="preserve">
+    <value>Truthahn</value>
+  </data>
+  <data name="T49477" xml:space="preserve">
+    <value>Thailand</value>
+  </data>
+  <data name="U158" xml:space="preserve">
+    <value>Uruguay</value>
+  </data>
+  <data name="U2426" xml:space="preserve">
+    <value>Usbekistan</value>
+  </data>
+  <data name="U2802" xml:space="preserve">
+    <value>Vereinigte Arabische Emirate</value>
+  </data>
+  <data name="U3483" xml:space="preserve">
+    <value>Vereinigte Staaten von Amerika</value>
+  </data>
+  <data name="U4125" xml:space="preserve">
+    <value>Uganda</value>
+  </data>
+  <data name="U86" xml:space="preserve">
+    <value>Ukraine</value>
+  </data>
+  <data name="V275" xml:space="preserve">
+    <value>Venezuela</value>
+  </data>
+  <data name="V69697" xml:space="preserve">
+    <value>Vietnam</value>
+  </data>
+  <data name="W515" xml:space="preserve">
+    <value>Wales</value>
+  </data>
+  <data name="W99474" xml:space="preserve">
+    <value>Welt</value>
+  </data>
+  <data name="WesternAfrica" xml:space="preserve">
+    <value>Westafrika</value>
+  </data>
+  <data name="WesternAsia" xml:space="preserve">
+    <value>West-Asien</value>
+  </data>
+  <data name="WesternEurope" xml:space="preserve">
+    <value>Westeuropa</value>
+  </data>
+  <data name="Y190318" xml:space="preserve">
+    <value>Jemen</value>
+  </data>
+  <data name="Z2325" xml:space="preserve">
+    <value>Zimbabwe</value>
+  </data>
+  <data name="Z2568" xml:space="preserve">
+    <value>Sambia</value>
+  </data>
+</root>

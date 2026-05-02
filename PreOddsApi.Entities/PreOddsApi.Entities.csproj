@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PreOddsApi.Core.Data.EntityFramework\PreOddsApi.Core.Data.EntityFramework.csproj" />
+    <ProjectReference Include="..\PreOddsApi.Core.Data\PreOddsApi.Core.Data.csproj" />
+    <ProjectReference Include="..\PreOddsApi.Core\PreOddsApi.Core.csproj" />
+  </ItemGroup>
+
+</Project>

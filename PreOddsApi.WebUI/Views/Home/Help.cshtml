@@ -1,0 +1,176 @@
+﻿@using Microsoft.Extensions.Localization;
+@inject IStringLocalizer<SharedResources> SharedLocalizer
+@{
+    ViewData["Title"] = "Help";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<section class="section section-sm bg-gray-100">
+    <div class="container">
+        <div class="row row-30">
+            <div class="col-lg-8">
+                <article class="heading-component">
+                    <div class="heading-component-inner">
+                        <h5 class="heading-component-title">
+                                @SharedLocalizer.GetString("HelpHeader")
+                        </h5>
+                    </div>
+                </article>
+                <div class="blog-post" style="margin:15px 0 15px 0;">
+                    <!-- Badge-->
+                    <div class="badge badge-red">
+                        @SharedLocalizer.GetString("WinningRates")
+                    </div>
+                    <h4 class="blog-post-title">@SharedLocalizer.GetString("WinningRatesText1")</h4>
+
+                    <div class="blog-post-author-quote">
+                        <p>@SharedLocalizer.GetString("WinningRatesText2")</p>
+                    </div>
+
+                    <div class="blog-post-content">
+                        <p>@SharedLocalizer.GetString("WinningRatesText3")</p>
+                        <div class="comment-classic-body">
+                            <div class="comment-classic-text">
+                                <p>@SharedLocalizer.GetString("WinningRatesText4")</p>
+                            </div>
+                            <div class="comment-classic-post-title"><p style="padding-top:12px;">@SharedLocalizer.GetString("WinningRatesText5")</p></div>
+                            <br />
+                            <div class="comment-classic-post-title"><p style="padding-top:12px;">@SharedLocalizer.GetString("WinningRatesText6")</p></div>
+                            <br />
+                            <div class="comment-classic-post-title"><p style="padding-top:12px;">@SharedLocalizer.GetString("WinningRatesText7")</p></div>
+                        </div>
+                        <p>@SharedLocalizer.GetString("WinningRatesText8")</p>
+
+                    </div>
+                </div>
+                
+                <div class="blog-post" style="margin:15px 0 15px 0;">
+                    <!-- Badge-->
+                    <div class="badge badge-green">
+                        @SharedLocalizer.GetString("ProfitDesc")
+                    </div>
+                    <h4 class="blog-post-title">@SharedLocalizer.GetString("ProfitDescText1")</h4>
+
+                    <div class="blog-post-author-quote">
+                        <p> @SharedLocalizer.GetString("ProfitDescText2")</p>
+                    </div>
+
+                    <div class="blog-post-content">
+                        <p>@SharedLocalizer.GetString("ProfitDescText3")</p>
+                        <div class="comment-classic-body">
+                            <div class="comment-classic-text">
+                                <p>@SharedLocalizer.GetString("ProfitDescText4")</p>
+                            </div>
+                            <div class="comment-classic-post-title"><p style="padding-top:12px;">@SharedLocalizer.GetString("ProfitDescText5")</p></div>
+                            <br />
+                            <div class="comment-classic-post-title"><p style="padding-top:12px;">@SharedLocalizer.GetString("ProfitDescText6")</p></div>
+                            <br />
+                            <div class="comment-classic-post-title"><p style="padding-top:12px;">@SharedLocalizer.GetString("ProfitDescText7")</p></div>
+                            <br />
+                            <div class="comment-classic-post-title"><p style="padding-top:12px;">@SharedLocalizer.GetString("ProfitDescText8")</p></div>
+                            <br />
+                            <div class="comment-classic-post-title"><p style="padding-top:12px;">@SharedLocalizer.GetString("ProfitDescText9")</p></div>
+                            <br />
+                            <div class="comment-classic-post-title"><p style="padding-top:12px;">@SharedLocalizer.GetString("ProfitDescText10")</p></div>
+                        </div>
+                        <p>@SharedLocalizer.GetString("ProfitDescText11")</p>
+                    </div>
+                </div>
+
+                <div class="blog-post" style="margin:15px 0 15px 0;">
+                    <!-- Badge-->
+                    <div class="badge badge-blue">
+                        @SharedLocalizer.GetString("ProbDesc")
+                    </div>
+                    <h4 class="blog-post-title">@SharedLocalizer.GetString("ProbDescText1")</h4>
+
+                    <div class="blog-post-author-quote">
+                        <p> @SharedLocalizer.GetString("ProbDescText2")</p>
+                    </div>
+
+                    <div class="blog-post-content">
+                        <p>@SharedLocalizer.GetString("ProbDescText3")</p>
+                        <div class="comment-classic-body">
+                            <div class="comment-classic-text">
+                                <p>@SharedLocalizer.GetString("ProbDescText4")</p>
+                            </div>
+                            <div class="comment-classic-post-title"><p style="padding-top:12px;">@SharedLocalizer.GetString("ProbDescText5")</p></div>
+                            <br />
+                            <div class="comment-classic-text">
+                                <p>@SharedLocalizer.GetString("ProbDescText6")</p>
+                            </div>
+                            <br />
+                            <div class="comment-classic-post-title"><p style="padding-top:12px;">@SharedLocalizer.GetString("ProbDescText7")</p></div>
+                            <br />
+                            <div class="comment-classic-text">
+                                <p>@SharedLocalizer.GetString("ProbDescText8")</p>
+                            </div>
+                            <br />
+                            <div class="comment-classic-post-title"><p style="padding-top:12px;">@SharedLocalizer.GetString("ProbDescText9")</p></div>
+                            <br />
+                            <div class="comment-classic-post-title"><p style="padding-top:12px;">@SharedLocalizer.GetString("ProbDescText10")</p></div>
+                            <br />
+                            <div class="comment-classic-text">
+                                <p>@SharedLocalizer.GetString("ProbDescText11")</p>
+                            </div>
+                            <br />
+                            <div class="comment-classic-post-title"><p style="padding-top:12px;">@SharedLocalizer.GetString("ProbDescText12")</p></div>
+                            <br />
+                            <div class="comment-classic-post-title"><p style="padding-top:12px;">@SharedLocalizer.GetString("ProbDescText13")</p></div>
+                            <br />
+                            <div class="comment-classic-post-title"><p style="padding-top:12px;">@SharedLocalizer.GetString("ProbDescText14")</p></div>
+                            <br />
+                            <div class="comment-classic-text">
+                                <p>@SharedLocalizer.GetString("ProbDescText15")</p>
+                            </div>
+                            <br />
+                            <div class="comment-classic-post-title"><p style="padding-top:12px;">@SharedLocalizer.GetString("ProbDescText16")</p></div>
+                            <br />
+                            <div class="comment-classic-post-title"><p style="padding-top:12px;">@SharedLocalizer.GetString("ProbDescText17")</p></div>
+                            <br />
+                            <div class="comment-classic-post-title"><p style="padding-top:12px;">@SharedLocalizer.GetString("ProbDescText18")</p></div>
+                            <br />
+                            <div class="comment-classic-text">
+                                <p>@SharedLocalizer.GetString("ProbDescText19")</p>
+                            </div>
+                            <br />
+                            <div class="comment-classic-post-title"><p style="padding-top:12px;">@SharedLocalizer.GetString("ProbDescText20")</p></div>
+                            <br />
+                            <div class="comment-classic-post-title"><p style="padding-top:12px;">@SharedLocalizer.GetString("ProbDescText21")</p></div>
+                            <br />
+                            <div class="comment-classic-post-title"><p style="padding-top:12px;">@SharedLocalizer.GetString("ProbDescText22")</p></div>
+                        </div>
+                        <p>@SharedLocalizer.GetString("ProbDescText23")</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <!-- Blog Alide-->
+                <div class="block-aside-item">
+                    <!-- Heading Component-->
+                    <article class="heading-component">
+                        <div class="heading-component-inner">
+                            <h5 class="heading-component-title">
+                                @SharedLocalizer.GetString("FollowUs")
+                            </h5>
+                        </div>
+                    </article>
+
+                    <!-- Buttons Media-->
+                    <div class="group-sm group-flex">
+                        <a class="button-media button-media-facebook" href="https://www.facebook.com/preodds">
+                            <p class="button-media-action">@SharedLocalizer.GetString("Follow")<span class="icon material-icons-add_circle_outline icon-sm"></span></p><span class="button-media-icon fa-facebook"></span>
+                        </a>
+                        <a class="button-media button-media-twitter" href="https://twitter.com/preodds">
+                            <p class="button-media-action">@SharedLocalizer.GetString("Follow")<span class="icon material-icons-add_circle_outline icon-sm"></span></p><span class="button-media-icon fa-twitter"></span>
+                        </a>
+                        <a class="button-media button-media-instagram" href="https://www.instagram.com/preodds">
+                            <p class="button-media-action">@SharedLocalizer.GetString("Follow")<span class="icon material-icons-add_circle_outline icon-sm"></span></p><span class="button-media-icon fa-instagram"></span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+

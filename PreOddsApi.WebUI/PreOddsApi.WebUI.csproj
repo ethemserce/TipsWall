@@ -1,0 +1,62 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Views\Partials\**" />
+    <Content Remove="Views\Partials\**" />
+    <EmbeddedResource Remove="Views\Partials\**" />
+    <None Remove="Views\Partials\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Controllers\PartialsController.cs" />
+    <Compile Remove="InfraStructure\Filters\BrowseLogAsyncActionFilter.cs" />
+    <Compile Remove="InfraStructure\SrcExceptionMiddleware.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Remove="Views\Shared\_Continents.cshtml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BuildBundlerMinifier" Version="3.2.449" />
+    <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="8.0.2" />
+    <PackageReference Include="WebMarkupMin.AspNetCore7" Version="2.16.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="InfraStructure\Filters\" />
+    <Folder Include="wwwroot\fonts\" />
+    <Folder Include="wwwroot\images\leagues\" />
+    <Folder Include="wwwroot\images\tipswall\" />
+    <Folder Include="wwwroot\vendor\jsrender\" />
+    <Folder Include="wwwroot\vendor\datepicker\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PreOddsApi.Utils\PreOddsApi.Utils.csproj" />
+    <ProjectReference Include="..\PreOddsApi.WebApi\PreOddsApi.WebApi.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Resources\SharedResources.en-GB.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Resources\SharedResources.en-US.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Resources\SharedResources.en.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Resources\SharedResources.tr-TR.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Resources\SharedResources.tr.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+    </EmbeddedResource>
+  </ItemGroup>
+
+</Project>

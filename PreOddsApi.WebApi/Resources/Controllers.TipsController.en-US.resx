@@ -1,0 +1,462 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="market1" xml:space="preserve">
+    <value>1x2</value>
+  </data>
+  <data name="market10" xml:space="preserve">
+    <value>12</value>
+  </data>
+  <data name="market12" xml:space="preserve">
+    <value>O/U</value>
+  </data>
+  <data name="market14234040" xml:space="preserve">
+    <value>9. C.</value>
+  </data>
+  <data name="market14234050" xml:space="preserve">
+    <value>O/E</value>
+  </data>
+  <data name="market14234105" xml:space="preserve">
+    <value>DC - 2. H.</value>
+  </data>
+  <data name="market2306278" xml:space="preserve">
+    <value>To Qualif</value>
+  </data>
+  <data name="market28" xml:space="preserve">
+    <value>H</value>
+  </data>
+  <data name="market37" xml:space="preserve">
+    <value>1x2 1H</value>
+  </data>
+  <data name="market38" xml:space="preserve">
+    <value>O/U 1H</value>
+  </data>
+  <data name="market47" xml:space="preserve">
+    <value>O/U 2H</value>
+  </data>
+  <data name="market53" xml:space="preserve">
+    <value>HT/FT D.</value>
+  </data>
+  <data name="market59" xml:space="preserve">
+    <value>BTTS</value>
+  </data>
+  <data name="market63" xml:space="preserve">
+    <value>DC</value>
+  </data>
+  <data name="market69" xml:space="preserve">
+    <value>T. To S. F.</value>
+  </data>
+  <data name="market75" xml:space="preserve">
+    <value>T. To S. L.</value>
+  </data>
+  <data name="market80" xml:space="preserve">
+    <value>1x2 2H</value>
+  </data>
+  <data name="market83" xml:space="preserve">
+    <value>FT H.</value>
+  </data>
+  <data name="market8594683" xml:space="preserve">
+    <value>CS - 2</value>
+  </data>
+  <data name="market975903" xml:space="preserve">
+    <value>O/U 1. H.</value>
+  </data>
+  <data name="market975905" xml:space="preserve">
+    <value>HT/FT D.</value>
+  </data>
+  <data name="market975909" xml:space="preserve">
+    <value>Score</value>
+  </data>
+  <data name="market975916" xml:space="preserve">
+    <value>Score 1H</value>
+  </data>
+  <data name="market975918" xml:space="preserve">
+    <value>DC</value>
+  </data>
+  <data name="market975923" xml:space="preserve">
+    <value>T. To S. F.</value>
+  </data>
+  <data name="market975925" xml:space="preserve">
+    <value>AH 1H</value>
+  </data>
+  <data name="market975926" xml:space="preserve">
+    <value>DC 1H</value>
+  </data>
+  <data name="market975929" xml:space="preserve">
+    <value>1. H.</value>
+  </data>
+  <data name="market975930" xml:space="preserve">
+    <value>Odd/Even</value>
+  </data>
+  <data name="market975932" xml:space="preserve">
+    <value>Odd/Even 1H</value>
+  </data>
+  <data name="market976096" xml:space="preserve">
+    <value>Cln. Sht. Home</value>
+  </data>
+  <data name="market976105" xml:space="preserve">
+    <value>BTTS</value>
+  </data>
+  <data name="market976144" xml:space="preserve">
+    <value>HS Half</value>
+  </data>
+  <data name="market976187" xml:space="preserve">
+    <value>T. To S. L.</value>
+  </data>
+  <data name="market976193" xml:space="preserve">
+    <value>WB Halves</value>
+  </data>
+  <data name="market976198" xml:space="preserve">
+    <value>T. - 1</value>
+  </data>
+  <data name="market976204" xml:space="preserve">
+    <value>T. - 2</value>
+  </data>
+  <data name="market976209" xml:space="preserve">
+    <value>H 1H</value>
+  </data>
+  <data name="market976226" xml:space="preserve">
+    <value>BTTS 1H</value>
+  </data>
+  <data name="market976230" xml:space="preserve">
+    <value>BTTS 2H</value>
+  </data>
+  <data name="market976236" xml:space="preserve">
+    <value>Win To Nil</value>
+  </data>
+  <data name="market976241" xml:space="preserve">
+    <value>Exact Goals</value>
+  </data>
+  <data name="market976265" xml:space="preserve">
+    <value>Win Either Half</value>
+  </data>
+  <data name="market976270" xml:space="preserve">
+    <value>Home Exact Goal</value>
+  </data>
+  <data name="market976286" xml:space="preserve">
+    <value>2 E. G. Num.</value>
+  </data>
+  <data name="market976298" xml:space="preserve">
+    <value>2H Exact Goal</value>
+  </data>
+  <data name="market976316" xml:space="preserve">
+    <value>R. /BT To S.</value>
+  </data>
+  <data name="market976334" xml:space="preserve">
+    <value>R. /TG</value>
+  </data>
+  <data name="market976348" xml:space="preserve">
+    <value>Home Score</value>
+  </data>
+  <data name="market976360" xml:space="preserve">
+    <value>Away Score</value>
+  </data>
+  <data name="market976373" xml:space="preserve">
+    <value>f. 10m Winner</value>
+  </data>
+  <data name="market976384" xml:space="preserve">
+    <value>Corner O/U</value>
+  </data>
+  <data name="market976389" xml:space="preserve">
+    <value>1. H. E. G. Num.</value>
+  </data>
+  <data name="market977179" xml:space="preserve">
+    <value>Corner 1x2</value>
+  </data>
+  <data name="market977329" xml:space="preserve">
+    <value>Cln. Sht. Away</value>
+  </data>
+  <data name="_1" xml:space="preserve">
+    <value>1</value>
+  </data>
+  <data name="_1st_Half" xml:space="preserve">
+    <value>1. H.</value>
+  </data>
+  <data name="_2" xml:space="preserve">
+    <value>2</value>
+  </data>
+  <data name="_2nd_Half" xml:space="preserve">
+    <value>2. H.</value>
+  </data>
+  <data name="_Away" xml:space="preserve">
+    <value>2</value>
+  </data>
+  <data name="_Away_No" xml:space="preserve">
+    <value>2/N</value>
+  </data>
+  <data name="_Away_Over" xml:space="preserve">
+    <value>2/O</value>
+  </data>
+  <data name="_Away_Under" xml:space="preserve">
+    <value>2/U</value>
+  </data>
+  <data name="_Away_Yes" xml:space="preserve">
+    <value>2/Y</value>
+  </data>
+  <data name="_Draw" xml:space="preserve">
+    <value>X</value>
+  </data>
+  <data name="_Draw_Away" xml:space="preserve">
+    <value>X/2</value>
+  </data>
+  <data name="_Draw_No" xml:space="preserve">
+    <value>X/N</value>
+  </data>
+  <data name="_Draw_Over" xml:space="preserve">
+    <value>X/O</value>
+  </data>
+  <data name="_Draw_Under" xml:space="preserve">
+    <value>X/U</value>
+  </data>
+  <data name="_Draw_Yes" xml:space="preserve">
+    <value>X/Y</value>
+  </data>
+  <data name="_Even" xml:space="preserve">
+    <value>Even</value>
+  </data>
+  <data name="_Home" xml:space="preserve">
+    <value>1</value>
+  </data>
+  <data name="_Home_Away" xml:space="preserve">
+    <value>1/2</value>
+  </data>
+  <data name="_Home_Draw" xml:space="preserve">
+    <value>1/X</value>
+  </data>
+  <data name="_Home_No" xml:space="preserve">
+    <value>1/N</value>
+  </data>
+  <data name="_Home_Over" xml:space="preserve">
+    <value>1/O</value>
+  </data>
+  <data name="_Home_Under" xml:space="preserve">
+    <value>1/U</value>
+  </data>
+  <data name="_Home_Yes" xml:space="preserve">
+    <value>1/Y</value>
+  </data>
+  <data name="_more_1" xml:space="preserve">
+    <value>1+</value>
+  </data>
+  <data name="_more_2" xml:space="preserve">
+    <value>2+</value>
+  </data>
+  <data name="_more_3" xml:space="preserve">
+    <value>3+</value>
+  </data>
+  <data name="_more_4" xml:space="preserve">
+    <value>4+</value>
+  </data>
+  <data name="_more_5" xml:space="preserve">
+    <value>5+</value>
+  </data>
+  <data name="_more_6" xml:space="preserve">
+    <value>6+</value>
+  </data>
+  <data name="_more_7" xml:space="preserve">
+    <value>7+</value>
+  </data>
+  <data name="_more_8" xml:space="preserve">
+    <value>8+</value>
+  </data>
+  <data name="_more_9" xml:space="preserve">
+    <value>9+</value>
+  </data>
+  <data name="_No" xml:space="preserve">
+    <value>No</value>
+  </data>
+  <data name="_No_goal" xml:space="preserve">
+    <value>No G.</value>
+  </data>
+  <data name="_Odd" xml:space="preserve">
+    <value>Odd</value>
+  </data>
+  <data name="_Over" xml:space="preserve">
+    <value>O</value>
+  </data>
+  <data name="_Under" xml:space="preserve">
+    <value>U</value>
+  </data>
+  <data name="_X" xml:space="preserve">
+    <value>X</value>
+  </data>
+  <data name="_Yes" xml:space="preserve">
+    <value>Yes</value>
+  </data>
+  <data name="ABAN" xml:space="preserve">
+    <value>Abandoned</value>
+  </data>
+  <data name="AET" xml:space="preserve">
+    <value>Finished after extra time</value>
+  </data>
+  <data name="AU" xml:space="preserve">
+    <value>Awaiting Updates</value>
+  </data>
+  <data name="AWARDED" xml:space="preserve">
+    <value>Awarded</value>
+  </data>
+  <data name="BREAK" xml:space="preserve">
+    <value>Regular time finished</value>
+  </data>
+  <data name="CANCL" xml:space="preserve">
+    <value>Cancelled</value>
+  </data>
+  <data name="DELAYED" xml:space="preserve">
+    <value>Delayed</value>
+  </data>
+  <data name="DELETED" xml:space="preserve">
+    <value>Deleted</value>
+  </data>
+  <data name="ET" xml:space="preserve">
+    <value>Extra-Time</value>
+  </data>
+  <data name="FT" xml:space="preserve">
+    <value>Full-Time</value>
+  </data>
+  <data name="FT_PEN" xml:space="preserve">
+    <value>Full-time after penalties</value>
+  </data>
+  <data name="HT" xml:space="preserve">
+    <value>Half-Time</value>
+  </data>
+  <data name="INT" xml:space="preserve">
+    <value>Interrrupted</value>
+  </data>
+  <data name="LIVE" xml:space="preserve">
+    <value>Live</value>
+  </data>
+  <data name="NS" xml:space="preserve">
+    <value>Not Started</value>
+  </data>
+  <data name="PEN_LIVE" xml:space="preserve">
+    <value>Penalty Shootout</value>
+  </data>
+  <data name="POSTP" xml:space="preserve">
+    <value>Postponed</value>
+  </data>
+  <data name="SUSP" xml:space="preserve">
+    <value>Suspended</value>
+  </data>
+  <data name="TBA" xml:space="preserve">
+    <value>To be Announced</value>
+  </data>
+  <data name="WO" xml:space="preserve">
+    <value>Walkoverd</value>
+  </data>
+</root>

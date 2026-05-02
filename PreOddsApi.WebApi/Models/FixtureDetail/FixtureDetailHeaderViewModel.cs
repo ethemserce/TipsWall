@@ -1,0 +1,46 @@
+﻿using PreOddsApi.WebApi.Models.Fixture;
+using PreOddsApi.WebApi.Models.League;
+using PreOddsApi.WebApi.Models.Team;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+
+namespace PreOddsApi.WebApi.Models.FixtureDetail
+{
+    public class FixtureDetailHeaderViewModel
+    {
+        public long Id { get; set; }
+        public DateTime CreateDateTime { get; set; }
+        public string EtScore { get; set; }
+        public string FtScore { get; set; }
+        public string HtScore { get; set; }
+        public long LeagueId { get; set; }
+        public LeagueViewModel League { get; set; }
+        public long LocalTeamCoachId { get; set; }
+        public CoachViewModel LocalTeamCoach { get; set; }
+        public string LocalTeamFormation { get; set; }
+        public long LocalTeamId { get; set; }
+        public TeamViewModel LocalTeam { get; set; }
+        public int LocalTeamPenScore { get; set; }
+        public int LocalTeamScore { get; set; }
+        public int TimeAddedTime { get; set; }
+        public int TimeExtraMinute { get; set; }
+        public int TimeInjuryTime { get; set; }
+        public int TimeMinute { get; set; }
+        public string TimeStartingAtDate { get; set; }
+        public string TimeStartingAtDateTime { get; set; }
+        public string TimeStartingAtTime { get; set; }
+        public int TimeStartingAtTimestamp { get; set; }
+        public string TimeStartingAtTimezone { get; set; }
+        public string TimeStatus { get; set; }
+        public long VisitorTeamCoachId { get; set; }
+        public CoachViewModel VisitorTeamCoach { get; set; }
+        public long VisitorTeamId { get; set; }
+        public TeamViewModel VisitorTeam { get; set; }
+        public int VisitorTeamPenScore { get; set; }
+        public int VisitorTeamScore { get; set; }
+        public int? IddaaCode { get; set; }
+        public DateTime UpdateDateTime { get; set; }
+    }
+}

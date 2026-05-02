@@ -1,0 +1,179 @@
+﻿
+@using Microsoft.Extensions.Localization;
+@inject IStringLocalizer<SharedResources> SharedLocalizer
+@{
+    ViewData["Title"] = "Leagues";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+
+@* <section class="section section-sm bg-gray-100" style="padding:0px 0px 10px 0px;">
+    <div class="container">
+        <div style="text-align:center; margin-bottom:10px;">
+            <script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+            <ins class="adsbygoogle example_responsive_1" style="display:block;" data-ad-client="ca-pub-6855594242204807" data-ad-slot="9451536421" data-ad-format="auto" data-full-width-responsive="true"></ins>
+            <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+        </div>
+    </div>
+</section> *@
+
+<section class="section section-sm bg-gray-100">
+    <div class="container">
+        <div class="row row-50">
+            <div class="col-lg-8">
+                <div class="text-center" id="divLoading" style="display: none; padding-top:25px;">
+                    <img src="/images/loading.gif" alt="loading" style="width: 25px;" />
+                    <p class="game-info-subtitle" style="font-size:1.2em;">
+                        @SharedLocalizer.GetString("LoadingLeagues")
+                    </p>
+                </div>
+                <div class="tabs-custom tabs-statistics" id="divContinents">
+
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="block-aside-item" style="padding-top:20px;">
+                    <!-- Heading Component-->
+                    <article class="heading-component">
+                        <div class="heading-component-inner">
+                            <h5 class="heading-component-title">
+                                @SharedLocalizer.GetString("FollowUs")
+                            </h5>
+                        </div>
+                    </article>
+
+                    <!-- Buttons Media-->
+                    <div class="group-sm group-flex">
+                        <a class="button-media button-media-facebook" href="https://www.facebook.com/preodds">
+                            <p class="button-media-action">@SharedLocalizer.GetString("Follow")<span class="icon material-icons-add_circle_outline icon-sm"></span></p><span class="button-media-icon fa-facebook"></span>
+                        </a>
+                        <a class="button-media button-media-twitter" href="https://twitter.com/preodds">
+                            <p class="button-media-action">@SharedLocalizer.GetString("Follow")<span class="icon material-icons-add_circle_outline icon-sm"></span></p><span class="button-media-icon fa-twitter"></span>
+                        </a>
+                        <a class="button-media button-media-instagram" href="https://www.instagram.com/preodds">
+                            <p class="button-media-action">@SharedLocalizer.GetString("Follow")<span class="icon material-icons-add_circle_outline icon-sm"></span></p><span class="button-media-icon fa-instagram"></span>
+                        </a>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-12">
+                    <div style="text-align:center; margin-bottom:10px;">
+                        <script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+                        <ins class="adsbygoogle example_responsive_1" style="display:block;" data-ad-client="ca-pub-6855594242204807" data-ad-slot="9451536421" data-ad-format="auto" data-full-width-responsive="true"></ins>
+                        <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+@section scripts {
+    <script src="/vendor/jsrender/jsrender.min.js"></script>
+    <script id="continentTemplate" type="text/x-jsrender">
+        <button class="tab-filters-toggle button" data-custom-toggle="#nav-tabs" data-custom-toggle-hide-on-blur="true" data-custom-toggle-disable-on-blur="true">Select<span class="caret"></span></button>
+        <ul class="nav nav-tabs nav-filter-list" id="nav-tabs">
+            {{for continents}}
+            <li class="nav-item nav-filter-list-item" style="width:20%;" role="presentation"><a class="nav-filter-list-link nav-link {{if name == "International"}} active {{/if}}" href="#{{:name}}" data-toggle="tab"><span class="nav-filter-list-img"><span class="sprite sprite-sport-icon-07"></span></span><span class="nav-filter-list-text">{{:name}}</span></a></li>
+            {{/for}}
+        </ul>
+        <!-- Filter Info-->
+        <div class="nav-filter-info">
+            <p class="nav-filter-info-text"> @SharedLocalizer.GetString("CountryList")</p>
+        </div>
+        <!-- Tab panes-->
+        <div class="tab-content">
+            {{for continents}}
+            <div class="tab-pane fade {{if name == "International"}} show active {{/if}}" id="{{:name}}">
+                <!-- Heading Component-->
+                <article class="heading-component">
+                    <div class="heading-component-inner">
+                        <h5 class="heading-component-title">
+                            {{:name}}
+                        </h5>
+                    </div>
+                </article>
+                {{for countries}}
+                <div class="statistics-table-wrap" style="margin-bottom:10px;">
+                    <div class="statistics-table">
+
+                        <div class="statistics-table-header">
+                            <label class="checkbox-inline">
+                                <input name="input-checkbox" id="checkbox_{{:id}}" onchange="renderLeagues({{:id}})" value="checkbox-1" type="checkbox" class="checkbox-custom"><span class="checkbox-custom-dummy"></span>
+                                <img src="{{:logo}}" alt="" width="24" height="24" /> <span style="color:#fff;">{{:name}}</span>
+                            </label>
+
+                        </div>
+                        <div class="statistics-table-body">
+
+                            <div class="col-lg-12 isotope-item" id="divLeagues_{{:id}}">
+
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+                {{/for}}
+            </div>
+            {{/for}}
+        </div>
+
+    </script>
+    <script id="leaguesTemplate" type="text/x-jsrender">
+        {{for leagues}}
+        @*<div class="col-md-3 statistics-table-column">
+                <div class="statistics-table-item">
+                    <a href="/leagueDetail/{{:id}}" target="_blank" style="color:#fff;">
+                        <article class="game-result" style="margin-top:25px;">
+                            <div class="game-info" style="padding:25px;">
+                                <div class="game-info-main" style="min-width:unset; margin:0px;">
+
+                                    <div class="game-info-team game-info-team-first">
+                                        <figure>
+                                            <img src="{{:logo}}" alt="" width="64" height="64">
+                                        </figure>
+                                        <div class="game-result-team-name">{{:name}}</div>
+
+                                    </div>
+
+                                </div>
+                            </div>
+                        </article>
+                    </a>
+                </div>
+            </div>*@
+
+
+                <div class="sport-table">
+                    <div class="sport-table-tr">
+                        <div class="row sport-row align-items-center row-15">
+                            <div class="col-xs-2 col-sm-2 col-md-2 col-lg-2" style="text-align:center;">
+                                <span class="sport-table-title-team"><img src="{{:logo}}" alt="" width="32" height="32"></span>
+                            </div>
+                            <div class="col-xs-9 col-sm-9 col-md-4 col-lg-7">
+                                <div class="sport-table-title">
+                                    <div class="sport-table-title-item sport-table-title-item-left">
+                                        <span class="sport-table-title-team">{{:name}}</span>
+                                    </div>
+                                    <div class="sport-table-title-item sport-table-title-item-right">
+
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-xs-10 col-sm-10 col-md-6 col-lg-2">
+                                <div class="sport-table-wager sport-table-wager-double">
+                                    <a class="sport-table-wager-button" href="/leagueDetail/{{:id}}" target="_blank" style="max-width:100%; flex-basis:100%;"><span>@SharedLocalizer.GetString("LeagueDetail")</span></a>
+                                </div>
+                            </div>
+
+                            <div class="col-xs-10 col-sm-10 col-md-6 col-lg-1">
+                                <div class="sport-table-wager sport-table-wager-double">
+                                </div>
+                            </div>
+                        </div>
+                            </div>
+                        </div>
+
+        {{/for}}
+    </script>
+    <script src="/lib/views/league/league.min.js" type="text/javascript" charset="utf-8"></script>
+}

@@ -1,0 +1,26 @@
+﻿using Newtonsoft.Json;
+
+namespace PreOddsApi.Entities.SportMonks.Football.V3
+{
+    public class Sideline : SportMonksBaseEntity
+    {
+        [JsonProperty("player_id")]
+        public long? PlayerId { get; set; }
+        [JsonProperty("type_id")]
+        public long? TypeId { get; set; }
+        [JsonProperty("team_id")]
+        public long? TeamId { get; set; }
+        [JsonProperty("season_id")]
+        public long? SeasonId { get; set; }
+        [JsonProperty("category")]
+        public string Category { get; set; }
+        [JsonProperty("start_date")]
+        public string StartDate { get; set; }
+        [JsonProperty("end_date")]
+        public string EndDate { get; set; }
+        [JsonProperty("games_missed")]
+        public int? GamesMissed { get; set; }
+        [JsonProperty("completed")]
+        public bool Completed { get; set; }
+    }
+}

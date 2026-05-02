@@ -1,0 +1,353 @@
+﻿@model PreOddsApi.WebUI.Models.League.Models.LeagueDetailViewModel
+@{
+    ViewData["Title"] = "Index";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<section class="section section-sm bg-gray-100">
+    <div class="container">
+        <div class="row row-50">
+            <div class="col-lg-7 col-xl-8">
+                <div class="row row-50">
+                    <div class="col-12">
+                        <!-- Heading Component-->
+                        <article class="heading-component">
+                            <div class="heading-component-inner">
+                                <h5 class="heading-component-title">
+                                    @Model.Seasons[0].Name.ToUpper() - @Model.Seasons[0].Stages[0].Name.ToUpper()
+                                </h5>
+                                <div class="heading-component-aside">
+                                    <ul class="list-inline list-inline-xs list-inline-middle">
+                                        @*<li>
+                                            <div class="select2-container select select-minimal" id="s2id_autogen3" style="min-width: 124px"><a href="javascript:void(0)" class="select2-choice" tabindex="-1">   <span class="select2-chosen" id="select2-chosen-4">Champions League</span><abbr class="select2-search-choice-close"></abbr>   <span class="select2-arrow" role="presentation"><b role="presentation"></b></span></a><label for="s2id_autogen4" class="select2-offscreen"></label><input class="select2-focusser select2-offscreen" type="text" aria-haspopup="true" role="button" aria-labelledby="select2-chosen-4" id="s2id_autogen4"></div><select class="select select-minimal" data-placeholder="Champions League" data-dropdown-class="select-minimal-dropdown" style="min-width: 124px; display: none;" tabindex="-1" title="">
+                                                <option value="Champions League" selected="">Champions League</option>
+                                                <option value="Europa League">Europa League</option>
+                                            </select>
+                                        </li>*@
+                                        <li>
+                                            <div class="select2-container select select-minimal" id="s2id_autogen5" style="min-width: 110px"><a href="javascript:void(0)" class="select2-choice" tabindex="-1">   <span class="select2-chosen" id="select2-chosen-6">2016-2018</span><abbr class="select2-search-choice-close"></abbr>   <span class="select2-arrow" role="presentation"><b role="presentation"></b></span></a><label for="s2id_autogen6" class="select2-offscreen"></label><input class="select2-focusser select2-offscreen" type="text" aria-haspopup="true" role="button" aria-labelledby="select2-chosen-6" id="s2id_autogen6"></div><select class="select select-minimal" data-placeholder="2016-2018" data-dropdown-class="select-minimal-dropdown" style="min-width: 110px; display: none;" tabindex="-1" title="">
+                                            @foreach (var round in Model.Seasons[0].Stages[0].Rounds)
+                                            {
+                                                <option value="@round.Name" id="@round.Id">@round.Name</option>
+                                            }
+                                            </select>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </article>
+
+                        <div class="card-standing card-group-custom card-standing-index" id="accordion1" role="tablist" aria-multiselectable="false">
+                            <div class="card-standing-caption">
+                                <div class="card-standing-position">Pos</div>
+                                <div class="card-standing-caption-aside">
+                                    <div class="card-standing-team">Team</div>
+                                    <div class="card-standing-number">W</div>
+                                    <div class="card-standing-number">L</div>
+                                    <div class="card-standing-number">T</div>
+                                    <div class="card-standing-points">PTS</div>
+                                    <div class="card-standing-diff">DIFF</div>
+                                </div>
+                            </div>
+                            <!-- Bootstrap card-->
+                            <article class="card card-custom">
+                                <div class="card-standing-position card-standing-counter"></div>
+                                <div class="card-header" id="accordion1Heading1" role="tab">
+                                    <div class="card-standing-team-item">
+                                        <div class="card-standing-team">
+                                            <div class="card-standing-team-figure">
+                                                <img src="images/team-atletico-37x37.png" alt="" width="37" height="37">
+                                            </div>
+                                            <div class="card-standing-team-title">
+                                                <div class="card-standing-team-name">Atletico</div>
+                                                <div class="card-standing-team-country">USA</div>
+                                            </div>
+                                        </div>
+                                        <div class="card-standing-number">153</div>
+                                        <div class="card-standing-number">30</div>
+                                        <div class="card-standing-number">1</div>
+                                        <div class="card-standing-points">586</div>
+                                        <div class="card-standing-diff">+12</div>
+                                        <div class="card-standing-button"><a class="card-standing-toogle material-icons-remove collapsed" role="button" data-toggle="collapse" data-parent="#accordion1" href="#accordion1Collapse1" aria-controls="accordion1Collapse1"></a></div>
+                                    </div>
+                                </div>
+                                <div class="collapse" id="accordion1Collapse1" role="tabpanel" aria-labelledby="accordion1Heading1">
+                                    <div class="card-body">
+                                        <div class="card-standing-team-details">
+                                            <div class="card-standing-game-status">Home</div>
+                                            <div class="card-standing-number">78</div>
+                                            <div class="card-standing-number">2</div>
+                                            <div class="card-standing-number">1</div>
+                                        </div>
+                                        <div class="card-standing-divider"></div>
+                                        <div class="card-standing-team-details">
+                                            <div class="card-standing-game-status">Away</div>
+                                            <div class="card-standing-number">26</div>
+                                            <div class="card-standing-number">28</div>
+                                            <div class="card-standing-number">1</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </article>
+                            <!-- Bootstrap card-->
+                            <article class="card card-custom">
+                                <div class="card-standing-position card-standing-counter"></div>
+                                <div class="card-header" id="accordion1Heading2" role="tab">
+                                    <div class="card-standing-team-item">
+                                        <div class="card-standing-team">
+                                            <div class="card-standing-team-figure">
+                                                <img src="images/team-sevilla-45x35.png" alt="" width="45" height="35">
+                                            </div>
+                                            <div class="card-standing-team-title">
+                                                <div class="card-standing-team-name">Sevilla</div>
+                                                <div class="card-standing-team-country">Spain</div>
+                                            </div>
+                                        </div>
+                                        <div class="card-standing-number">153</div>
+                                        <div class="card-standing-number">30</div>
+                                        <div class="card-standing-number">1</div>
+                                        <div class="card-standing-points">586</div>
+                                        <div class="card-standing-diff">+12</div>
+                                        <div class="card-standing-button"><a class="card-standing-toogle material-icons-remove collapsed" role="button" data-toggle="collapse" data-parent="#accordion1" href="#accordion1Collapse2" aria-controls="accordion1Collapse2"></a></div>
+                                    </div>
+                                </div>
+                                <div class="collapse" id="accordion1Collapse2" role="tabpanel" aria-labelledby="accordion1Heading2">
+                                    <div class="card-body">
+                                        <div class="card-standing-team-details">
+                                            <div class="card-standing-game-status">Home</div>
+                                            <div class="card-standing-number">78</div>
+                                            <div class="card-standing-number">2</div>
+                                            <div class="card-standing-number">1</div>
+                                        </div>
+                                        <div class="card-standing-divider"></div>
+                                        <div class="card-standing-team-details">
+                                            <div class="card-standing-game-status">Away</div>
+                                            <div class="card-standing-number">26</div>
+                                            <div class="card-standing-number">28</div>
+                                            <div class="card-standing-number">1</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </article>
+                            <!-- Bootstrap card-->
+                            <article class="card card-custom">
+                                <div class="card-standing-position card-standing-counter"></div>
+                                <div class="card-header" id="accordion1Heading3" role="tab">
+                                    <div class="card-standing-team-item">
+                                        <div class="card-standing-team">
+                                            <div class="card-standing-team-figure">
+                                                <img src="images/team-real-madrid-29x43.png" alt="" width="29" height="43">
+                                            </div>
+                                            <div class="card-standing-team-title">
+                                                <div class="card-standing-team-name">Real Madrid</div>
+                                                <div class="card-standing-team-country">Spain</div>
+                                            </div>
+                                        </div>
+                                        <div class="card-standing-number">153</div>
+                                        <div class="card-standing-number">30</div>
+                                        <div class="card-standing-number">1</div>
+                                        <div class="card-standing-points">586</div>
+                                        <div class="card-standing-diff">+12</div>
+                                        <div class="card-standing-button"><a class="card-standing-toogle material-icons-remove collapsed" role="button" data-toggle="collapse" data-parent="#accordion1" href="#accordion1Collapse3" aria-controls="accordion1Collapse3"></a></div>
+                                    </div>
+                                </div>
+                                <div class="collapse" id="accordion1Collapse3" role="tabpanel" aria-labelledby="accordion1Heading3">
+                                    <div class="card-body">
+                                        <div class="card-standing-team-details">
+                                            <div class="card-standing-game-status">Home</div>
+                                            <div class="card-standing-number">78</div>
+                                            <div class="card-standing-number">2</div>
+                                            <div class="card-standing-number">1</div>
+                                        </div>
+                                        <div class="card-standing-divider"></div>
+                                        <div class="card-standing-team-details">
+                                            <div class="card-standing-game-status">Away</div>
+                                            <div class="card-standing-number">26</div>
+                                            <div class="card-standing-number">28</div>
+                                            <div class="card-standing-number">1</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </article>
+                            <!-- Bootstrap card-->
+                            <article class="card card-custom">
+                                <div class="card-standing-position card-standing-counter"></div>
+                                <div class="card-header" id="accordion1Heading4" role="tab">
+                                    <div class="card-standing-team-item">
+                                        <div class="card-standing-team">
+                                            <div class="card-standing-team-figure">
+                                                <img src="images/team-celta-vigo-37x34.png" alt="" width="37" height="34">
+                                            </div>
+                                            <div class="card-standing-team-title">
+                                                <div class="card-standing-team-name">Celta Vigo</div>
+                                                <div class="card-standing-team-country">Italy</div>
+                                            </div>
+                                        </div>
+                                        <div class="card-standing-number">153</div>
+                                        <div class="card-standing-number">30</div>
+                                        <div class="card-standing-number">1</div>
+                                        <div class="card-standing-points">586</div>
+                                        <div class="card-standing-diff">+12</div>
+                                        <div class="card-standing-button"><a class="card-standing-toogle material-icons-remove collapsed" role="button" data-toggle="collapse" data-parent="#accordion1" href="#accordion1Collapse4" aria-controls="accordion1Collapse4"></a></div>
+                                    </div>
+                                </div>
+                                <div class="collapse" id="accordion1Collapse4" role="tabpanel" aria-labelledby="accordion1Heading4">
+                                    <div class="card-body">
+                                        <div class="card-standing-team-details">
+                                            <div class="card-standing-game-status">Home</div>
+                                            <div class="card-standing-number">78</div>
+                                            <div class="card-standing-number">2</div>
+                                            <div class="card-standing-number">1</div>
+                                        </div>
+                                        <div class="card-standing-divider"></div>
+                                        <div class="card-standing-team-details">
+                                            <div class="card-standing-game-status">Away</div>
+                                            <div class="card-standing-number">26</div>
+                                            <div class="card-standing-number">28</div>
+                                            <div class="card-standing-number">1</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </article>
+                            <!-- Bootstrap card-->
+                            <article class="card card-custom">
+                                <div class="card-standing-position card-standing-counter"></div>
+                                <div class="card-header" id="accordion1Heading5" role="tab">
+                                    <div class="card-standing-team-item">
+                                        <div class="card-standing-team">
+                                            <div class="card-standing-team-figure">
+                                                <img src="images/team-barcelona-36x31.png" alt="" width="36" height="31">
+                                            </div>
+                                            <div class="card-standing-team-title">
+                                                <div class="card-standing-team-name">Barcelona</div>
+                                                <div class="card-standing-team-country">Spain</div>
+                                            </div>
+                                        </div>
+                                        <div class="card-standing-number">153</div>
+                                        <div class="card-standing-number">30</div>
+                                        <div class="card-standing-number">1</div>
+                                        <div class="card-standing-points">586</div>
+                                        <div class="card-standing-diff">+12</div>
+                                        <div class="card-standing-button"><a class="card-standing-toogle material-icons-remove collapsed" role="button" data-toggle="collapse" data-parent="#accordion1" href="#accordion1Collapse5" aria-controls="accordion1Collapse5"></a></div>
+                                    </div>
+                                </div>
+                                <div class="collapse" id="accordion1Collapse5" role="tabpanel" aria-labelledby="accordion1Heading5">
+                                    <div class="card-body">
+                                        <div class="card-standing-team-details">
+                                            <div class="card-standing-game-status">Home</div>
+                                            <div class="card-standing-number">78</div>
+                                            <div class="card-standing-number">2</div>
+                                            <div class="card-standing-number">1</div>
+                                        </div>
+                                        <div class="card-standing-divider"></div>
+                                        <div class="card-standing-team-details">
+                                            <div class="card-standing-game-status">Away</div>
+                                            <div class="card-standing-number">26</div>
+                                            <div class="card-standing-number">28</div>
+                                            <div class="card-standing-number">1</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </article>
+                            <!-- Bootstrap card-->
+                            <article class="card card-custom">
+                                <div class="card-standing-position card-standing-counter"></div>
+                                <div class="card-header" id="accordion1Heading6" role="tab">
+                                    <div class="card-standing-team-item">
+                                        <div class="card-standing-team">
+                                            <div class="card-standing-team-figure">
+                                                <img src="images/team-bavaria-fc-39x37.png" alt="" width="39" height="37">
+                                            </div>
+                                            <div class="card-standing-team-title">
+                                                <div class="card-standing-team-name">Bavaria FC</div>
+                                                <div class="card-standing-team-country">Germany</div>
+                                            </div>
+                                        </div>
+                                        <div class="card-standing-number">153</div>
+                                        <div class="card-standing-number">30</div>
+                                        <div class="card-standing-number">1</div>
+                                        <div class="card-standing-points">586</div>
+                                        <div class="card-standing-diff">+12</div>
+                                        <div class="card-standing-button"><a class="card-standing-toogle material-icons-remove collapsed" role="button" data-toggle="collapse" data-parent="#accordion1" href="#accordion1Collapse6" aria-controls="accordion1Collapse6"></a></div>
+                                    </div>
+                                </div>
+                                <div class="collapse" id="accordion1Collapse6" role="tabpanel" aria-labelledby="accordion1Heading6">
+                                    <div class="card-body">
+                                        <div class="card-standing-team-details">
+                                            <div class="card-standing-game-status">Home</div>
+                                            <div class="card-standing-number">78</div>
+                                            <div class="card-standing-number">2</div>
+                                            <div class="card-standing-number">1</div>
+                                        </div>
+                                        <div class="card-standing-divider"></div>
+                                        <div class="card-standing-team-details">
+                                            <div class="card-standing-game-status">Away</div>
+                                            <div class="card-standing-number">26</div>
+                                            <div class="card-standing-number">28</div>
+                                            <div class="card-standing-number">1</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </article>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <!-- Heading Component-->
+                        <article class="heading-component">
+                            <div class="heading-component-inner">
+                                <h5 class="heading-component-title">
+                                    Glossary Terms
+                                </h5>
+                            </div>
+                        </article>
+
+                        <div class="game-glossary">
+                            <div class="game-glossary-wrap row-10">
+                                <div class="game-glossary-column">
+                                    <table class="game-glossary-terms">
+                                        <tbody>
+                                            <tr>
+                                                <td>W:</td>
+                                                <td>Wins</td>
+                                            </tr>
+                                            <tr>
+                                                <td>L:</td>
+                                                <td>Loses</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="game-glossary-column">
+                                    <table class="game-glossary-terms">
+                                        <tbody>
+                                            <tr>
+                                                <td>T:</td>
+                                                <td>Ties</td>
+                                            </tr>
+                                            <tr>
+                                                <td>PTS:</td>
+                                                <td>Winning Percentage</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="game-glossary-column">
+                                    <table class="game-glossary-terms">
+                                        <tbody>
+                                            <tr>
+                                                <td>DIFF:</td>
+                                                <td>Point Differential</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-5 col-xl-4">
+            </div>
+        </div>
+    </div>
+</section>

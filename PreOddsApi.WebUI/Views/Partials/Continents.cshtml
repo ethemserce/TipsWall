@@ -1,0 +1,68 @@
+﻿@model PreOddsApi.WebUI.Models.Continent.Models.ContinentListViewModel
+@*
+    For more information on enabling MVC for empty projects, visit http://go.microsoft.com/fwlink/?LinkID=397860
+*@
+<article class="rd-menu rd-navbar-megamenu rd-megamenu-2-columns context-light">
+    <div class="rd-megamenu-main">
+        @foreach (var continent in Model.Continents)
+        {
+            <div class="rd-megamenu-item rd-megamenu-item-nav">
+                <!-- Heading Component-->
+                <article class="heading-component heading-component-simple">
+                    <div class="heading-component-inner">
+                        <h5 class="heading-component-title">
+                            @continent.Name
+                        </h5>
+                    </div>
+                </article>
+                <div class="rd-megamenu-list-outer">
+                    <ul class="rd-megamenu-list">
+                        @foreach (var country in continent.Countries)
+                        {
+                            <li class="rd-megamenu-list-item"><a class="rd-megamenu-list-link" href="shortcodes.html">@country.Name</a></li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        }
+    </div>
+    <!-- Event Teaser-->
+    <article class="event-teaser rd-megamenu-footer">
+        <div class="event-teaser-header">
+            <div class="event-teaser-caption">
+                <h5 class="event-teaser-title">European League 2018</h5>
+                <time class="event-teaser-time" datetime="2018">Saturday, April 14, 2018</time>
+            </div>
+            <div class="event-teaser-teams">
+                <div class="event-teaser-team">
+                    <div class="unit unit-spacing-xs unit-horizontal align-items-center">
+                        <div class="unit-left">
+                            <img class="event-teaser-team-image" src="images/team-bavaria-fc-59x54.png" alt="" width="59" height="54" />
+                        </div>
+                        <div class="unit-body">
+                            <p class="heading-7">Bavaria</p>
+                            <p class="text-style-1">Germany</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="event-teaser-team-divider"><span class="event-teaser-team-divider-text">VS</span></div>
+                <div class="event-teaser-team">
+                    <div class="unit unit-spacing-xs unit-horizontal align-items-center">
+                        <div class="unit-left">
+                            <img class="event-teaser-team-image" src="images/team-atletico-50x50.png" alt="" width="50" height="50" />
+                        </div>
+                        <div class="unit-body">
+                            <p class="heading-7">Atletico</p>
+                            <p class="text-style-1">USA</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="event-teaser-countdown event-teaser-highlighted">
+            <!-- Countdown-->
+            <div class="countdown countdown-classic" data-type="until" data-time="31 Dec 2018 16:00" data-format="dhms" data-style="short"></div>
+        </div>
+        <div class="event-teaser-aside"><a class="event-teaser-link" href="#">Place a Bet</a></div>
+    </article>
+</article>

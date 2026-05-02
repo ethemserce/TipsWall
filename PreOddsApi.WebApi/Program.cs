@@ -1,0 +1,126 @@
+﻿
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Localization;
+using Microsoft.AspNetCore.ResponseCompression;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.Tokens;
+using Newtonsoft.Json.Serialization;
+using PreOddsApi.BusinessLayer.DependencyInjection;
+using PreOddsApi.DataLayer;
+using PreOddsApi.WebApi;
+using System;
+using System.Configuration;
+using System.Globalization;
+using System.Text;
+
+var builder = WebApplication.CreateBuilder(args);
+
+IWebHostEnvironment environment = builder.Environment;
+
+
+DependencyService.SetDependencyTypes(builder.Services, builder.Configuration);
+
+builder.Services.AddEndpointsApiExplorer();
+
+builder.Services.AddControllers().AddNewtonsoftJson();
+
+builder.Services.AddMvc();
+builder.Services.AddAutoMapper(typeof(MappingProfile));
+
+
+builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
+builder.Services.Configure<RequestLocalizationOptions>(options => {
+    var supportedCultures = new[]
+    {
+                    new CultureInfo("en"),
+                    new CultureInfo("tr"),
+                };
+
+    options.DefaultRequestCulture = new RequestCulture(culture: "en", uiCulture: "en");
+    options.SupportedCultures = supportedCultures;
+    options.SupportedUICultures = supportedCultures;
+});
+
+var jwtSecret = Environment.GetEnvironmentVariable("PREODDS_JWT_SECRET") ?? "CHANGE_ME_PREODDS_JWT_SECRET_32_CHARS_MINIMUM";
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(JwtBearerOptions =>
+{
+    JwtBearerOptions.TokenValidationParameters = new TokenValidationParameters()
+    {
+        ValidateActor = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = "http://localhost:28332",
+        ValidAudience = "http://localhost:28332",
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret))
+    };
+});
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("CorsPolicy",
+        builder => builder.AllowAnyOrigin()
+            .AllowAnyMethod()
+            .AllowAnyHeader());
+});
+
+builder.Services.Configure<GzipCompressionProviderOptions>(o => o.Level = System.IO.Compression.CompressionLevel.Optimal);
+builder.Services.AddResponseCompression(o =>
+{
+    o.EnableForHttps = true;
+    o.Providers.Add<GzipCompressionProvider>();
+});
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowSpecificOrigins",
+        builder =>
+        {
+            builder.WithOrigins("http://localhost:28333") // İzin verilen orijinleri buraya ekleyin
+                   .AllowAnyHeader()
+                   .AllowAnyMethod();
+        });
+});
+
+var app = builder.Build();
+IConfiguration configuration = app.Configuration;
+
+var logger = app.Services.GetRequiredService<ILogger<Program>>();
+app.Use(async (context, next) =>
+{
+    try
+    {
+        await next();
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "An error occurred.");
+        throw;
+    }
+});
+
+// Configure the HTTP request pipeline.
+if (app.Environment.IsDevelopment())
+{
+    //app.UseSwagger();
+    //app.UseSwaggerUI();
+}
+
+app.UseCors("AllowSpecificOrigins");
+
+app.UseHttpsRedirection();
+
+app.UseAuthorization();
+
+app.MapControllers();
+
+app.Run();
+
+

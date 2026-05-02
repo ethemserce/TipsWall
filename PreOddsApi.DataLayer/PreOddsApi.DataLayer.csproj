@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PreOddsApi.Core.Data.EntityFramework\PreOddsApi.Core.Data.EntityFramework.csproj" />
+    <ProjectReference Include="..\PreOddsApi.Core.Data\PreOddsApi.Core.Data.csproj" />
+    <ProjectReference Include="..\PreOddsApi.Core\PreOddsApi.Core.csproj" />
+    <ProjectReference Include="..\PreOddsApi.Entities\PreOddsApi.Entities.csproj" />
+  </ItemGroup>
+
+</Project>
