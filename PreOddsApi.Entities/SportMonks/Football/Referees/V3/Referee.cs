@@ -39,16 +39,19 @@ namespace PreOddsApi.Entities.SportMonks.Football.V3
         public string ImagePath { get; set; }
 
         [JsonProperty("height")]
-        public int Height { get; set; }
+        public int? Height { get; set; }
 
         [JsonProperty("weight")]
-        public int Weight { get; set; }
+        public int? Weight { get; set; }
 
         [JsonProperty("date_of_birth")]
-        public DateOnly DateOfBirth { get; set; }
+        public DateOnly? DateOfBirth { get; set; }
 
         [JsonProperty("gender")]
         public string Gender { get; set; }
+
+        [JsonProperty("role")]
+        public string Role { get; set; }
 
         [JsonProperty("sport")] // if add to Query Params "include=sport"
         public Sport Sport { get; set; }

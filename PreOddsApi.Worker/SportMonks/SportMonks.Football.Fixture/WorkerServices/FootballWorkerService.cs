@@ -26,7 +26,8 @@ namespace SportMonks.Football.FixtureWorker.Services
             "statistics",
             "lineups",
             "lineups.details.type",
-            "formations"
+            "formations",
+            "referees"
         ];
 
         private readonly ILogger<FootballWorkerService> _logger;
@@ -37,6 +38,7 @@ namespace SportMonks.Football.FixtureWorker.Services
         private readonly ISportMonksFixtureCoreWriter _fixtureCoreWriter;
         private readonly ISportMonksFixtureEventStatisticWriter _fixtureEventStatisticWriter;
         private readonly ISportMonksFixtureLineupFormationWriter _fixtureLineupFormationWriter;
+        private readonly ISportMonksFixtureRefereeWriter _fixtureRefereeWriter;
 
         public FootballWorkerService(
             ILogger<FootballWorkerService> logger,
@@ -46,7 +48,8 @@ namespace SportMonks.Football.FixtureWorker.Services
             ISportMonksFootballCoreReferenceWriter footballCoreReferenceWriter,
             ISportMonksFixtureCoreWriter fixtureCoreWriter,
             ISportMonksFixtureEventStatisticWriter fixtureEventStatisticWriter,
-            ISportMonksFixtureLineupFormationWriter fixtureLineupFormationWriter)
+            ISportMonksFixtureLineupFormationWriter fixtureLineupFormationWriter,
+            ISportMonksFixtureRefereeWriter fixtureRefereeWriter)
         {
             _logger = logger;
             _configuration = configuration;
@@ -56,6 +59,7 @@ namespace SportMonks.Football.FixtureWorker.Services
             _fixtureCoreWriter = fixtureCoreWriter;
             _fixtureEventStatisticWriter = fixtureEventStatisticWriter;
             _fixtureLineupFormationWriter = fixtureLineupFormationWriter;
+            _fixtureRefereeWriter = fixtureRefereeWriter;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -190,6 +194,7 @@ namespace SportMonks.Football.FixtureWorker.Services
                 cancellationToken: cancellationToken)).ToList();
 
             await _fixtureCoreWriter.UpsertFixturesAsync(fixtures, cancellationToken);
+            await _fixtureRefereeWriter.UpsertFixtureRefereesAsync(fixtures, cancellationToken);
             await _fixtureEventStatisticWriter.UpsertEventsAndStatisticsAsync(fixtures, cancellationToken);
             await _fixtureLineupFormationWriter.UpsertLineupsAndFormationsAsync(fixtures, cancellationToken);
         }

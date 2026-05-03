@@ -22,6 +22,7 @@ namespace PreOddsApi.ExternalApis.DependencyInjection
             services.AddSingleton<ISportMonksFixtureCoreWriter, SportMonksFixtureCoreWriter>();
             services.AddSingleton<ISportMonksFixtureEventStatisticWriter, SportMonksFixtureEventStatisticWriter>();
             services.AddSingleton<ISportMonksFixtureLineupFormationWriter, SportMonksFixtureLineupFormationWriter>();
+            services.AddSingleton<ISportMonksFixtureRefereeWriter, SportMonksFixtureRefereeWriter>();
             services.AddSingleton<ISportMonksOddsReferenceWriter, SportMonksOddsReferenceWriter>();
             services.AddHttpClient<ISportMonksApiClient, SportMonksApiClient>(httpClient =>
             {
