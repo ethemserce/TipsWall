@@ -1,8 +1,7 @@
-using PreOddsApi.Entities.PreOddsEntities;
 using PreOddsApi.Entities.SportMonks.Odds.V3;
 using PreOddsApi.ExternalApis.SportMonks;
 using PreOddsApi.ExternalApis.SportMonks.Sync;
-using SportMonks.Football.FootballWorker.Abstract;
+using PreOddsApi.ExternalApis.SportMonks.Sync.Writers;
 
 namespace SportMonks.Football.FixtureWorker.Services
 {
@@ -10,15 +9,15 @@ namespace SportMonks.Football.FixtureWorker.Services
     {
         private readonly ILogger<OddsWorkerService> _logger;
         private readonly ISportMonksSyncRunner _syncRunner;
-        private readonly IInsertService _insertService;
+        private readonly ISportMonksOddsReferenceWriter _oddsReferenceWriter;
 
         public OddsWorkerService(ILogger<OddsWorkerService> logger,
             ISportMonksSyncRunner syncRunner,
-            IInsertService insertService)
+            ISportMonksOddsReferenceWriter oddsReferenceWriter)
         {
             _logger = logger;
             _syncRunner = syncRunner;
-            _insertService = insertService;
+            _oddsReferenceWriter = oddsReferenceWriter;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -35,7 +34,7 @@ namespace SportMonks.Football.FixtureWorker.Services
                             "Sync SportMonks odds markets."),
                         SportMonksApiRequest.Create("markets"),
                         cancellationToken: stoppingToken)).ToList();
-                    await _insertService.InsertAsync<Market, market>(markets);
+                    await _oddsReferenceWriter.UpsertMarketsAsync(markets, stoppingToken);
 
                     var bookmakers = (await _syncRunner.GetAllAsync<Bookmaker>(
                         SportMonksSyncJobDefinition.Create(
@@ -44,7 +43,7 @@ namespace SportMonks.Football.FixtureWorker.Services
                             "Sync SportMonks odds bookmakers."),
                         SportMonksApiRequest.Create("bookmakers"),
                         cancellationToken: stoppingToken)).ToList();
-                    await _insertService.InsertAsync<Bookmaker, bookmaker>(bookmakers);
+                    await _oddsReferenceWriter.UpsertBookmakersAsync(bookmakers, stoppingToken);
                 }
                 catch (Exception exc)
                 {

@@ -2,6 +2,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using PreOddsApi.ExternalApis.SportMonks;
 using PreOddsApi.ExternalApis.SportMonks.Sync;
+using PreOddsApi.ExternalApis.SportMonks.Sync.Writers;
 
 namespace PreOddsApi.ExternalApis.DependencyInjection
 {
@@ -15,6 +16,7 @@ namespace PreOddsApi.ExternalApis.DependencyInjection
 
             services.AddSingleton(options);
             services.AddSingleton<ISportMonksSyncRunner, SportMonksSyncRunner>();
+            services.AddSingleton<ISportMonksOddsReferenceWriter, SportMonksOddsReferenceWriter>();
             services.AddHttpClient<ISportMonksApiClient, SportMonksApiClient>(httpClient =>
             {
                 httpClient.BaseAddress = new Uri(options.BaseUrl);
