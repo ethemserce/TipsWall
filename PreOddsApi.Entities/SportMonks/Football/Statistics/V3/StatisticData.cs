@@ -1,15 +1,15 @@
-﻿using Newtonsoft.Json;
-using System;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace PreOddsApi.Entities.SportMonks.Football.Statistics.V3
 {
     public class StatisticData
     {
         [JsonProperty("value")]
-        public int Value { get; set; }
+        public object Value { get; set; }
+
+        [JsonExtensionData]
+        public IDictionary<string, JToken> ExtraData { get; set; }
     }
 }

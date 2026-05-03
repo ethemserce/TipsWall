@@ -9,7 +9,7 @@ namespace SportMonks.Football.FixtureWorker.Services
 {
     public class FootballWorkerService : BackgroundService
     {
-        private static readonly string[] FixtureCoreIncludes =
+        private static readonly string[] FixtureSyncIncludes =
         [
             "sport",
             "league",
@@ -21,7 +21,9 @@ namespace SportMonks.Football.FixtureWorker.Services
             "venue",
             "participants",
             "scores",
-            "periods"
+            "periods",
+            "events",
+            "statistics"
         ];
 
         private readonly ILogger<FootballWorkerService> _logger;
@@ -30,6 +32,7 @@ namespace SportMonks.Football.FixtureWorker.Services
         private readonly ISportMonksCompetitionReferenceWriter _competitionReferenceWriter;
         private readonly ISportMonksFootballCoreReferenceWriter _footballCoreReferenceWriter;
         private readonly ISportMonksFixtureCoreWriter _fixtureCoreWriter;
+        private readonly ISportMonksFixtureEventStatisticWriter _fixtureEventStatisticWriter;
 
         public FootballWorkerService(
             ILogger<FootballWorkerService> logger,
@@ -37,7 +40,8 @@ namespace SportMonks.Football.FixtureWorker.Services
             ISportMonksSyncRunner syncRunner,
             ISportMonksCompetitionReferenceWriter competitionReferenceWriter,
             ISportMonksFootballCoreReferenceWriter footballCoreReferenceWriter,
-            ISportMonksFixtureCoreWriter fixtureCoreWriter)
+            ISportMonksFixtureCoreWriter fixtureCoreWriter,
+            ISportMonksFixtureEventStatisticWriter fixtureEventStatisticWriter)
         {
             _logger = logger;
             _configuration = configuration;
@@ -45,6 +49,7 @@ namespace SportMonks.Football.FixtureWorker.Services
             _competitionReferenceWriter = competitionReferenceWriter;
             _footballCoreReferenceWriter = footballCoreReferenceWriter;
             _fixtureCoreWriter = fixtureCoreWriter;
+            _fixtureEventStatisticWriter = fixtureEventStatisticWriter;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -161,7 +166,7 @@ namespace SportMonks.Football.FixtureWorker.Services
             var dateValue = date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
             var endpoint = $"{GetFixtureByDateEndpoint().TrimEnd('/')}/{dateValue}";
             var request = SportMonksApiRequest.Create(endpoint)
-                .WithInclude(FixtureCoreIncludes);
+                .WithInclude(FixtureSyncIncludes);
             var timezone = NullIfWhiteSpace(_configuration["SportMonksFixtureSync:Timezone"]);
 
             if (timezone != null)
@@ -179,6 +184,7 @@ namespace SportMonks.Football.FixtureWorker.Services
                 cancellationToken: cancellationToken)).ToList();
 
             await _fixtureCoreWriter.UpsertFixturesAsync(fixtures, cancellationToken);
+            await _fixtureEventStatisticWriter.UpsertEventsAndStatisticsAsync(fixtures, cancellationToken);
         }
 
         private string GetFixtureByDateEndpoint()
