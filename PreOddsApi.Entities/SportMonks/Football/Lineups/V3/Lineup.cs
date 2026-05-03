@@ -37,5 +37,8 @@ namespace PreOddsApi.Entities.SportMonks.Football.V3
 
         [JsonProperty("player")] // if add to Query Params "include=lineups"
         public Player Player { get; set; }
+
+        [JsonProperty("details")]
+        public List<LineupDetail> Details { get; set; }
     }
 }
