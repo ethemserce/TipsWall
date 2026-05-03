@@ -1,10 +1,7 @@
-using PreOddsApi.Core.Data.EntityFramework.Abstract;
-using PreOddsApi.DataLayer;
-using PreOddsApi.Entities.PreOddsEntities;
 using PreOddsApi.Entities.SportMonks.Core.V3;
-using PreOddsApi.Entities.SportMonks.Football.V3;
 using PreOddsApi.ExternalApis.SportMonks;
 using PreOddsApi.ExternalApis.SportMonks.Sync;
+using PreOddsApi.ExternalApis.SportMonks.Sync.Writers;
 
 namespace SportMonks.Core.Worker.WorkerServices
 {
@@ -12,26 +9,25 @@ namespace SportMonks.Core.Worker.WorkerServices
     {
         private readonly ILogger<CoreWorkerService> _logger;
         private readonly ISportMonksSyncRunner _syncRunner;
-        private readonly IUpsertService<PreOddsApiDbContext> _upsertService;
+        private readonly ISportMonksCatalogReferenceWriter _catalogReferenceWriter;
 
         public CoreWorkerService(
             ILogger<CoreWorkerService> logger,
             ISportMonksSyncRunner syncRunner,
-            IUpsertService<PreOddsApiDbContext> upsertService)
+            ISportMonksCatalogReferenceWriter catalogReferenceWriter)
         {
             _logger = logger;
             _syncRunner = syncRunner;
-            _upsertService = upsertService;
+            _catalogReferenceWriter = catalogReferenceWriter;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             _logger.LogInformation("Core Service execution started!");
+
             try
             {
                 await ExecuteCoreData(stoppingToken);
-
-                // TO DO: Core data insert to database
             }
             catch (Exception exc)
             {
@@ -41,7 +37,20 @@ namespace SportMonks.Core.Worker.WorkerServices
 
         private async Task ExecuteCoreData(CancellationToken cancellationToken)
         {
-            var continents = (await _syncRunner.GetAllAsync<Continent>(
+            var continents = await ExecuteContinents(cancellationToken);
+            var countries = await ExecuteCountries(cancellationToken);
+            var typeList = await ExecuteTypes(cancellationToken);
+
+            ApplyMissingContinentIds(continents, countries);
+
+            await _catalogReferenceWriter.UpsertContinentsAsync(continents, cancellationToken);
+            await _catalogReferenceWriter.UpsertCountriesWithRegionsAndCitiesAsync(countries, cancellationToken);
+            await _catalogReferenceWriter.UpsertTypesAsync(typeList, cancellationToken);
+        }
+
+        private async Task<List<Continent>> ExecuteContinents(CancellationToken cancellationToken)
+        {
+            return (await _syncRunner.GetAllAsync<Continent>(
                 SportMonksSyncJobDefinition.Create(
                     "sportmonks.core.continents",
                     "core.continent",
@@ -49,8 +58,11 @@ namespace SportMonks.Core.Worker.WorkerServices
                 SportMonksApiRequest.Create("continents")
                     .WithInclude("countries"),
                 cancellationToken: cancellationToken)).ToList();
+        }
 
-            var countries = (await _syncRunner.GetAllAsync<Country>(
+        private async Task<List<Country>> ExecuteCountries(CancellationToken cancellationToken)
+        {
+            return (await _syncRunner.GetAllAsync<Country>(
                 SportMonksSyncJobDefinition.Create(
                     "sportmonks.core.countries",
                     "core.country",
@@ -58,103 +70,41 @@ namespace SportMonks.Core.Worker.WorkerServices
                 SportMonksApiRequest.Create("countries")
                     .WithInclude("regions.cities"),
                 cancellationToken: cancellationToken)).ToList();
-
-            foreach (var continent in continents)
-            {
-                if (continent.Countries == null)
-                {
-                    continue;
-                }
-
-                foreach (var country in continent.Countries)
-                {
-                    var matchedCountry = countries.FirstOrDefault(x => x.Id == country.Id);
-                    if (matchedCountry?.Regions != null)
-                    {
-                        country.Regions.AddRange(matchedCountry.Regions);
-                    }
-                }
-            }
-
-            await _upsertService.UpsertAsync<Continent, continent>(continents);
         }
 
-        private async Task ExecuteContinents(CancellationToken cancellationToken)
+        private async Task<List<Types>> ExecuteTypes(CancellationToken cancellationToken)
         {
-            var continents = (await _syncRunner.GetAllAsync<Continent>(
-                SportMonksSyncJobDefinition.Create(
-                    "sportmonks.core.continents",
-                    "core.continent",
-                    "Sync SportMonks continents."),
-                SportMonksApiRequest.Create("continents"),
-                cancellationToken: cancellationToken)).ToList();
-
-            await _upsertService.UpsertAsync<Continent, continent>(continents);
-        }
-
-        private async Task ExecuteCountries(CancellationToken cancellationToken)
-        {
-            var countries = (await _syncRunner.GetAllAsync<Country>(
-                SportMonksSyncJobDefinition.Create(
-                    "sportmonks.core.countries",
-                    "core.country",
-                    "Sync SportMonks countries."),
-                SportMonksApiRequest.Create("countries"),
-                cancellationToken: cancellationToken)).ToList();
-
-            await _upsertService.UpsertAsync<Country, country>(countries);
-        }
-
-        private async Task ExecuteRegions(CancellationToken cancellationToken)
-        {
-            var regions = (await _syncRunner.GetAllAsync<Region>(
-                SportMonksSyncJobDefinition.Create(
-                    "sportmonks.core.regions",
-                    "core.region",
-                    "Sync SportMonks regions."),
-                SportMonksApiRequest.Create("regions"),
-                cancellationToken: cancellationToken)).ToList();
-
-            await _upsertService.UpsertAsync<Region, region>(regions);
-        }
-
-        private async Task ExecuteCities(CancellationToken cancellationToken)
-        {
-            var cities = (await _syncRunner.GetAllAsync<City>(
-                SportMonksSyncJobDefinition.Create(
-                    "sportmonks.core.cities",
-                    "core.city",
-                    "Sync SportMonks cities."),
-                SportMonksApiRequest.Create("cities"),
-                cancellationToken: cancellationToken)).ToList();
-
-            await _upsertService.UpsertAsync<City, city>(cities);
-        }
-
-        private async Task ExecuteTypes(CancellationToken cancellationToken)
-        {
-            var typeList = (await _syncRunner.GetAllAsync<Types>(
+            return (await _syncRunner.GetAllAsync<Types>(
                 SportMonksSyncJobDefinition.Create(
                     "sportmonks.core.types",
                     "core.type",
                     "Sync SportMonks types."),
                 SportMonksApiRequest.Create("types"),
                 cancellationToken: cancellationToken)).ToList();
-
-            await _upsertService.UpsertAsync<Types, types>(typeList);
         }
 
-        private async Task ExecuteStates(CancellationToken cancellationToken)
+        private static void ApplyMissingContinentIds(
+            IEnumerable<Continent> continents,
+            IEnumerable<Country> countries)
         {
-            var states = (await _syncRunner.GetAllAsync<State>(
-                SportMonksSyncJobDefinition.Create(
-                    "sportmonks.football.states",
-                    "football.state",
-                    "Sync SportMonks football states."),
-                SportMonksApiRequest.Create("states"),
-                cancellationToken: cancellationToken)).ToList();
+            var continentIdByCountryId = continents
+                .Where(continent => continent.Countries != null)
+                .SelectMany(continent => continent.Countries.Select(country => new
+                {
+                    CountryId = country.Id,
+                    ContinentId = continent.Id
+                }))
+                .GroupBy(x => x.CountryId)
+                .ToDictionary(group => group.Key, group => group.Last().ContinentId);
 
-            await _upsertService.UpsertAsync<State, state>(states);
+            foreach (var country in countries)
+            {
+                if (country.ContinentId == 0
+                    && continentIdByCountryId.TryGetValue(country.Id, out var continentId))
+                {
+                    country.ContinentId = continentId;
+                }
+            }
         }
 
         public override Task StartAsync(CancellationToken cancellationToken)
@@ -165,7 +115,7 @@ namespace SportMonks.Core.Worker.WorkerServices
 
         public override Task StopAsync(CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Core Service stppped!");
+            _logger.LogInformation("Core Service stopped!");
             return base.StopAsync(cancellationToken);
         }
     }
