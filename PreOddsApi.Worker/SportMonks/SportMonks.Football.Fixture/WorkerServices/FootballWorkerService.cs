@@ -1,3 +1,5 @@
+using System.Globalization;
+using Microsoft.Extensions.Configuration;
 using PreOddsApi.Entities.SportMonks.Football.V3;
 using PreOddsApi.ExternalApis.SportMonks;
 using PreOddsApi.ExternalApis.SportMonks.Sync;
@@ -7,21 +9,42 @@ namespace SportMonks.Football.FixtureWorker.Services
 {
     public class FootballWorkerService : BackgroundService
     {
+        private static readonly string[] FixtureCoreIncludes =
+        [
+            "sport",
+            "league",
+            "season",
+            "stage",
+            "group",
+            "round",
+            "state",
+            "venue",
+            "participants",
+            "scores",
+            "periods"
+        ];
+
         private readonly ILogger<FootballWorkerService> _logger;
+        private readonly IConfiguration _configuration;
         private readonly ISportMonksSyncRunner _syncRunner;
         private readonly ISportMonksCompetitionReferenceWriter _competitionReferenceWriter;
         private readonly ISportMonksFootballCoreReferenceWriter _footballCoreReferenceWriter;
+        private readonly ISportMonksFixtureCoreWriter _fixtureCoreWriter;
 
         public FootballWorkerService(
             ILogger<FootballWorkerService> logger,
+            IConfiguration configuration,
             ISportMonksSyncRunner syncRunner,
             ISportMonksCompetitionReferenceWriter competitionReferenceWriter,
-            ISportMonksFootballCoreReferenceWriter footballCoreReferenceWriter)
+            ISportMonksFootballCoreReferenceWriter footballCoreReferenceWriter,
+            ISportMonksFixtureCoreWriter fixtureCoreWriter)
         {
             _logger = logger;
+            _configuration = configuration;
             _syncRunner = syncRunner;
             _competitionReferenceWriter = competitionReferenceWriter;
             _footballCoreReferenceWriter = footballCoreReferenceWriter;
+            _fixtureCoreWriter = fixtureCoreWriter;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -36,6 +59,7 @@ namespace SportMonks.Football.FixtureWorker.Services
                     await ExecuteVenues(stoppingToken);
                     await ExecuteLeague(stoppingToken);
                     await ExecuteTeams(stoppingToken);
+                    await ExecuteFixtureWindow(stoppingToken);
                 }
                 catch (Exception exc)
                 {
@@ -106,6 +130,98 @@ namespace SportMonks.Football.FixtureWorker.Services
                 cancellationToken: cancellationToken)).ToList();
 
             await _footballCoreReferenceWriter.UpsertTeamsWithVenuesAsync(teams, cancellationToken);
+        }
+
+        private async Task ExecuteFixtureWindow(CancellationToken cancellationToken)
+        {
+            if (!GetBoolean("SportMonksFixtureSync:Enabled", false))
+            {
+                return;
+            }
+
+            var daysBack = Math.Max(0, GetInteger("SportMonksFixtureSync:DaysBack", 0));
+            var daysForward = Math.Max(0, GetInteger("SportMonksFixtureSync:DaysForward", 7));
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            var fromDate = today.AddDays(-daysBack);
+            var toDate = today.AddDays(daysForward);
+
+            _logger.LogInformation(
+                "Fixture window sync started for dates {FromDate} through {ToDate}.",
+                fromDate,
+                toDate);
+
+            for (var date = fromDate; date <= toDate; date = date.AddDays(1))
+            {
+                await ExecuteFixturesByDate(date, cancellationToken);
+            }
+        }
+
+        private async Task ExecuteFixturesByDate(DateOnly date, CancellationToken cancellationToken)
+        {
+            var dateValue = date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            var endpoint = $"{GetFixtureByDateEndpoint().TrimEnd('/')}/{dateValue}";
+            var request = SportMonksApiRequest.Create(endpoint)
+                .WithInclude(FixtureCoreIncludes);
+            var timezone = NullIfWhiteSpace(_configuration["SportMonksFixtureSync:Timezone"]);
+
+            if (timezone != null)
+            {
+                request.WithTimezone(timezone);
+            }
+
+            var fixtures = (await _syncRunner.GetAllAsync<Fixture>(
+                SportMonksSyncJobDefinition.Create(
+                    "sportmonks.football.fixtures.by-date",
+                    "football.fixture",
+                    "Sync SportMonks football fixtures with participants, scores, and periods."),
+                request,
+                cursorKey: endpoint,
+                cancellationToken: cancellationToken)).ToList();
+
+            await _fixtureCoreWriter.UpsertFixturesAsync(fixtures, cancellationToken);
+        }
+
+        private string GetFixtureByDateEndpoint()
+        {
+            return NullIfWhiteSpace(_configuration["SportMonksUrls:fixtureByDate"]) ?? "fixtures/date/";
+        }
+
+        private bool GetBoolean(string key, bool defaultValue)
+        {
+            var value = _configuration[key];
+
+            if (bool.TryParse(value, out var result))
+            {
+                return result;
+            }
+
+            if (value == "1")
+            {
+                return true;
+            }
+
+            if (value == "0")
+            {
+                return false;
+            }
+
+            return defaultValue;
+        }
+
+        private int GetInteger(string key, int defaultValue)
+        {
+            return int.TryParse(
+                _configuration[key],
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture,
+                out var result)
+                ? result
+                : defaultValue;
+        }
+
+        private static string? NullIfWhiteSpace(string? value)
+        {
+            return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
         }
 
         public override Task StartAsync(CancellationToken cancellationToken)
