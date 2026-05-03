@@ -8,6 +8,7 @@ Run these scripts in lexical order for a new local database.
 003-create-competition-schema.sql
 004-create-football-core-schema.sql
 005-create-football-detail-schema.sql
+006-create-odds-schema.sql
 ```
 
 `docker-compose.postgres.yml` mounts this directory into `/docker-entrypoint-initdb.d`, so PostgreSQL runs the scripts automatically when the database volume is created for the first time.
