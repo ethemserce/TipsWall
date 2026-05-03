@@ -1,30 +1,13 @@
+using PreOddsApi.ExternalApis.DependencyInjection;
 using Serilog;
 using SportMonks.Football.FixtureWorker.Services;
-using SportMonks.Football.FixtureWorker.Mapping;
-using PreOddsApi.DataLayer;
-using PreOddsApi.Core.Data.EntityFramework.Abstract;
-using PreOddsApi.Core.Data.EntityFramework.Concrete;
-using PreOddsApi.ExternalApis.DependencyInjection;
 
 IHost host = Host.CreateDefaultBuilder(args)
     .ConfigureServices((configuration, services) =>
     {
         services.AddSportMonksApiClient(configuration.Configuration);
-        //services.AddHostedService<Worker>();
-        services.AddHostedService<FootballWorkerService>()
-                .AddAutoMapper(typeof(FootballMapping))
-                .AddSingleton(typeof(IUpsertService<>), typeof(UpsertService<>))
-              .AddDbContext<PreOddsApiDbContext>(options =>
-                PreOddsDatabaseOptions.Configure(options, configuration.Configuration));
+        services.AddHostedService<FootballWorkerService>();
     })
-    //.ConfigureAppConfiguration((hostContext, configBuilder) =>
-    //{
-    //    configBuilder
-    //           .SetBasePath(Directory.GetCurrentDirectory())
-    //           .AddJsonFile("appsettings.json")
-    //           .AddJsonFile($"appsettings.{hostContext.HostingEnvironment.EnvironmentName}.json", optional: true, reloadOnChange: true);
-
-    //})
     .UseSerilog()
     .Build();
 
@@ -38,6 +21,5 @@ Log.Logger = new LoggerConfiguration()
     .Enrich.FromLogContext()
     .WriteTo.File(configSetting["Logging:Logpath"])
     .CreateLogger();
-
 
 host.Run();
