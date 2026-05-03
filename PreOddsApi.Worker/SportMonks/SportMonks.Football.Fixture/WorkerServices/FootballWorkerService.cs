@@ -11,6 +11,7 @@ using PreOddsApi.Entities.SportMonks.Football.V3;
 using PreOddsApi.Entities.SportMonks.Football.Weather.V3;
 using PreOddsApi.Entities.SportMonks.Odds.V3;
 using PreOddsApi.ExternalApis.SportMonks;
+using PreOddsApi.ExternalApis.SportMonks.Sync;
 
 namespace SportMonks.Football.FixtureWorker.Services
 {
@@ -18,16 +19,16 @@ namespace SportMonks.Football.FixtureWorker.Services
     {
         private readonly ILogger<FootballWorkerService> _logger;
         private readonly IConfiguration _configuration;
-        private readonly ISportMonksApiClient _sportMonksApiClient;
+        private readonly ISportMonksSyncRunner _syncRunner;
         private readonly IUpsertService<PreOddsApiDbContext> _upsertService;
 
         public FootballWorkerService(ILogger<FootballWorkerService> logger, IConfiguration configuration,
-            ISportMonksApiClient sportMonksApiClient,
+            ISportMonksSyncRunner syncRunner,
             IUpsertService<PreOddsApiDbContext> upsertService)
         {
             _logger = logger;
             _configuration = configuration;
-            _sportMonksApiClient = sportMonksApiClient;
+            _syncRunner = syncRunner;
             _upsertService = upsertService;
         }
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -58,20 +59,28 @@ namespace SportMonks.Football.FixtureWorker.Services
 
         private async Task ExecuteLeague(CancellationToken cancellationToken)
         {
-            var leagues = (await _sportMonksApiClient.GetAllAsync<League>(
+            var leagues = (await _syncRunner.GetAllAsync<League>(
+                SportMonksSyncJobDefinition.Create(
+                    "sportmonks.football.leagues",
+                    "competition.league",
+                    "Sync SportMonks football leagues with sport, seasons, stages, rounds, and groups."),
                 SportMonksApiRequest.Create("leagues")
                     .WithInclude("sport", "seasons", "stages", "stages.rounds", "seasons.groups"),
-                cancellationToken)).ToList();
+                cancellationToken: cancellationToken)).ToList();
 
             await _upsertService.UpsertAsync<League, league>(leagues);
         }
 
         private async Task ExecuteStanding(CancellationToken cancellationToken)
         {
-            var standings = (await _sportMonksApiClient.GetAllAsync<Standing>(
+            var standings = (await _syncRunner.GetAllAsync<Standing>(
+                SportMonksSyncJobDefinition.Create(
+                    "sportmonks.football.standings",
+                    "football.standing",
+                    "Sync SportMonks football standings."),
                 SportMonksApiRequest.Create("standings")
                     .WithInclude("participant", "season", "league", "stage", "group", "round", "rule", "details", "details.type", "form", "sport"),
-                cancellationToken)).ToList();
+                cancellationToken: cancellationToken)).ToList();
 
             await _upsertService.UpsertAsync<Standing, standing>(standings);
 
@@ -112,12 +121,17 @@ namespace SportMonks.Football.FixtureWorker.Services
                     ?? "fixtures/date/";
                 fixtureByDateUrl += date.ToString("yyyy-MM-dd");
 
-                var fixtureList = (await _sportMonksApiClient.GetAllAsync<Fixture>(
+                var fixtureList = (await _syncRunner.GetAllAsync<Fixture>(
+                    SportMonksSyncJobDefinition.Create(
+                        "sportmonks.football.fixtures.by-date",
+                        "football.fixture",
+                        "Sync SportMonks football fixtures by date."),
                     SportMonksApiRequest.Create(fixtureByDateUrl)
                         .WithInclude("sport", "round", "stage", "group", "league", "season", "participants", "odds", "scores", "state", "events", "statistics", "aggregate")
                         .WithFilter("markets", "1,10,14,18,19,33,38,39,41,44,50,51")
                         .WithQueryParameter("sortBy", "starting_at"),
-                    cancellationToken)).ToList();
+                    cursorKey: $"fixtures/date/{date:yyyy-MM-dd}",
+                    cancellationToken: cancellationToken)).ToList();
 
                 if (fixtureList != null && fixtureList.Count > 0)
                 {

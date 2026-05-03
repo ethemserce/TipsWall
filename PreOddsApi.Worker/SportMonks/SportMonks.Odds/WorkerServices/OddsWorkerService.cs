@@ -1,6 +1,7 @@
-﻿using PreOddsApi.Entities.PreOddsEntities;
+using PreOddsApi.Entities.PreOddsEntities;
 using PreOddsApi.Entities.SportMonks.Odds.V3;
 using PreOddsApi.ExternalApis.SportMonks;
+using PreOddsApi.ExternalApis.SportMonks.Sync;
 using SportMonks.Football.FootballWorker.Abstract;
 
 namespace SportMonks.Football.FixtureWorker.Services
@@ -8,17 +9,18 @@ namespace SportMonks.Football.FixtureWorker.Services
     public class OddsWorkerService : BackgroundService
     {
         private readonly ILogger<OddsWorkerService> _logger;
-        private readonly ISportMonksApiClient _sportMonksApiClient;
+        private readonly ISportMonksSyncRunner _syncRunner;
         private readonly IInsertService _insertService;
 
         public OddsWorkerService(ILogger<OddsWorkerService> logger,
-            ISportMonksApiClient sportMonksApiClient,
+            ISportMonksSyncRunner syncRunner,
             IInsertService insertService)
         {
             _logger = logger;
-            _sportMonksApiClient = sportMonksApiClient;
+            _syncRunner = syncRunner;
             _insertService = insertService;
         }
+
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             while (!stoppingToken.IsCancellationRequested)
@@ -26,21 +28,29 @@ namespace SportMonks.Football.FixtureWorker.Services
                 _logger.LogInformation("Fixture Service execution started!");
                 try
                 {
-                    var markets = (await _sportMonksApiClient.GetAllAsync<Market>(
+                    var markets = (await _syncRunner.GetAllAsync<Market>(
+                        SportMonksSyncJobDefinition.Create(
+                            "sportmonks.odds.markets",
+                            "odds.market",
+                            "Sync SportMonks odds markets."),
                         SportMonksApiRequest.Create("markets"),
-                        stoppingToken)).ToList();
+                        cancellationToken: stoppingToken)).ToList();
                     await _insertService.InsertAsync<Market, market>(markets);
 
-                    var bookmakers = (await _sportMonksApiClient.GetAllAsync<Bookmaker>(
+                    var bookmakers = (await _syncRunner.GetAllAsync<Bookmaker>(
+                        SportMonksSyncJobDefinition.Create(
+                            "sportmonks.odds.bookmakers",
+                            "odds.bookmaker",
+                            "Sync SportMonks odds bookmakers."),
                         SportMonksApiRequest.Create("bookmakers"),
-                        stoppingToken)).ToList();
+                        cancellationToken: stoppingToken)).ToList();
                     await _insertService.InsertAsync<Bookmaker, bookmaker>(bookmakers);
-
                 }
                 catch (Exception exc)
                 {
                     _logger.LogError(exc, exc.Message);
                 }
+
                 await Task.Delay(1000, stoppingToken);
             }
         }
