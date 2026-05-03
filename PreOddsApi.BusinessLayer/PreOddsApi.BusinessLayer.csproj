@@ -8,6 +8,7 @@
     <ProjectReference Include="..\PreOddsApi.BusinessLayer.Entities\PreOddsApi.BusinessLayer.Entities.csproj" />
     <ProjectReference Include="..\PreOddsApi.DataLayer\PreOddsApi.DataLayer.csproj" />
     <ProjectReference Include="..\PreOddsApi.Entities\PreOddsApi.Entities.csproj" />
+    <ProjectReference Include="..\PreOddsApi.ExternalApis\PreOddsApi.ExternalApis.csproj" />
     <ProjectReference Include="..\PreOddsApi.Utils\PreOddsApi.Utils.csproj" />
   </ItemGroup>
 

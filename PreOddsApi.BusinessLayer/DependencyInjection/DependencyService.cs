@@ -5,6 +5,7 @@ using PreOddsApi.Core.Data.EntityFramework.Concrete;
 using Microsoft.Extensions.Configuration;
 using PreOddsApi.BusinessLayer.Abstract;
 using PreOddsApi.BusinessLayer.Concrete;
+using PreOddsApi.ExternalApis.DependencyInjection;
 using PreOddsApi.Utils;
 
 namespace PreOddsApi.BusinessLayer.DependencyInjection
@@ -15,6 +16,7 @@ namespace PreOddsApi.BusinessLayer.DependencyInjection
         {
             serviceCollection.AddDbContext<PreOddsApiDbContext>(options =>
                 PreOddsDatabaseOptions.Configure(options, configuration));
+            serviceCollection.AddSportMonksApiClient(configuration);
 
             //DataLayer
             serviceCollection.AddTransient<IUnitOfWork<PreOddsApiDbContext>, UnitOfWork<PreOddsApiDbContext>>();

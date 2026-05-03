@@ -1,0 +1,25 @@
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using PreOddsApi.ExternalApis.SportMonks;
+
+namespace PreOddsApi.ExternalApis.DependencyInjection
+{
+    public static class SportMonksApiServiceCollectionExtensions
+    {
+        public static IServiceCollection AddSportMonksApiClient(
+            this IServiceCollection services,
+            IConfiguration configuration)
+        {
+            var options = SportMonksApiOptions.FromConfiguration(configuration);
+
+            services.AddSingleton(options);
+            services.AddHttpClient<ISportMonksApiClient, SportMonksApiClient>(httpClient =>
+            {
+                httpClient.BaseAddress = new Uri(options.BaseUrl);
+                httpClient.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
+            });
+
+            return services;
+        }
+    }
+}
