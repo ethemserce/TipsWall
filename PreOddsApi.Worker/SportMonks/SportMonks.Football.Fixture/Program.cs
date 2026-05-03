@@ -4,10 +4,12 @@ using SportMonks.Football.FixtureWorker.Mapping;
 using PreOddsApi.DataLayer;
 using PreOddsApi.Core.Data.EntityFramework.Abstract;
 using PreOddsApi.Core.Data.EntityFramework.Concrete;
+using PreOddsApi.ExternalApis.DependencyInjection;
 
 IHost host = Host.CreateDefaultBuilder(args)
     .ConfigureServices((configuration, services) =>
     {
+        services.AddSportMonksApiClient(configuration.Configuration);
         //services.AddHostedService<Worker>();
         services.AddHostedService<FootballWorkerService>()
                 .AddAutoMapper(typeof(FootballMapping))

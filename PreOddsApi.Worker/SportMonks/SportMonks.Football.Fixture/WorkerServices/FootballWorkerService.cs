@@ -11,7 +11,6 @@ using PreOddsApi.Entities.SportMonks.Football.V3;
 using PreOddsApi.Entities.SportMonks.Football.Weather.V3;
 using PreOddsApi.Entities.SportMonks.Odds.V3;
 using PreOddsApi.ExternalApis.SportMonks;
-using RestSharp;
 
 namespace SportMonks.Football.FixtureWorker.Services
 {
@@ -19,13 +18,16 @@ namespace SportMonks.Football.FixtureWorker.Services
     {
         private readonly ILogger<FootballWorkerService> _logger;
         private readonly IConfiguration _configuration;
+        private readonly ISportMonksApiClient _sportMonksApiClient;
         private readonly IUpsertService<PreOddsApiDbContext> _upsertService;
 
         public FootballWorkerService(ILogger<FootballWorkerService> logger, IConfiguration configuration,
+            ISportMonksApiClient sportMonksApiClient,
             IUpsertService<PreOddsApiDbContext> upsertService)
         {
             _logger = logger;
             _configuration = configuration;
+            _sportMonksApiClient = sportMonksApiClient;
             _upsertService = upsertService;
         }
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -35,7 +37,7 @@ namespace SportMonks.Football.FixtureWorker.Services
                 _logger.LogInformation("Fixture Service execution started!");
                 try
                 {
-                    await ExecuteLeague();
+                    await ExecuteLeague(stoppingToken);
 
                     //await ExecuteFixture(DateTime.Now.AddMonths(-12), DateTime.Now);
                     // TO DO: Fixture data insert to database
@@ -54,21 +56,23 @@ namespace SportMonks.Football.FixtureWorker.Services
                 yield return day;
         }
 
-        private async Task ExecuteLeague()
+        private async Task ExecuteLeague(CancellationToken cancellationToken)
         {
-            Dictionary<string, string> queryParameters = new Dictionary<string, string>();
-            queryParameters.Add("include", "sport;seasons;stages;stages.rounds;seasons.groups");
+            var leagues = (await _sportMonksApiClient.GetAllAsync<League>(
+                SportMonksApiRequest.Create("leagues")
+                    .WithInclude("sport", "seasons", "stages", "stages.rounds", "seasons.groups"),
+                cancellationToken)).ToList();
 
-            var leagues = await SportMonksApi.GetAll<League>(_configuration, _logger, "leagues", queryParameters);
             await _upsertService.UpsertAsync<League, league>(leagues);
         }
 
-        private async Task ExecuteStanding()
+        private async Task ExecuteStanding(CancellationToken cancellationToken)
         {
-            Dictionary<string, string> queryParameters = new Dictionary<string, string>();
-            queryParameters.Add("include", "participant;season;league;stage;group;round;rule;details;details.type;form;sport");
+            var standings = (await _sportMonksApiClient.GetAllAsync<Standing>(
+                SportMonksApiRequest.Create("standings")
+                    .WithInclude("participant", "season", "league", "stage", "group", "round", "rule", "details", "details.type", "form", "sport"),
+                cancellationToken)).ToList();
 
-            var standings = await SportMonksApi.GetAll<Standing>(_configuration, _logger, "standings", queryParameters);
             await _upsertService.UpsertAsync<Standing, standing>(standings);
 
             foreach (var standing in standings)
@@ -100,19 +104,20 @@ namespace SportMonks.Football.FixtureWorker.Services
             }
         }
 
-        private async Task ExecuteFixture(DateTime from, DateTime to)
+        private async Task ExecuteFixture(DateTime from, DateTime to, CancellationToken cancellationToken)
         {
             foreach (var date in EachDay(from, to))
             {
-                Dictionary<string, string> queryParameters = new Dictionary<string, string>();
-                queryParameters.Add("include", "sport;round;stage;group;league;season;participants;odds;scores;state;events;statistics;aggregate");
-                queryParameters.Add("filters", "markets:1,10,14,18,19,33,38,39,41,44,50,51");
-                queryParameters.Add("sortBy", "starting_at");
-
-                var fixtureByDateUrl = _configuration.GetSection("SportMonksUrls").GetValue<string>("fixtureByDate");
+                var fixtureByDateUrl = _configuration.GetSection("SportMonksUrls").GetValue<string>("fixtureByDate")
+                    ?? "fixtures/date/";
                 fixtureByDateUrl += date.ToString("yyyy-MM-dd");
 
-                var fixtureList = await SportMonksApi.GetAll<Fixture>(_configuration, _logger, fixtureByDateUrl, queryParameters);
+                var fixtureList = (await _sportMonksApiClient.GetAllAsync<Fixture>(
+                    SportMonksApiRequest.Create(fixtureByDateUrl)
+                        .WithInclude("sport", "round", "stage", "group", "league", "season", "participants", "odds", "scores", "state", "events", "statistics", "aggregate")
+                        .WithFilter("markets", "1,10,14,18,19,33,38,39,41,44,50,51")
+                        .WithQueryParameter("sortBy", "starting_at"),
+                    cancellationToken)).ToList();
 
                 if (fixtureList != null && fixtureList.Count > 0)
                 {

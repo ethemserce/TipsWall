@@ -11,15 +11,15 @@ namespace SportMonks.Core.Worker.WorkerServices
     public class CoreWorkerService : BackgroundService
     {
         private readonly ILogger<CoreWorkerService> _logger;
-        private readonly IConfiguration _configuration;
+        private readonly ISportMonksApiClient _sportMonksApiClient;
         private readonly IUpsertService<PreOddsApiDbContext> _upsertService;
 
         public CoreWorkerService(ILogger<CoreWorkerService> logger,
-                IConfiguration configuration,
+                ISportMonksApiClient sportMonksApiClient,
                 IUpsertService<PreOddsApiDbContext> upsertService)
         {
             _logger = logger;
-            _configuration = configuration;
+            _sportMonksApiClient = sportMonksApiClient;
             _upsertService = upsertService;
         }
 
@@ -28,7 +28,7 @@ namespace SportMonks.Core.Worker.WorkerServices
             _logger.LogInformation("Core Service execution started!");
             try
             {
-                ExecuteCoreData();
+                await ExecuteCoreData(stoppingToken);
 
                 // TO DO: Core data insert to database
             }
@@ -44,22 +44,27 @@ namespace SportMonks.Core.Worker.WorkerServices
             //}
         }
 
-        private async void ExecuteCoreData()
+        private async Task ExecuteCoreData(CancellationToken cancellationToken)
         {
-            Dictionary<string, string> queryParameters = new Dictionary<string, string>();
+            var continents = (await _sportMonksApiClient.GetAllAsync<Continent>(
+                SportMonksApiRequest.Create("continents")
+                    .WithInclude("countries"),
+                cancellationToken)).ToList();
 
-            queryParameters.Add("include", "countries");
-            var continents = await SportMonksApi.GetAll<Continent>(_configuration, _logger, "continents", queryParameters);
-
-            Dictionary<string, string> queryParameters1 = new Dictionary<string, string>();
-            queryParameters1.Add("include", "regions.cities");
-            var countries = await SportMonksApi.GetAll<Country>(_configuration, _logger, "countries", queryParameters1);
+            var countries = (await _sportMonksApiClient.GetAllAsync<Country>(
+                SportMonksApiRequest.Create("countries")
+                    .WithInclude("regions.cities"),
+                cancellationToken)).ToList();
 
             foreach (var continent in continents)
             {
                 foreach (var country in continent.Countries)
                 {
-                    country.Regions.AddRange(countries.FirstOrDefault(x => x.Id == country.Id).Regions);
+                    var matchedCountry = countries.FirstOrDefault(x => x.Id == country.Id);
+                    if (matchedCountry?.Regions != null)
+                    {
+                        country.Regions.AddRange(matchedCountry.Regions);
+                    }
                 }
             }
 
@@ -68,32 +73,56 @@ namespace SportMonks.Core.Worker.WorkerServices
             await _upsertService.UpsertAsync<Continent, continent>(continents);
         }
 
-        private async void ExecuteContinents()
+        private async Task ExecuteContinents(CancellationToken cancellationToken)
         {
-            await _upsertService.UpsertAsync<Continent, continent>(await SportMonksApi.GetAll<Continent>(_configuration, _logger, "continents"));
+            var continents = (await _sportMonksApiClient.GetAllAsync<Continent>(
+                SportMonksApiRequest.Create("continents"),
+                cancellationToken)).ToList();
+
+            await _upsertService.UpsertAsync<Continent, continent>(continents);
         }
 
-        private async void ExecuteCountries()
+        private async Task ExecuteCountries(CancellationToken cancellationToken)
         {
-            await _upsertService.UpsertAsync<Country, country>(await SportMonksApi.GetAll<Country>(_configuration, _logger, "countries"));
+            var countries = (await _sportMonksApiClient.GetAllAsync<Country>(
+                SportMonksApiRequest.Create("countries"),
+                cancellationToken)).ToList();
+
+            await _upsertService.UpsertAsync<Country, country>(countries);
         }
 
-        private async void ExecuteRegions()
+        private async Task ExecuteRegions(CancellationToken cancellationToken)
         {
-            await _upsertService.UpsertAsync<Region, region>(await SportMonksApi.GetAll<Region>(_configuration, _logger, "regions"));
+            var regions = (await _sportMonksApiClient.GetAllAsync<Region>(
+                SportMonksApiRequest.Create("regions"),
+                cancellationToken)).ToList();
+
+            await _upsertService.UpsertAsync<Region, region>(regions);
         }
-        private async void ExecuteCities()
+        private async Task ExecuteCities(CancellationToken cancellationToken)
         {
-            await _upsertService.UpsertAsync<City, city>(await SportMonksApi.GetAll<City>(_configuration, _logger, "cities"));
+            var cities = (await _sportMonksApiClient.GetAllAsync<City>(
+                SportMonksApiRequest.Create("cities"),
+                cancellationToken)).ToList();
+
+            await _upsertService.UpsertAsync<City, city>(cities);
         }
-        private async void ExecuteTypes()
+        private async Task ExecuteTypes(CancellationToken cancellationToken)
         {
-            await _upsertService.UpsertAsync<Types, types>(await SportMonksApi.GetAll<Types>(_configuration, _logger, "types"));
+            var typeList = (await _sportMonksApiClient.GetAllAsync<Types>(
+                SportMonksApiRequest.Create("types"),
+                cancellationToken)).ToList();
+
+            await _upsertService.UpsertAsync<Types, types>(typeList);
         }
 
-        private async void ExecuteStates()
+        private async Task ExecuteStates(CancellationToken cancellationToken)
         {
-            await _upsertService.UpsertAsync<State, state>(await SportMonksApi.GetAll<State>(_configuration, _logger, "states"));
+            var states = (await _sportMonksApiClient.GetAllAsync<State>(
+                SportMonksApiRequest.Create("states"),
+                cancellationToken)).ToList();
+
+            await _upsertService.UpsertAsync<State, state>(states);
         }
 
         public override Task StartAsync(CancellationToken cancellationToken)

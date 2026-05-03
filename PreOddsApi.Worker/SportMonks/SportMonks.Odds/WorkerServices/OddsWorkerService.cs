@@ -8,17 +8,15 @@ namespace SportMonks.Football.FixtureWorker.Services
     public class OddsWorkerService : BackgroundService
     {
         private readonly ILogger<OddsWorkerService> _logger;
-        private readonly IConfiguration _configuration;
-        private readonly IServiceScopeFactory _scopeFactory;
+        private readonly ISportMonksApiClient _sportMonksApiClient;
         private readonly IInsertService _insertService;
 
-        public OddsWorkerService(ILogger<OddsWorkerService> logger, IConfiguration configuration,
-            IServiceScopeFactory scopeFactory,
+        public OddsWorkerService(ILogger<OddsWorkerService> logger,
+            ISportMonksApiClient sportMonksApiClient,
             IInsertService insertService)
         {
             _logger = logger;
-            _configuration = configuration;
-            _scopeFactory = scopeFactory;
+            _sportMonksApiClient = sportMonksApiClient;
             _insertService = insertService;
         }
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -28,9 +26,15 @@ namespace SportMonks.Football.FixtureWorker.Services
                 _logger.LogInformation("Fixture Service execution started!");
                 try
                 {
-                    await _insertService.InsertAsync<Market, market>(await SportMonksApi.GetAll<Market>(_configuration, _logger, "markets"));
+                    var markets = (await _sportMonksApiClient.GetAllAsync<Market>(
+                        SportMonksApiRequest.Create("markets"),
+                        stoppingToken)).ToList();
+                    await _insertService.InsertAsync<Market, market>(markets);
 
-                    await _insertService.InsertAsync<Bookmaker, bookmaker>(await SportMonksApi.GetAll<Bookmaker>(_configuration, _logger, "bookmakers"));
+                    var bookmakers = (await _sportMonksApiClient.GetAllAsync<Bookmaker>(
+                        SportMonksApiRequest.Create("bookmakers"),
+                        stoppingToken)).ToList();
+                    await _insertService.InsertAsync<Bookmaker, bookmaker>(bookmakers);
 
                 }
                 catch (Exception exc)
