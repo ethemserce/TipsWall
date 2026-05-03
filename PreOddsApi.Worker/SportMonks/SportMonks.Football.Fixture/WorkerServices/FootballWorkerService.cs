@@ -10,15 +10,18 @@ namespace SportMonks.Football.FixtureWorker.Services
         private readonly ILogger<FootballWorkerService> _logger;
         private readonly ISportMonksSyncRunner _syncRunner;
         private readonly ISportMonksCompetitionReferenceWriter _competitionReferenceWriter;
+        private readonly ISportMonksFootballCoreReferenceWriter _footballCoreReferenceWriter;
 
         public FootballWorkerService(
             ILogger<FootballWorkerService> logger,
             ISportMonksSyncRunner syncRunner,
-            ISportMonksCompetitionReferenceWriter competitionReferenceWriter)
+            ISportMonksCompetitionReferenceWriter competitionReferenceWriter,
+            ISportMonksFootballCoreReferenceWriter footballCoreReferenceWriter)
         {
             _logger = logger;
             _syncRunner = syncRunner;
             _competitionReferenceWriter = competitionReferenceWriter;
+            _footballCoreReferenceWriter = footballCoreReferenceWriter;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -29,7 +32,10 @@ namespace SportMonks.Football.FixtureWorker.Services
 
                 try
                 {
+                    await ExecuteStates(stoppingToken);
+                    await ExecuteVenues(stoppingToken);
                     await ExecuteLeague(stoppingToken);
+                    await ExecuteTeams(stoppingToken);
                 }
                 catch (Exception exc)
                 {
@@ -58,6 +64,48 @@ namespace SportMonks.Football.FixtureWorker.Services
                 cancellationToken: cancellationToken)).ToList();
 
             await _competitionReferenceWriter.UpsertLeaguesWithHierarchyAsync(leagues, cancellationToken);
+        }
+
+        private async Task ExecuteStates(CancellationToken cancellationToken)
+        {
+            var states = (await _syncRunner.GetAllAsync<State>(
+                SportMonksSyncJobDefinition.Create(
+                    "sportmonks.football.states",
+                    "catalog.state",
+                    "Sync SportMonks football states with type include."),
+                SportMonksApiRequest.Create("states")
+                    .WithInclude("type"),
+                cancellationToken: cancellationToken)).ToList();
+
+            await _footballCoreReferenceWriter.UpsertStatesAsync(states, cancellationToken);
+        }
+
+        private async Task ExecuteVenues(CancellationToken cancellationToken)
+        {
+            var venues = (await _syncRunner.GetAllAsync<Venue>(
+                SportMonksSyncJobDefinition.Create(
+                    "sportmonks.football.venues",
+                    "football.venue",
+                    "Sync SportMonks football venues."),
+                SportMonksApiRequest.Create("venues")
+                    .WithInclude("country", "city"),
+                cancellationToken: cancellationToken)).ToList();
+
+            await _footballCoreReferenceWriter.UpsertVenuesAsync(venues, cancellationToken);
+        }
+
+        private async Task ExecuteTeams(CancellationToken cancellationToken)
+        {
+            var teams = (await _syncRunner.GetAllAsync<Team>(
+                SportMonksSyncJobDefinition.Create(
+                    "sportmonks.football.teams",
+                    "football.team",
+                    "Sync SportMonks football teams with sport and venue include."),
+                SportMonksApiRequest.Create("teams")
+                    .WithInclude("sport", "venue"),
+                cancellationToken: cancellationToken)).ToList();
+
+            await _footballCoreReferenceWriter.UpsertTeamsWithVenuesAsync(teams, cancellationToken);
         }
 
         public override Task StartAsync(CancellationToken cancellationToken)
