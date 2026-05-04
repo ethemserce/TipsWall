@@ -11,19 +11,19 @@ namespace PreOddsApi.Entities.SportMonks.Football.V3
         public long Id { get; set; }
 
         [JsonProperty("player_id")]
-        public long PlayerId { get; set; }
+        public long? PlayerId { get; set; }
 
         [JsonProperty("sport_id")]
-        public long SportId { get; set; }
+        public long? SportId { get; set; }
 
         [JsonProperty("country_id")]
-        public long CountryId { get; set; }
+        public long? CountryId { get; set; }
 
         [JsonProperty("nationality_id")]
-        public long NationalityId { get; set; }
+        public long? NationalityId { get; set; }
 
         [JsonProperty("city_id")]
-        public long CityId { get; set; }
+        public long? CityId { get; set; }
 
         [JsonProperty("common_name")]
         public string CommonName { get; set; }
@@ -41,16 +41,16 @@ namespace PreOddsApi.Entities.SportMonks.Football.V3
         public string DisplayName { get; set; }
 
         [JsonProperty("image_path")]
-        public Uri ImagePath { get; set; }
+        public string ImagePath { get; set; }
 
         [JsonProperty("height")]
-        public int Height { get; set; }
+        public int? Height { get; set; }
 
         [JsonProperty("weight")]
-        public int Weight { get; set; }
+        public int? Weight { get; set; }
 
         [JsonProperty("date_of_birth")]
-        public DateOnly DateOfBirth { get; set; }
+        public DateOnly? DateOfBirth { get; set; }
 
         [JsonProperty("gender")]
         public string Gender { get; set; }
