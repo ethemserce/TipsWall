@@ -22,6 +22,8 @@ IWebHostEnvironment environment = builder.Environment;
 
 
 DependencyService.SetDependencyTypes(builder.Services, builder.Configuration);
+builder.Services.AddSingleton<PreOddsApi.WebApi.V3.Data.IOddsReader,
+    PreOddsApi.WebApi.V3.Data.PostgresOddsReader>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
