@@ -14,7 +14,13 @@ namespace PreOddsApi.Entities.SportMonks.Football
         public string Url { get; set; }
 
         [JsonProperty("image_path")]
-        public string Image_path { get; set; }
+        public string ImagePath { get; set; }
+
+        [JsonProperty("type")]
+        public string Type { get; set; }
+
+        [JsonProperty("related_id")]
+        public long? RelatedId { get; set; }
 
         [JsonProperty("countries")]
         public List<Country> Countries { get; set; }
