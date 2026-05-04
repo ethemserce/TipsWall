@@ -14,12 +14,13 @@ IHost host = Host.CreateDefaultBuilder(args)
 var configSetting = new ConfigurationBuilder()
     .AddJsonFile("appsettings.json")
     .Build();
+var logPath = configSetting["Logging:Logpath"] ?? "Logs/Api_logs.txt";
 
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Debug()
     .MinimumLevel.Override("microsoft", Serilog.Events.LogEventLevel.Warning)
     .Enrich.FromLogContext()
-    .WriteTo.File(configSetting["Logging:Logpath"])
+    .WriteTo.File(logPath)
     .CreateLogger();
 
 host.Run();

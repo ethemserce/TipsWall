@@ -31,7 +31,8 @@ namespace PreOddsApi.ExternalApis.SportMonks.Sync
             _apiClient = apiClient;
             _apiOptions = apiOptions;
             _logger = logger;
-            _connectionString = configuration.GetConnectionString("PreOddsApiPostgresDb");
+            _connectionString = Environment.GetEnvironmentVariable("PREODDS_POSTGRES_CONNECTION")
+                ?? configuration.GetConnectionString("PreOddsApiPostgresDb");
         }
 
         public async Task<IReadOnlyList<TItem>> GetAllAsync<TItem>(

@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.ResponseCompression;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -12,10 +11,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json.Serialization;
 using PreOddsApi.BusinessLayer.DependencyInjection;
-using PreOddsApi.DataLayer;
 using PreOddsApi.WebApi;
 using System;
-using System.Configuration;
 using System.Globalization;
 using System.Text;
 
@@ -47,7 +44,18 @@ builder.Services.Configure<RequestLocalizationOptions>(options => {
     options.SupportedUICultures = supportedCultures;
 });
 
-var jwtSecret = Environment.GetEnvironmentVariable("PREODDS_JWT_SECRET") ?? "CHANGE_ME_PREODDS_JWT_SECRET_32_CHARS_MINIMUM";
+var jwtSecret = Environment.GetEnvironmentVariable("PREODDS_JWT_SECRET")
+                ?? builder.Configuration["Authentication:JwtSecret"]
+                ?? "CHANGE_ME_PREODDS_JWT_SECRET_32_CHARS_MINIMUM";
+var jwtIssuer = builder.Configuration["Authentication:Issuer"] ?? "http://localhost:28332";
+var jwtAudience = builder.Configuration["Authentication:Audience"] ?? "http://localhost:28332";
+
+if (!builder.Environment.IsDevelopment() &&
+    (jwtSecret.StartsWith("CHANGE_ME", StringComparison.OrdinalIgnoreCase) || jwtSecret.Length < 32))
+{
+    throw new InvalidOperationException(
+        "A strong PREODDS_JWT_SECRET or Authentication:JwtSecret value is required outside Development.");
+}
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(JwtBearerOptions =>
 {
@@ -57,8 +65,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
         ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        ValidIssuer = "http://localhost:28332",
-        ValidAudience = "http://localhost:28332",
+        ValidIssuer = jwtIssuer,
+        ValidAudience = jwtAudience,
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret))
     };
 });
@@ -117,6 +125,7 @@ app.UseCors("AllowSpecificOrigins");
 
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

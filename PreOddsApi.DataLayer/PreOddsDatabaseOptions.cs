@@ -6,16 +6,19 @@ namespace PreOddsApi.DataLayer
 {
     public static class PreOddsDatabaseOptions
     {
-        private const string DefaultProvider = "mysql";
+        private const string DefaultProvider = "postgresql";
         private const string MySqlConnectionName = "PreOddsApiMySqlDb";
         private const string PostgreSqlConnectionName = "PreOddsApiPostgresDb";
+        private const string PostgreSqlConnectionEnvironmentKey = "PREODDS_POSTGRES_CONNECTION";
+        private const string MySqlConnectionEnvironmentKey = "PREODDS_MYSQL_CONNECTION";
+        private const string SensitiveDataLoggingEnvironmentKey = "PREODDS_EF_SENSITIVE_LOGGING";
 
         public static void Configure(DbContextOptionsBuilder optionsBuilder, IConfiguration configuration, bool useNoTracking = false)
         {
             var provider = GetProvider(configuration);
             var connectionString = GetConnectionString(configuration, provider);
 
-            if (provider == "postgresql" || provider == "postgres")
+            if (IsPostgreSql(provider))
             {
                 optionsBuilder.UseNpgsql(connectionString, options =>
                 {
@@ -29,6 +32,11 @@ namespace PreOddsApi.DataLayer
             else
             {
                 throw new InvalidOperationException($"Unsupported database provider '{provider}'. Use 'postgresql' or 'mysql'.");
+            }
+
+            if (IsSensitiveDataLoggingEnabled(configuration))
+            {
+                optionsBuilder.EnableSensitiveDataLogging();
             }
 
             if (useNoTracking)
@@ -48,13 +56,13 @@ namespace PreOddsApi.DataLayer
 
         private static string GetConnectionString(IConfiguration configuration, string provider)
         {
-            var connectionName = provider == "postgresql" || provider == "postgres"
+            var connectionName = IsPostgreSql(provider)
                 ? PostgreSqlConnectionName
                 : MySqlConnectionName;
 
-            var environmentKey = provider == "postgresql" || provider == "postgres"
-                ? "PREODDS_POSTGRES_CONNECTION"
-                : "PREODDS_MYSQL_CONNECTION";
+            var environmentKey = IsPostgreSql(provider)
+                ? PostgreSqlConnectionEnvironmentKey
+                : MySqlConnectionEnvironmentKey;
 
             var connectionString = Environment.GetEnvironmentVariable(environmentKey)
                                    ?? configuration.GetConnectionString(connectionName);
@@ -65,6 +73,20 @@ namespace PreOddsApi.DataLayer
             }
 
             return connectionString;
+        }
+
+        private static bool IsPostgreSql(string provider)
+        {
+            return provider == "postgresql" || provider == "postgres";
+        }
+
+        private static bool IsSensitiveDataLoggingEnabled(IConfiguration configuration)
+        {
+            var value = Environment.GetEnvironmentVariable(SensitiveDataLoggingEnvironmentKey)
+                        ?? configuration["Database:EnableSensitiveDataLogging"]
+                        ?? configuration["EnableSensitiveDataLogging"];
+
+            return bool.TryParse(value, out var parsed) && parsed;
         }
     }
 }
