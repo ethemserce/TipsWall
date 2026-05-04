@@ -1,5 +1,6 @@
 using System.Globalization;
 using Microsoft.Extensions.Configuration;
+using PreOddsApi.Entities.SportMonks.Football;
 using PreOddsApi.Entities.SportMonks.Football.V3;
 using PreOddsApi.ExternalApis.SportMonks;
 using PreOddsApi.ExternalApis.SportMonks.Sync;
@@ -37,6 +38,11 @@ namespace SportMonks.Football.FixtureWorker.Services
             "sidelined.type",
             "sidelined.participant",
             "sidelined.sideline"
+        ];
+
+        private static readonly string[] TvStationIncludes =
+        [
+            "countries"
         ];
 
         private static readonly string[] PlayerReferenceIncludes =
@@ -111,6 +117,7 @@ namespace SportMonks.Football.FixtureWorker.Services
         private readonly ISportMonksPlayerCoachSquadRivalWriter _playerCoachSquadRivalWriter;
         private readonly ISportMonksStandingTopScorerWriter _standingTopScorerWriter;
         private readonly ISportMonksTransferSidelinedWriter _transferSidelinedWriter;
+        private readonly ISportMonksFixtureMediaWeatherWriter _fixtureMediaWeatherWriter;
 
         public FootballWorkerService(
             ILogger<FootballWorkerService> logger,
@@ -124,7 +131,8 @@ namespace SportMonks.Football.FixtureWorker.Services
             ISportMonksFixtureRefereeWriter fixtureRefereeWriter,
             ISportMonksPlayerCoachSquadRivalWriter playerCoachSquadRivalWriter,
             ISportMonksStandingTopScorerWriter standingTopScorerWriter,
-            ISportMonksTransferSidelinedWriter transferSidelinedWriter)
+            ISportMonksTransferSidelinedWriter transferSidelinedWriter,
+            ISportMonksFixtureMediaWeatherWriter fixtureMediaWeatherWriter)
         {
             _logger = logger;
             _configuration = configuration;
@@ -138,6 +146,7 @@ namespace SportMonks.Football.FixtureWorker.Services
             _playerCoachSquadRivalWriter = playerCoachSquadRivalWriter;
             _standingTopScorerWriter = standingTopScorerWriter;
             _transferSidelinedWriter = transferSidelinedWriter;
+            _fixtureMediaWeatherWriter = fixtureMediaWeatherWriter;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -155,6 +164,7 @@ namespace SportMonks.Football.FixtureWorker.Services
                     await ExecutePlayerCoachSquadRivalReferences(teams, stoppingToken);
                     await ExecuteStandingTopScorerReferences(leagues, stoppingToken);
                     await ExecuteTransferReferences(stoppingToken);
+                    await ExecuteTvStationReferences(stoppingToken);
                     await ExecuteFixtureWindow(stoppingToken);
                 }
                 catch (Exception exc)
@@ -440,6 +450,34 @@ namespace SportMonks.Football.FixtureWorker.Services
             await _transferSidelinedWriter.UpsertTransfersAsync(transfers, cancellationToken);
         }
 
+        private async Task ExecuteTvStationReferences(CancellationToken cancellationToken)
+        {
+            if (!GetBoolean("SportMonksFixtureMediaWeatherSync:Enabled", false) ||
+                !GetBoolean("SportMonksFixtureMediaWeatherSync:SyncTvStations", true))
+            {
+                return;
+            }
+
+            var order = NullIfWhiteSpace(_configuration["SportMonksFixtureMediaWeatherSync:TvStationOrder"]) ?? "asc";
+            var request = SportMonksApiRequest.Create("tv-stations")
+                .WithQueryParameter("order", order);
+
+            if (GetBoolean("SportMonksFixtureMediaWeatherSync:SyncTvStationCountries", true))
+            {
+                request.WithInclude(TvStationIncludes);
+            }
+
+            var tvStations = (await _syncRunner.GetAllAsync<TvStation>(
+                SportMonksSyncJobDefinition.Create(
+                    "sportmonks.football.tv-stations",
+                    "football.tv_station",
+                    "Sync SportMonks football TV station reference data."),
+                request,
+                cancellationToken: cancellationToken)).ToList();
+
+            await _fixtureMediaWeatherWriter.UpsertTvStationsAsync(tvStations, cancellationToken);
+        }
+
         private async Task ExecuteFixtureWindow(CancellationToken cancellationToken)
         {
             if (!GetBoolean("SportMonksFixtureSync:Enabled", false))
@@ -495,6 +533,11 @@ namespace SportMonks.Football.FixtureWorker.Services
             {
                 await _transferSidelinedWriter.UpsertFixtureSidelinedAsync(fixtures, cancellationToken);
             }
+
+            if (ShouldSyncFixtureMediaWeather())
+            {
+                await _fixtureMediaWeatherWriter.UpsertFixtureMediaWeatherAsync(fixtures, cancellationToken);
+            }
         }
 
         private IEnumerable<string> BuildFixtureSyncIncludes()
@@ -504,12 +547,15 @@ namespace SportMonks.Football.FixtureWorker.Services
                 yield return include;
             }
 
-            if (!ShouldSyncFixtureSidelined())
+            if (ShouldSyncFixtureSidelined())
             {
-                yield break;
+                foreach (var include in FixtureSidelinedIncludes)
+                {
+                    yield return include;
+                }
             }
 
-            foreach (var include in FixtureSidelinedIncludes)
+            foreach (var include in BuildFixtureMediaWeatherIncludes())
             {
                 yield return include;
             }
@@ -519,6 +565,31 @@ namespace SportMonks.Football.FixtureWorker.Services
         {
             return GetBoolean("SportMonksTransferSidelinedSync:Enabled", false) &&
                    GetBoolean("SportMonksTransferSidelinedSync:SyncFixtureSidelined", false);
+        }
+
+        private IEnumerable<string> BuildFixtureMediaWeatherIncludes()
+        {
+            if (!GetBoolean("SportMonksFixtureMediaWeatherSync:Enabled", false))
+            {
+                yield break;
+            }
+
+            if (GetBoolean("SportMonksFixtureMediaWeatherSync:SyncFixtureTvStations", false))
+            {
+                yield return "tvStations";
+            }
+
+            if (GetBoolean("SportMonksFixtureMediaWeatherSync:SyncWeatherReports", false))
+            {
+                yield return "weatherReport";
+            }
+        }
+
+        private bool ShouldSyncFixtureMediaWeather()
+        {
+            return GetBoolean("SportMonksFixtureMediaWeatherSync:Enabled", false) &&
+                   (GetBoolean("SportMonksFixtureMediaWeatherSync:SyncFixtureTvStations", false) ||
+                    GetBoolean("SportMonksFixtureMediaWeatherSync:SyncWeatherReports", false));
         }
 
         private string GetFixtureByDateEndpoint()

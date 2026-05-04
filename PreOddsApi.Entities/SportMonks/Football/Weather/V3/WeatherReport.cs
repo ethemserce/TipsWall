@@ -5,14 +5,11 @@ namespace PreOddsApi.Entities.SportMonks.Football.Weather.V3
 {
     public class WeatherReport : SportMonksBaseEntity
     {
-        [JsonProperty("id")]
-        public long Id { get; set; }
-
         [JsonProperty("fixture_id")]
-        public long FixtureId { get; set; }
+        public long? FixtureId { get; set; }
 
         [JsonProperty("venue_id")]
-        public long VenueId { get; set; }
+        public long? VenueId { get; set; }
 
         [JsonProperty("temperature")]
         public object Temperature { get; set; }
@@ -27,7 +24,7 @@ namespace PreOddsApi.Entities.SportMonks.Football.Weather.V3
         public string Humidity { get; set; }
 
         [JsonProperty("pressure")]
-        public int Pressure { get; set; }
+        public int? Pressure { get; set; }
 
         [JsonProperty("clouds")]
         public string Clouds { get; set; }
@@ -45,7 +42,7 @@ namespace PreOddsApi.Entities.SportMonks.Football.Weather.V3
         public string Metric { get; set; }
 
         [JsonProperty("current")]
-        public string? Current { get; set; }
+        public object Current { get; set; }
 
         [JsonProperty("venue")] // if add to Query Params "include=venue"
         public Venue Venue { get; set; }
