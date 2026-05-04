@@ -1,3 +1,5 @@
+using System.Globalization;
+using Microsoft.Extensions.Configuration;
 using PreOddsApi.Entities.SportMonks.Core.V3;
 using PreOddsApi.ExternalApis.SportMonks;
 using PreOddsApi.ExternalApis.SportMonks.Sync;
@@ -7,32 +9,58 @@ namespace SportMonks.Core.Worker.WorkerServices
 {
     public class CoreWorkerService : BackgroundService
     {
+        private const string CoreReferenceKey = "worker.core.reference";
+
         private readonly ILogger<CoreWorkerService> _logger;
+        private readonly IConfiguration _configuration;
+        private readonly ISyncJobScheduler _scheduler;
         private readonly ISportMonksSyncRunner _syncRunner;
         private readonly ISportMonksCatalogReferenceWriter _catalogReferenceWriter;
 
         public CoreWorkerService(
             ILogger<CoreWorkerService> logger,
+            IConfiguration configuration,
+            ISyncJobScheduler scheduler,
             ISportMonksSyncRunner syncRunner,
             ISportMonksCatalogReferenceWriter catalogReferenceWriter)
         {
             _logger = logger;
+            _configuration = configuration;
+            _scheduler = scheduler;
             _syncRunner = syncRunner;
             _catalogReferenceWriter = catalogReferenceWriter;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            _logger.LogInformation("Core Service execution started!");
+            var pollingInterval = TimeSpan.FromSeconds(
+                GetInteger("SportMonksCoreWorkerSettings:PollingIntervalSeconds", 3600));
 
-            try
+            while (!stoppingToken.IsCancellationRequested)
             {
-                await ExecuteCoreData(stoppingToken);
+                _logger.LogInformation("Core worker polling at {Time}.", DateTimeOffset.UtcNow);
+
+                try
+                {
+                    await MaybeRunCoreReferenceAsync(stoppingToken);
+                }
+                catch (Exception exc)
+                {
+                    _logger.LogError(exc, exc.Message);
+                }
+
+                await Task.Delay(pollingInterval, stoppingToken);
             }
-            catch (Exception exc)
-            {
-                _logger.LogError(exc, exc.Message);
-            }
+        }
+
+        private async Task MaybeRunCoreReferenceAsync(CancellationToken cancellationToken)
+        {
+            var interval = GetInteger("SportMonksCoreWorkerSettings:CoreReferenceIntervalSeconds", 86400);
+            if (!_scheduler.ShouldRun(CoreReferenceKey, interval))
+                return;
+
+            await ExecuteCoreData(cancellationToken);
+            _scheduler.RecordRun(CoreReferenceKey);
         }
 
         private async Task ExecuteCoreData(CancellationToken cancellationToken)
@@ -107,15 +135,26 @@ namespace SportMonks.Core.Worker.WorkerServices
             }
         }
 
+        private int GetInteger(string key, int defaultValue)
+        {
+            return int.TryParse(
+                _configuration[key],
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture,
+                out var result)
+                ? result
+                : defaultValue;
+        }
+
         public override Task StartAsync(CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Core Service started!");
+            _logger.LogInformation("Core worker started.");
             return base.StartAsync(cancellationToken);
         }
 
         public override Task StopAsync(CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Core Service stopped!");
+            _logger.LogInformation("Core worker stopped.");
             return base.StopAsync(cancellationToken);
         }
     }

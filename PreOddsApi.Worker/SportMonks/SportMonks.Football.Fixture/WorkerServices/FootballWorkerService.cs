@@ -10,6 +10,16 @@ namespace SportMonks.Football.FixtureWorker.Services
 {
     public class FootballWorkerService : BackgroundService
     {
+        private static class ScheduleKey
+        {
+            public const string Reference = "worker.football.reference";
+            public const string Standings = "worker.football.standings";
+            public const string Transfers = "worker.football.transfers";
+            public const string TvStations = "worker.football.tv-stations";
+            public const string News = "worker.football.news";
+            public const string Fixture = "worker.football.fixture";
+        }
+
         private static readonly string[] FixtureSyncIncludes =
         [
             "sport",
@@ -112,6 +122,7 @@ namespace SportMonks.Football.FixtureWorker.Services
 
         private readonly ILogger<FootballWorkerService> _logger;
         private readonly IConfiguration _configuration;
+        private readonly ISyncJobScheduler _scheduler;
         private readonly ISportMonksSyncRunner _syncRunner;
         private readonly ISportMonksCompetitionReferenceWriter _competitionReferenceWriter;
         private readonly ISportMonksFootballCoreReferenceWriter _footballCoreReferenceWriter;
@@ -126,9 +137,12 @@ namespace SportMonks.Football.FixtureWorker.Services
         private readonly ISportMonksFixtureTrendCommentaryWriter _fixtureTrendCommentaryWriter;
         private readonly ISportMonksNewsWriter _newsWriter;
 
+        private List<League> _cachedLeagues = [];
+
         public FootballWorkerService(
             ILogger<FootballWorkerService> logger,
             IConfiguration configuration,
+            ISyncJobScheduler scheduler,
             ISportMonksSyncRunner syncRunner,
             ISportMonksCompetitionReferenceWriter competitionReferenceWriter,
             ISportMonksFootballCoreReferenceWriter footballCoreReferenceWriter,
@@ -145,6 +159,7 @@ namespace SportMonks.Football.FixtureWorker.Services
         {
             _logger = logger;
             _configuration = configuration;
+            _scheduler = scheduler;
             _syncRunner = syncRunner;
             _competitionReferenceWriter = competitionReferenceWriter;
             _footballCoreReferenceWriter = footballCoreReferenceWriter;
@@ -162,30 +177,117 @@ namespace SportMonks.Football.FixtureWorker.Services
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
+            var pollingInterval = TimeSpan.FromSeconds(
+                GetInteger("SportMonksWorkerSettings:PollingIntervalSeconds", 60));
+
             while (!stoppingToken.IsCancellationRequested)
             {
-                _logger.LogInformation("Fixture Service execution started!");
+                _logger.LogInformation("Football worker polling at {Time}.", DateTimeOffset.UtcNow);
 
                 try
                 {
-                    await ExecuteStates(stoppingToken);
-                    await ExecuteVenues(stoppingToken);
-                    var leagues = await ExecuteLeague(stoppingToken);
-                    var teams = await ExecuteTeams(stoppingToken);
-                    await ExecutePlayerCoachSquadRivalReferences(teams, stoppingToken);
-                    await ExecuteStandingTopScorerReferences(leagues, stoppingToken);
-                    await ExecuteTransferReferences(stoppingToken);
-                    await ExecuteTvStationReferences(stoppingToken);
-                    await ExecuteNewsReferences(stoppingToken);
-                    await ExecuteFixtureWindow(stoppingToken);
+                    await MaybeRunReferenceDataAsync(stoppingToken);
+                    await MaybeRunStandingsAsync(stoppingToken);
+                    await MaybeRunTransfersAsync(stoppingToken);
+                    await MaybeRunTvStationsAsync(stoppingToken);
+                    await MaybeRunNewsAsync(stoppingToken);
+                    await MaybeRunFixtureWindowAsync(stoppingToken);
                 }
                 catch (Exception exc)
                 {
                     _logger.LogError(exc, exc.Message);
                 }
 
-                await Task.Delay(100000, stoppingToken);
+                await Task.Delay(pollingInterval, stoppingToken);
             }
+        }
+
+        private async Task MaybeRunReferenceDataAsync(CancellationToken cancellationToken)
+        {
+            var interval = GetInteger("SportMonksWorkerSettings:ReferenceDataIntervalSeconds", 3600);
+            if (!_scheduler.ShouldRun(ScheduleKey.Reference, interval))
+                return;
+
+            await ExecuteStates(cancellationToken);
+            await ExecuteVenues(cancellationToken);
+            var leagues = await ExecuteLeague(cancellationToken);
+            var teams = await ExecuteTeams(cancellationToken);
+            await ExecutePlayerCoachSquadRivalReferences(teams, cancellationToken);
+            _cachedLeagues = leagues;
+            _scheduler.RecordRun(ScheduleKey.Reference);
+        }
+
+        private async Task MaybeRunStandingsAsync(CancellationToken cancellationToken)
+        {
+            if (!GetBoolean("SportMonksStandingSync:Enabled", false))
+                return;
+
+            var interval = GetInteger("SportMonksWorkerSettings:StandingsIntervalSeconds", 1800);
+            if (!_scheduler.ShouldRun(ScheduleKey.Standings, interval))
+                return;
+
+            if (_cachedLeagues.Count == 0)
+            {
+                _logger.LogWarning("Standings sync skipped: no cached leagues available yet.");
+                return;
+            }
+
+            await ExecuteStandingTopScorerReferences(_cachedLeagues, cancellationToken);
+            _scheduler.RecordRun(ScheduleKey.Standings);
+        }
+
+        private async Task MaybeRunTransfersAsync(CancellationToken cancellationToken)
+        {
+            if (!GetBoolean("SportMonksTransferSidelinedSync:Enabled", false) ||
+                !GetBoolean("SportMonksTransferSidelinedSync:SyncLatestTransfers", true))
+                return;
+
+            var interval = GetInteger("SportMonksWorkerSettings:TransfersIntervalSeconds", 3600);
+            if (!_scheduler.ShouldRun(ScheduleKey.Transfers, interval))
+                return;
+
+            await ExecuteTransferReferences(cancellationToken);
+            _scheduler.RecordRun(ScheduleKey.Transfers);
+        }
+
+        private async Task MaybeRunTvStationsAsync(CancellationToken cancellationToken)
+        {
+            if (!GetBoolean("SportMonksFixtureMediaWeatherSync:Enabled", false) ||
+                !GetBoolean("SportMonksFixtureMediaWeatherSync:SyncTvStations", true))
+                return;
+
+            var interval = GetInteger("SportMonksWorkerSettings:TvStationsIntervalSeconds", 3600);
+            if (!_scheduler.ShouldRun(ScheduleKey.TvStations, interval))
+                return;
+
+            await ExecuteTvStationReferences(cancellationToken);
+            _scheduler.RecordRun(ScheduleKey.TvStations);
+        }
+
+        private async Task MaybeRunNewsAsync(CancellationToken cancellationToken)
+        {
+            if (!GetBoolean("SportMonksNewsSync:Enabled", false))
+                return;
+
+            var interval = GetInteger("SportMonksWorkerSettings:NewsIntervalSeconds", 900);
+            if (!_scheduler.ShouldRun(ScheduleKey.News, interval))
+                return;
+
+            await ExecuteNewsReferences(cancellationToken);
+            _scheduler.RecordRun(ScheduleKey.News);
+        }
+
+        private async Task MaybeRunFixtureWindowAsync(CancellationToken cancellationToken)
+        {
+            if (!GetBoolean("SportMonksFixtureSync:Enabled", false))
+                return;
+
+            var interval = GetInteger("SportMonksWorkerSettings:FixtureIntervalSeconds", 300);
+            if (!_scheduler.ShouldRun(ScheduleKey.Fixture, interval))
+                return;
+
+            await ExecuteFixtureWindow(cancellationToken);
+            _scheduler.RecordRun(ScheduleKey.Fixture);
         }
 
         private async Task<List<League>> ExecuteLeague(CancellationToken cancellationToken)
@@ -258,9 +360,7 @@ namespace SportMonks.Football.FixtureWorker.Services
             CancellationToken cancellationToken)
         {
             if (!GetBoolean("SportMonksPlayerReferenceSync:Enabled", false))
-            {
                 return;
-            }
 
             if (GetBoolean("SportMonksPlayerReferenceSync:SyncPlayers", true))
             {
@@ -305,9 +405,7 @@ namespace SportMonks.Football.FixtureWorker.Services
             }
 
             if (GetBoolean("SportMonksPlayerReferenceSync:SyncTeamSquads", false))
-            {
                 await ExecuteTeamSquads(teams, cancellationToken);
-            }
         }
 
         private async Task ExecuteTeamSquads(
@@ -323,9 +421,7 @@ namespace SportMonks.Football.FixtureWorker.Services
                 .ToList();
 
             if (maxTeamsPerRun > 0)
-            {
                 teamList = teamList.Take(maxTeamsPerRun).ToList();
-            }
 
             foreach (var team in teamList)
             {
@@ -349,11 +445,6 @@ namespace SportMonks.Football.FixtureWorker.Services
             IReadOnlyCollection<League> leagues,
             CancellationToken cancellationToken)
         {
-            if (!GetBoolean("SportMonksStandingSync:Enabled", false))
-            {
-                return;
-            }
-
             var seasons = GetStandingSyncSeasons(leagues);
 
             if (seasons.Count == 0)
@@ -417,9 +508,7 @@ namespace SportMonks.Football.FixtureWorker.Services
                 .ToList();
 
             if (maxSeasonsPerRun > 0)
-            {
                 seasons = seasons.Take(maxSeasonsPerRun).ToList();
-            }
 
             return seasons;
         }
@@ -429,25 +518,15 @@ namespace SportMonks.Football.FixtureWorker.Services
             foreach (var league in leagues)
             {
                 foreach (var season in league.Seasons ?? Enumerable.Empty<Season>())
-                {
                     yield return season;
-                }
 
                 if (league.CurrentSeason != null)
-                {
                     yield return league.CurrentSeason;
-                }
             }
         }
 
         private async Task ExecuteTransferReferences(CancellationToken cancellationToken)
         {
-            if (!GetBoolean("SportMonksTransferSidelinedSync:Enabled", false) ||
-                !GetBoolean("SportMonksTransferSidelinedSync:SyncLatestTransfers", true))
-            {
-                return;
-            }
-
             var order = NullIfWhiteSpace(_configuration["SportMonksTransferSidelinedSync:TransferOrder"]) ?? "desc";
             var transfers = (await _syncRunner.GetAllAsync<Transfer>(
                 SportMonksSyncJobDefinition.Create(
@@ -464,20 +543,12 @@ namespace SportMonks.Football.FixtureWorker.Services
 
         private async Task ExecuteTvStationReferences(CancellationToken cancellationToken)
         {
-            if (!GetBoolean("SportMonksFixtureMediaWeatherSync:Enabled", false) ||
-                !GetBoolean("SportMonksFixtureMediaWeatherSync:SyncTvStations", true))
-            {
-                return;
-            }
-
             var order = NullIfWhiteSpace(_configuration["SportMonksFixtureMediaWeatherSync:TvStationOrder"]) ?? "asc";
             var request = SportMonksApiRequest.Create("tv-stations")
                 .WithQueryParameter("order", order);
 
             if (GetBoolean("SportMonksFixtureMediaWeatherSync:SyncTvStationCountries", true))
-            {
                 request.WithInclude(TvStationIncludes);
-            }
 
             var tvStations = (await _syncRunner.GetAllAsync<TvStation>(
                 SportMonksSyncJobDefinition.Create(
@@ -492,11 +563,6 @@ namespace SportMonks.Football.FixtureWorker.Services
 
         private async Task ExecuteNewsReferences(CancellationToken cancellationToken)
         {
-            if (!GetBoolean("SportMonksNewsSync:Enabled", false))
-            {
-                return;
-            }
-
             if (GetBoolean("SportMonksNewsSync:SyncAllPreMatchNews", false))
             {
                 await ExecuteNewsEndpoint(
@@ -535,14 +601,10 @@ namespace SportMonks.Football.FixtureWorker.Services
             var order = NullIfWhiteSpace(_configuration["SportMonksNewsSync:Order"]);
 
             if (order != null)
-            {
                 request.WithQueryParameter("order", order);
-            }
 
             if (GetBoolean("SportMonksNewsSync:IncludeLines", true))
-            {
                 request.WithInclude(NewsIncludes);
-            }
 
             var news = (await _syncRunner.GetAllAsync<News>(
                 SportMonksSyncJobDefinition.Create(
@@ -558,11 +620,6 @@ namespace SportMonks.Football.FixtureWorker.Services
 
         private async Task ExecuteFixtureWindow(CancellationToken cancellationToken)
         {
-            if (!GetBoolean("SportMonksFixtureSync:Enabled", false))
-            {
-                return;
-            }
-
             var daysBack = Math.Max(0, GetInteger("SportMonksFixtureSync:DaysBack", 0));
             var daysForward = Math.Max(0, GetInteger("SportMonksFixtureSync:DaysForward", 7));
             var today = DateOnly.FromDateTime(DateTime.UtcNow);
@@ -575,9 +632,7 @@ namespace SportMonks.Football.FixtureWorker.Services
                 toDate);
 
             for (var date = fromDate; date <= toDate; date = date.AddDays(1))
-            {
                 await ExecuteFixturesByDate(date, cancellationToken);
-            }
         }
 
         private async Task ExecuteFixturesByDate(DateOnly date, CancellationToken cancellationToken)
@@ -589,9 +644,7 @@ namespace SportMonks.Football.FixtureWorker.Services
             var timezone = NullIfWhiteSpace(_configuration["SportMonksFixtureSync:Timezone"]);
 
             if (timezone != null)
-            {
                 request.WithTimezone(timezone);
-            }
 
             var fixtures = (await _syncRunner.GetAllAsync<Fixture>(
                 SportMonksSyncJobDefinition.Create(
@@ -608,55 +661,35 @@ namespace SportMonks.Football.FixtureWorker.Services
             await _fixtureLineupFormationWriter.UpsertLineupsAndFormationsAsync(fixtures, cancellationToken);
 
             if (ShouldSyncFixtureSidelined())
-            {
                 await _transferSidelinedWriter.UpsertFixtureSidelinedAsync(fixtures, cancellationToken);
-            }
 
             if (ShouldSyncFixtureMediaWeather())
-            {
                 await _fixtureMediaWeatherWriter.UpsertFixtureMediaWeatherAsync(fixtures, cancellationToken);
-            }
 
             if (ShouldSyncFixtureTimeline())
-            {
                 await _fixtureTrendCommentaryWriter.UpsertTrendsAndCommentariesAsync(fixtures, cancellationToken);
-            }
 
             if (ShouldSyncFixtureNews())
-            {
                 await _newsWriter.UpsertFixtureNewsAsync(fixtures, cancellationToken);
-            }
         }
 
         private IEnumerable<string> BuildFixtureSyncIncludes()
         {
             foreach (var include in FixtureSyncIncludes)
-            {
                 yield return include;
-            }
 
             if (ShouldSyncFixtureSidelined())
-            {
                 foreach (var include in FixtureSidelinedIncludes)
-                {
                     yield return include;
-                }
-            }
 
             foreach (var include in BuildFixtureMediaWeatherIncludes())
-            {
                 yield return include;
-            }
 
             foreach (var include in BuildFixtureTimelineIncludes())
-            {
                 yield return include;
-            }
 
             foreach (var include in BuildFixtureNewsIncludes())
-            {
                 yield return include;
-            }
         }
 
         private bool ShouldSyncFixtureSidelined()
@@ -668,19 +701,13 @@ namespace SportMonks.Football.FixtureWorker.Services
         private IEnumerable<string> BuildFixtureMediaWeatherIncludes()
         {
             if (!GetBoolean("SportMonksFixtureMediaWeatherSync:Enabled", false))
-            {
                 yield break;
-            }
 
             if (GetBoolean("SportMonksFixtureMediaWeatherSync:SyncFixtureTvStations", false))
-            {
                 yield return "tvStations";
-            }
 
             if (GetBoolean("SportMonksFixtureMediaWeatherSync:SyncWeatherReports", false))
-            {
                 yield return "weatherReport";
-            }
         }
 
         private bool ShouldSyncFixtureMediaWeather()
@@ -693,24 +720,16 @@ namespace SportMonks.Football.FixtureWorker.Services
         private IEnumerable<string> BuildFixtureTimelineIncludes()
         {
             if (!GetBoolean("SportMonksFixtureTimelineSync:Enabled", false))
-            {
                 yield break;
-            }
 
             if (GetBoolean("SportMonksFixtureTimelineSync:SyncTrends", false))
-            {
                 yield return "trends";
-            }
 
             if (GetBoolean("SportMonksFixtureTimelineSync:SyncPressureTrends", false))
-            {
                 yield return "pressure";
-            }
 
             if (GetBoolean("SportMonksFixtureTimelineSync:SyncCommentaries", false))
-            {
                 yield return "comments";
-            }
         }
 
         private bool ShouldSyncFixtureTimeline()
@@ -724,30 +743,22 @@ namespace SportMonks.Football.FixtureWorker.Services
         private IEnumerable<string> BuildFixtureNewsIncludes()
         {
             if (!GetBoolean("SportMonksNewsSync:Enabled", false))
-            {
                 yield break;
-            }
 
             var includeLines = GetBoolean("SportMonksNewsSync:IncludeLines", true);
 
             if (GetBoolean("SportMonksNewsSync:SyncFixturePreMatchNews", false))
             {
                 yield return "prematchNews";
-
                 if (includeLines)
-                {
                     yield return "prematchNews.lines";
-                }
             }
 
             if (GetBoolean("SportMonksNewsSync:SyncFixturePostMatchNews", false))
             {
                 yield return "postmatchNews";
-
                 if (includeLines)
-                {
                     yield return "postmatchNews.lines";
-                }
             }
         }
 
@@ -773,19 +784,10 @@ namespace SportMonks.Football.FixtureWorker.Services
             var value = _configuration[key];
 
             if (bool.TryParse(value, out var result))
-            {
                 return result;
-            }
 
-            if (value == "1")
-            {
-                return true;
-            }
-
-            if (value == "0")
-            {
-                return false;
-            }
+            if (value == "1") return true;
+            if (value == "0") return false;
 
             return defaultValue;
         }
@@ -808,13 +810,13 @@ namespace SportMonks.Football.FixtureWorker.Services
 
         public override Task StartAsync(CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Fixture Service started!");
+            _logger.LogInformation("Football worker started.");
             return base.StartAsync(cancellationToken);
         }
 
         public override Task StopAsync(CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Fixture Service stopped!");
+            _logger.LogInformation("Football worker stopped.");
             return base.StopAsync(cancellationToken);
         }
     }
