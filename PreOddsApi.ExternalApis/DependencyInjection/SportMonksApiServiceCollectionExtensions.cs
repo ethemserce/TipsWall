@@ -31,6 +31,7 @@ namespace PreOddsApi.ExternalApis.DependencyInjection
             services.AddSingleton<ISportMonksFixtureMediaWeatherWriter, SportMonksFixtureMediaWeatherWriter>();
             services.AddSingleton<ISportMonksFixtureTrendCommentaryWriter, SportMonksFixtureTrendCommentaryWriter>();
             services.AddSingleton<ISportMonksNewsWriter, SportMonksNewsWriter>();
+            services.AddSingleton<ISportMonksPrematchOddsWriter, SportMonksPrematchOddsWriter>();
             services.AddHttpClient<ISportMonksApiClient, SportMonksApiClient>(httpClient =>
             {
                 httpClient.BaseAddress = new Uri(options.BaseUrl);
