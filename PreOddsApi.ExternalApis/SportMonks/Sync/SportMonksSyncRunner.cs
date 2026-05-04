@@ -98,6 +98,9 @@ namespace PreOddsApi.ExternalApis.SportMonks.Sync
 
                     if (response.Pagination?.HasMore == true && response.Pagination.NextPage != null)
                     {
+                        if (request.RequestDelayMs > 0)
+                            await Task.Delay(request.RequestDelayMs, cancellationToken);
+
                         currentRequest = SportMonksApiRequest.Create(response.Pagination.NextPage.ToString())
                             .WithoutDefaultPagination();
                         continue;
