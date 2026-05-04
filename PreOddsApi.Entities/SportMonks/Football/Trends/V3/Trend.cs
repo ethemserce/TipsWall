@@ -7,22 +7,25 @@ namespace PreOddsApi.Entities.SportMonks.Football
     public class Trend : SportMonksBaseEntity
     {
         [JsonProperty("fixture_id")]
-        public long FixtureId { get; set; }
+        public long? FixtureId { get; set; }
 
         [JsonProperty("participant_id")]
-        public long? TeamId { get; set; }
+        public long? ParticipantId { get; set; }
 
         [JsonProperty("type_id")]
         public long? TypeId { get; set; }
 
         [JsonProperty("period_id")]
-        public long? Period_id { get; set; }
+        public long? PeriodId { get; set; }
 
         [JsonProperty("value")]
-        public int Value { get; set; }
+        public decimal? Value { get; set; }
+
+        [JsonProperty("pressure")]
+        public decimal? Pressure { get; set; }
 
         [JsonProperty("minute")]
-        public int Minute { get; set; }
+        public int? Minute { get; set; }
 
         [JsonProperty("period")]
         public Period Period { get; set; }
