@@ -30,6 +30,15 @@ namespace SportMonks.Football.FixtureWorker.Services
             "referees"
         ];
 
+        private static readonly string[] FixtureSidelinedIncludes =
+        [
+            "sidelined",
+            "sidelined.player",
+            "sidelined.type",
+            "sidelined.participant",
+            "sidelined.sideline"
+        ];
+
         private static readonly string[] PlayerReferenceIncludes =
         [
             "sport",
@@ -79,6 +88,17 @@ namespace SportMonks.Football.FixtureWorker.Services
             "type"
         ];
 
+        private static readonly string[] TransferIncludes =
+        [
+            "sport",
+            "player",
+            "type",
+            "fromTeam",
+            "toTeam",
+            "position",
+            "detailedPosition"
+        ];
+
         private readonly ILogger<FootballWorkerService> _logger;
         private readonly IConfiguration _configuration;
         private readonly ISportMonksSyncRunner _syncRunner;
@@ -90,6 +110,7 @@ namespace SportMonks.Football.FixtureWorker.Services
         private readonly ISportMonksFixtureRefereeWriter _fixtureRefereeWriter;
         private readonly ISportMonksPlayerCoachSquadRivalWriter _playerCoachSquadRivalWriter;
         private readonly ISportMonksStandingTopScorerWriter _standingTopScorerWriter;
+        private readonly ISportMonksTransferSidelinedWriter _transferSidelinedWriter;
 
         public FootballWorkerService(
             ILogger<FootballWorkerService> logger,
@@ -102,7 +123,8 @@ namespace SportMonks.Football.FixtureWorker.Services
             ISportMonksFixtureLineupFormationWriter fixtureLineupFormationWriter,
             ISportMonksFixtureRefereeWriter fixtureRefereeWriter,
             ISportMonksPlayerCoachSquadRivalWriter playerCoachSquadRivalWriter,
-            ISportMonksStandingTopScorerWriter standingTopScorerWriter)
+            ISportMonksStandingTopScorerWriter standingTopScorerWriter,
+            ISportMonksTransferSidelinedWriter transferSidelinedWriter)
         {
             _logger = logger;
             _configuration = configuration;
@@ -115,6 +137,7 @@ namespace SportMonks.Football.FixtureWorker.Services
             _fixtureRefereeWriter = fixtureRefereeWriter;
             _playerCoachSquadRivalWriter = playerCoachSquadRivalWriter;
             _standingTopScorerWriter = standingTopScorerWriter;
+            _transferSidelinedWriter = transferSidelinedWriter;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -131,6 +154,7 @@ namespace SportMonks.Football.FixtureWorker.Services
                     var teams = await ExecuteTeams(stoppingToken);
                     await ExecutePlayerCoachSquadRivalReferences(teams, stoppingToken);
                     await ExecuteStandingTopScorerReferences(leagues, stoppingToken);
+                    await ExecuteTransferReferences(stoppingToken);
                     await ExecuteFixtureWindow(stoppingToken);
                 }
                 catch (Exception exc)
@@ -394,6 +418,28 @@ namespace SportMonks.Football.FixtureWorker.Services
             }
         }
 
+        private async Task ExecuteTransferReferences(CancellationToken cancellationToken)
+        {
+            if (!GetBoolean("SportMonksTransferSidelinedSync:Enabled", false) ||
+                !GetBoolean("SportMonksTransferSidelinedSync:SyncLatestTransfers", true))
+            {
+                return;
+            }
+
+            var order = NullIfWhiteSpace(_configuration["SportMonksTransferSidelinedSync:TransferOrder"]) ?? "desc";
+            var transfers = (await _syncRunner.GetAllAsync<Transfer>(
+                SportMonksSyncJobDefinition.Create(
+                    "sportmonks.football.transfers.latest",
+                    "football.transfer",
+                    "Sync latest SportMonks football transfers."),
+                SportMonksApiRequest.Create("transfers/latest")
+                    .WithInclude(TransferIncludes)
+                    .WithQueryParameter("order", order),
+                cancellationToken: cancellationToken)).ToList();
+
+            await _transferSidelinedWriter.UpsertTransfersAsync(transfers, cancellationToken);
+        }
+
         private async Task ExecuteFixtureWindow(CancellationToken cancellationToken)
         {
             if (!GetBoolean("SportMonksFixtureSync:Enabled", false))
@@ -423,7 +469,7 @@ namespace SportMonks.Football.FixtureWorker.Services
             var dateValue = date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
             var endpoint = $"{GetFixtureByDateEndpoint().TrimEnd('/')}/{dateValue}";
             var request = SportMonksApiRequest.Create(endpoint)
-                .WithInclude(FixtureSyncIncludes);
+                .WithInclude(BuildFixtureSyncIncludes().ToArray());
             var timezone = NullIfWhiteSpace(_configuration["SportMonksFixtureSync:Timezone"]);
 
             if (timezone != null)
@@ -444,6 +490,35 @@ namespace SportMonks.Football.FixtureWorker.Services
             await _fixtureRefereeWriter.UpsertFixtureRefereesAsync(fixtures, cancellationToken);
             await _fixtureEventStatisticWriter.UpsertEventsAndStatisticsAsync(fixtures, cancellationToken);
             await _fixtureLineupFormationWriter.UpsertLineupsAndFormationsAsync(fixtures, cancellationToken);
+
+            if (ShouldSyncFixtureSidelined())
+            {
+                await _transferSidelinedWriter.UpsertFixtureSidelinedAsync(fixtures, cancellationToken);
+            }
+        }
+
+        private IEnumerable<string> BuildFixtureSyncIncludes()
+        {
+            foreach (var include in FixtureSyncIncludes)
+            {
+                yield return include;
+            }
+
+            if (!ShouldSyncFixtureSidelined())
+            {
+                yield break;
+            }
+
+            foreach (var include in FixtureSidelinedIncludes)
+            {
+                yield return include;
+            }
+        }
+
+        private bool ShouldSyncFixtureSidelined()
+        {
+            return GetBoolean("SportMonksTransferSidelinedSync:Enabled", false) &&
+                   GetBoolean("SportMonksTransferSidelinedSync:SyncFixtureSidelined", false);
         }
 
         private string GetFixtureByDateEndpoint()
