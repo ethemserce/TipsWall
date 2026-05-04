@@ -18,6 +18,7 @@ namespace SportMonks.Football.FixtureWorker.Services
             public const string TvStations = "worker.football.tv-stations";
             public const string News = "worker.football.news";
             public const string Fixture = "worker.football.fixture";
+            public const string PrematchOdds = "worker.football.prematch-odds";
         }
 
         private static readonly string[] FixtureSyncIncludes =
@@ -136,6 +137,7 @@ namespace SportMonks.Football.FixtureWorker.Services
         private readonly ISportMonksFixtureMediaWeatherWriter _fixtureMediaWeatherWriter;
         private readonly ISportMonksFixtureTrendCommentaryWriter _fixtureTrendCommentaryWriter;
         private readonly ISportMonksNewsWriter _newsWriter;
+        private readonly ISportMonksPrematchOddsWriter _prematchOddsWriter;
 
         private List<League> _cachedLeagues = [];
 
@@ -155,7 +157,8 @@ namespace SportMonks.Football.FixtureWorker.Services
             ISportMonksTransferSidelinedWriter transferSidelinedWriter,
             ISportMonksFixtureMediaWeatherWriter fixtureMediaWeatherWriter,
             ISportMonksFixtureTrendCommentaryWriter fixtureTrendCommentaryWriter,
-            ISportMonksNewsWriter newsWriter)
+            ISportMonksNewsWriter newsWriter,
+            ISportMonksPrematchOddsWriter prematchOddsWriter)
         {
             _logger = logger;
             _configuration = configuration;
@@ -173,6 +176,7 @@ namespace SportMonks.Football.FixtureWorker.Services
             _fixtureMediaWeatherWriter = fixtureMediaWeatherWriter;
             _fixtureTrendCommentaryWriter = fixtureTrendCommentaryWriter;
             _newsWriter = newsWriter;
+            _prematchOddsWriter = prematchOddsWriter;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -192,6 +196,7 @@ namespace SportMonks.Football.FixtureWorker.Services
                     await MaybeRunTvStationsAsync(stoppingToken);
                     await MaybeRunNewsAsync(stoppingToken);
                     await MaybeRunFixtureWindowAsync(stoppingToken);
+                    await MaybeRunLatestPrematchOddsAsync(stoppingToken);
                 }
                 catch (Exception exc)
                 {
@@ -671,6 +676,9 @@ namespace SportMonks.Football.FixtureWorker.Services
 
             if (ShouldSyncFixtureNews())
                 await _newsWriter.UpsertFixtureNewsAsync(fixtures, cancellationToken);
+
+            if (ShouldSyncFixtureOdds())
+                await _prematchOddsWriter.UpsertPrematchOddsAsync(fixtures, cancellationToken);
         }
 
         private IEnumerable<string> BuildFixtureSyncIncludes()
@@ -689,6 +697,9 @@ namespace SportMonks.Football.FixtureWorker.Services
                 yield return include;
 
             foreach (var include in BuildFixtureNewsIncludes())
+                yield return include;
+
+            foreach (var include in BuildFixtureOddsIncludes())
                 yield return include;
         }
 
@@ -767,6 +778,58 @@ namespace SportMonks.Football.FixtureWorker.Services
             return GetBoolean("SportMonksNewsSync:Enabled", false) &&
                    (GetBoolean("SportMonksNewsSync:SyncFixturePreMatchNews", false) ||
                     GetBoolean("SportMonksNewsSync:SyncFixturePostMatchNews", false));
+        }
+
+        private IEnumerable<string> BuildFixtureOddsIncludes()
+        {
+            if (!ShouldSyncFixtureOdds())
+                yield break;
+
+            yield return "odds";
+
+            if (GetBoolean("SportMonksPrematchOddsSync:IncludeMarket", true))
+                yield return "odds.market";
+
+            if (GetBoolean("SportMonksPrematchOddsSync:IncludeBookmaker", true))
+                yield return "odds.bookmaker";
+        }
+
+        private bool ShouldSyncFixtureOdds()
+        {
+            return GetBoolean("SportMonksPrematchOddsSync:Enabled", false) &&
+                   GetBoolean("SportMonksPrematchOddsSync:SyncFixtureOdds", true);
+        }
+
+        private async Task MaybeRunLatestPrematchOddsAsync(CancellationToken cancellationToken)
+        {
+            if (!GetBoolean("SportMonksPrematchOddsSync:Enabled", false) ||
+                !GetBoolean("SportMonksPrematchOddsSync:SyncLatestOdds", false))
+                return;
+
+            var interval = GetInteger("SportMonksWorkerSettings:PrematchOddsIntervalSeconds", 300);
+            if (!_scheduler.ShouldRun(ScheduleKey.PrematchOdds, interval))
+                return;
+
+            var odds = (await _syncRunner.GetAllAsync<PreMatchOdd>(
+                SportMonksSyncJobDefinition.Create(
+                    "sportmonks.football.odds.prematch.latest",
+                    "odds.prematch_odds_current",
+                    "Sync latest updated SportMonks pre-match odds."),
+                SportMonksApiRequest.Create("odds/latest"),
+                cancellationToken: cancellationToken)).ToList();
+
+            if (odds.Count > 0)
+            {
+                var byFixture = odds
+                    .Where(o => o.FixtureId > 0)
+                    .GroupBy(o => o.FixtureId);
+
+                foreach (var group in byFixture)
+                    await _prematchOddsWriter.UpsertPrematchOddsForFixtureAsync(
+                        group.Key, group, cancellationToken);
+            }
+
+            _scheduler.RecordRun(ScheduleKey.PrematchOdds);
         }
 
         private string GetFixtureByDateEndpoint()
