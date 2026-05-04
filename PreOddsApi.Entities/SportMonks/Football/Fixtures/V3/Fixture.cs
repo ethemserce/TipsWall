@@ -111,7 +111,7 @@ namespace PreOddsApi.Entities.SportMonks.Football.V3
         public Event Timeline { get; set; }
 
         [JsonProperty("comments")]
-        public List<News> Comments { get; set; }
+        public List<Commentary> Comments { get; set; }
 
         [JsonProperty("postmatchNews")]
         public List<News> PostmatchNews { get; set; }
@@ -121,6 +121,9 @@ namespace PreOddsApi.Entities.SportMonks.Football.V3
 
         [JsonProperty("trends")]
         public List<Trend> Trends { get; set; }
+
+        [JsonProperty("pressure")]
+        public List<Trend> Pressure { get; set; }
 
         [JsonProperty("statistics")]
         public List<Statistic> Statistics { get; set; }
