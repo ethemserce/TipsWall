@@ -30,10 +30,6 @@ namespace PreOddsApi.WebApi.Controllers
             _mapper = mapper;
         }
 
-        public IActionResult Index()
-        {
-            return View();
-        }
 
         [HttpGet]
         [Route("countries&lang={lang}&apiKey={apiKey}")]

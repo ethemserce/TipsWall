@@ -25,11 +25,6 @@ namespace PreOddsApi.WebApi.Controllers
             _localizer = localizer;
         }
 
-        public IActionResult Index()
-        {
-            return View();
-        }
-
         [HttpGet]
         [Route("mail/name={name}&email={email}&sub={subject}&mes={message}&lang={lang}&apiKey={apiKey}")]
         public IActionResult Index(string name, string email, string subject, string message, string lang, string apiKey)

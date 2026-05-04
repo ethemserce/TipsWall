@@ -58,11 +58,6 @@ namespace PreOddsApi.WebApi.Controllers
             _logger = logger;
         }
 
-        public IActionResult Index()
-        {
-            return View();
-        }
-
         [HttpGet]
         [Route("fixture/{fixtureId}&lang={lang}&timeZone={timeZone}&apiKey={apiKey}")]
         public IActionResult GetFixture(long fixtureId, string lang, string timeZone, string apiKey)
