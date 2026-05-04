@@ -1,9 +1,11 @@
 using System.Collections.Generic;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PreOddsApi.WebApi.V3.Contracts;
 
 namespace PreOddsApi.WebApi.V3.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/v3/[controller]")]
     public abstract class ApiControllerBase : ControllerBase
