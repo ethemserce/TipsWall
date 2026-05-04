@@ -18,6 +18,8 @@ namespace PreOddsApi.ExternalApis.SportMonks
 
         public bool ApplyDefaultPagination { get; private set; } = true;
 
+        public int RequestDelayMs { get; private set; }
+
         public IReadOnlyCollection<KeyValuePair<string, string>> QueryParameters => _queryParameters;
 
         public static SportMonksApiRequest Create(string endpoint)
@@ -82,6 +84,13 @@ namespace PreOddsApi.ExternalApis.SportMonks
         public SportMonksApiRequest WithoutDefaultPagination()
         {
             ApplyDefaultPagination = false;
+            return this;
+        }
+
+        public SportMonksApiRequest WithRequestDelayMs(int delayMs)
+        {
+            if (delayMs > 0)
+                RequestDelayMs = delayMs;
             return this;
         }
 
