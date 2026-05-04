@@ -10,14 +10,17 @@ namespace PreOddsApi.Entities.SportMonks.Football.V3
         [JsonProperty("id")]
         public long Id { get; set; }
 
+        [JsonProperty("season_id")]
+        public long? SeasonId { get; set; }
+
         [JsonProperty("stage_id")]
-        public long StageId { get; set; }
+        public long? StageId { get; set; }
 
         [JsonProperty("player_id")]
-        public long PlayerId { get; set; }
+        public long? PlayerId { get; set; }
 
         [JsonProperty("type_id")]
-        public long TypeId { get; set; }
+        public long? TypeId { get; set; }
 
         [JsonProperty("position")]
         public int Position { get; set; }
@@ -29,7 +32,7 @@ namespace PreOddsApi.Entities.SportMonks.Football.V3
         public string ParticipantType { get; set; }
 
         [JsonProperty("participant_id")]
-        public long ParticipantId { get; set; }
+        public long? ParticipantId { get; set; }
 
         [JsonProperty("season")] // if add to Query Params "include=season"
         public Season Season { get; set; }
