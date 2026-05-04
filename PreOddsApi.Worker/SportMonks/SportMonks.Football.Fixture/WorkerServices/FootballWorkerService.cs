@@ -56,6 +56,29 @@ namespace SportMonks.Football.FixtureWorker.Services
             "player"
         ];
 
+        private static readonly string[] StandingIncludes =
+        [
+            "participant",
+            "sport",
+            "league",
+            "season",
+            "stage",
+            "group",
+            "round",
+            "rule.type",
+            "details.type",
+            "form"
+        ];
+
+        private static readonly string[] TopScorerIncludes =
+        [
+            "season",
+            "stage",
+            "player",
+            "participant",
+            "type"
+        ];
+
         private readonly ILogger<FootballWorkerService> _logger;
         private readonly IConfiguration _configuration;
         private readonly ISportMonksSyncRunner _syncRunner;
@@ -66,6 +89,7 @@ namespace SportMonks.Football.FixtureWorker.Services
         private readonly ISportMonksFixtureLineupFormationWriter _fixtureLineupFormationWriter;
         private readonly ISportMonksFixtureRefereeWriter _fixtureRefereeWriter;
         private readonly ISportMonksPlayerCoachSquadRivalWriter _playerCoachSquadRivalWriter;
+        private readonly ISportMonksStandingTopScorerWriter _standingTopScorerWriter;
 
         public FootballWorkerService(
             ILogger<FootballWorkerService> logger,
@@ -77,7 +101,8 @@ namespace SportMonks.Football.FixtureWorker.Services
             ISportMonksFixtureEventStatisticWriter fixtureEventStatisticWriter,
             ISportMonksFixtureLineupFormationWriter fixtureLineupFormationWriter,
             ISportMonksFixtureRefereeWriter fixtureRefereeWriter,
-            ISportMonksPlayerCoachSquadRivalWriter playerCoachSquadRivalWriter)
+            ISportMonksPlayerCoachSquadRivalWriter playerCoachSquadRivalWriter,
+            ISportMonksStandingTopScorerWriter standingTopScorerWriter)
         {
             _logger = logger;
             _configuration = configuration;
@@ -89,6 +114,7 @@ namespace SportMonks.Football.FixtureWorker.Services
             _fixtureLineupFormationWriter = fixtureLineupFormationWriter;
             _fixtureRefereeWriter = fixtureRefereeWriter;
             _playerCoachSquadRivalWriter = playerCoachSquadRivalWriter;
+            _standingTopScorerWriter = standingTopScorerWriter;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -101,9 +127,10 @@ namespace SportMonks.Football.FixtureWorker.Services
                 {
                     await ExecuteStates(stoppingToken);
                     await ExecuteVenues(stoppingToken);
-                    await ExecuteLeague(stoppingToken);
+                    var leagues = await ExecuteLeague(stoppingToken);
                     var teams = await ExecuteTeams(stoppingToken);
                     await ExecutePlayerCoachSquadRivalReferences(teams, stoppingToken);
+                    await ExecuteStandingTopScorerReferences(leagues, stoppingToken);
                     await ExecuteFixtureWindow(stoppingToken);
                 }
                 catch (Exception exc)
@@ -115,7 +142,7 @@ namespace SportMonks.Football.FixtureWorker.Services
             }
         }
 
-        private async Task ExecuteLeague(CancellationToken cancellationToken)
+        private async Task<List<League>> ExecuteLeague(CancellationToken cancellationToken)
         {
             var leagues = (await _syncRunner.GetAllAsync<League>(
                 SportMonksSyncJobDefinition.Create(
@@ -126,6 +153,7 @@ namespace SportMonks.Football.FixtureWorker.Services
                     .WithInclude(
                         "sport",
                         "seasons",
+                        "currentSeason",
                         "stages",
                         "stages.rounds",
                         "stages.groups",
@@ -133,6 +161,7 @@ namespace SportMonks.Football.FixtureWorker.Services
                 cancellationToken: cancellationToken)).ToList();
 
             await _competitionReferenceWriter.UpsertLeaguesWithHierarchyAsync(leagues, cancellationToken);
+            return leagues;
         }
 
         private async Task ExecuteStates(CancellationToken cancellationToken)
@@ -267,6 +296,101 @@ namespace SportMonks.Football.FixtureWorker.Services
                     cancellationToken: cancellationToken)).ToList();
 
                 await _playerCoachSquadRivalWriter.UpsertTeamSquadsAsync(teamSquads, cancellationToken);
+            }
+        }
+
+        private async Task ExecuteStandingTopScorerReferences(
+            IReadOnlyCollection<League> leagues,
+            CancellationToken cancellationToken)
+        {
+            if (!GetBoolean("SportMonksStandingSync:Enabled", false))
+            {
+                return;
+            }
+
+            var seasons = GetStandingSyncSeasons(leagues);
+
+            if (seasons.Count == 0)
+            {
+                _logger.LogWarning(
+                    "SportMonks standings/top scorers sync is enabled, but no eligible seasons were found.");
+                return;
+            }
+
+            if (GetBoolean("SportMonksStandingSync:SyncStandings", true))
+            {
+                foreach (var season in seasons)
+                {
+                    var endpoint = $"standings/seasons/{season.Id}";
+                    var standings = (await _syncRunner.GetAllAsync<Standing>(
+                        SportMonksSyncJobDefinition.Create(
+                            "sportmonks.football.standings.by-season",
+                            "competition.standing",
+                            "Sync SportMonks football standings by season."),
+                        SportMonksApiRequest.Create(endpoint)
+                            .WithInclude(StandingIncludes)
+                            .WithoutDefaultPagination(),
+                        cursorKey: endpoint,
+                        cancellationToken: cancellationToken)).ToList();
+
+                    await _standingTopScorerWriter.UpsertStandingsAsync(standings, cancellationToken);
+                }
+            }
+
+            if (GetBoolean("SportMonksStandingSync:SyncTopScorers", true))
+            {
+                foreach (var season in seasons)
+                {
+                    var endpoint = $"topscorers/seasons/{season.Id}";
+                    var topScorers = (await _syncRunner.GetAllAsync<TopScorer>(
+                        SportMonksSyncJobDefinition.Create(
+                            "sportmonks.football.top-scorers.by-season",
+                            "competition.top_scorer",
+                            "Sync SportMonks football top scorers by season."),
+                        SportMonksApiRequest.Create(endpoint)
+                            .WithInclude(TopScorerIncludes),
+                        cursorKey: endpoint,
+                        cancellationToken: cancellationToken)).ToList();
+
+                    await _standingTopScorerWriter.UpsertTopScorersAsync(topScorers, cancellationToken);
+                }
+            }
+        }
+
+        private IReadOnlyList<Season> GetStandingSyncSeasons(IEnumerable<League> leagues)
+        {
+            var currentOnly = GetBoolean("SportMonksStandingSync:CurrentSeasonsOnly", true);
+            var maxSeasonsPerRun = Math.Max(0, GetInteger("SportMonksStandingSync:MaxSeasonsPerRun", 0));
+            var seasons = ExtractStandingSyncSeasons(leagues)
+                .Where(season => season != null && season.Id > 0)
+                .Where(season => !currentOnly || season.IsCurrent)
+                .GroupBy(season => season.Id)
+                .Select(group => group.Last())
+                .OrderByDescending(season => season.StartingAt ?? DateTime.MinValue)
+                .ThenByDescending(season => season.Id)
+                .ToList();
+
+            if (maxSeasonsPerRun > 0)
+            {
+                seasons = seasons.Take(maxSeasonsPerRun).ToList();
+            }
+
+            return seasons;
+        }
+
+        private static IEnumerable<Season> ExtractStandingSyncSeasons(IEnumerable<League> leagues)
+        {
+            foreach (var league in leagues)
+            {
+                foreach (var season in league.Seasons ?? Enumerable.Empty<Season>())
+                {
+                    yield return season;
+                }
+
+                if (league.CurrentSeason != null)
+                {
+                    yield return league.CurrentSeason;
+                }
             }
         }
 
