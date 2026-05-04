@@ -26,6 +26,7 @@ namespace PreOddsApi.ExternalApis.DependencyInjection
             services.AddSingleton<ISportMonksOddsReferenceWriter, SportMonksOddsReferenceWriter>();
             services.AddSingleton<ISportMonksPlayerCoachSquadRivalWriter, SportMonksPlayerCoachSquadRivalWriter>();
             services.AddSingleton<ISportMonksStandingTopScorerWriter, SportMonksStandingTopScorerWriter>();
+            services.AddSingleton<ISportMonksTransferSidelinedWriter, SportMonksTransferSidelinedWriter>();
             services.AddHttpClient<ISportMonksApiClient, SportMonksApiClient>(httpClient =>
             {
                 httpClient.BaseAddress = new Uri(options.BaseUrl);
