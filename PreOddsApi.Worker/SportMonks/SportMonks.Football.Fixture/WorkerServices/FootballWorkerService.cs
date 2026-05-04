@@ -105,6 +105,11 @@ namespace SportMonks.Football.FixtureWorker.Services
             "detailedPosition"
         ];
 
+        private static readonly string[] NewsIncludes =
+        [
+            "lines"
+        ];
+
         private readonly ILogger<FootballWorkerService> _logger;
         private readonly IConfiguration _configuration;
         private readonly ISportMonksSyncRunner _syncRunner;
@@ -119,6 +124,7 @@ namespace SportMonks.Football.FixtureWorker.Services
         private readonly ISportMonksTransferSidelinedWriter _transferSidelinedWriter;
         private readonly ISportMonksFixtureMediaWeatherWriter _fixtureMediaWeatherWriter;
         private readonly ISportMonksFixtureTrendCommentaryWriter _fixtureTrendCommentaryWriter;
+        private readonly ISportMonksNewsWriter _newsWriter;
 
         public FootballWorkerService(
             ILogger<FootballWorkerService> logger,
@@ -134,7 +140,8 @@ namespace SportMonks.Football.FixtureWorker.Services
             ISportMonksStandingTopScorerWriter standingTopScorerWriter,
             ISportMonksTransferSidelinedWriter transferSidelinedWriter,
             ISportMonksFixtureMediaWeatherWriter fixtureMediaWeatherWriter,
-            ISportMonksFixtureTrendCommentaryWriter fixtureTrendCommentaryWriter)
+            ISportMonksFixtureTrendCommentaryWriter fixtureTrendCommentaryWriter,
+            ISportMonksNewsWriter newsWriter)
         {
             _logger = logger;
             _configuration = configuration;
@@ -150,6 +157,7 @@ namespace SportMonks.Football.FixtureWorker.Services
             _transferSidelinedWriter = transferSidelinedWriter;
             _fixtureMediaWeatherWriter = fixtureMediaWeatherWriter;
             _fixtureTrendCommentaryWriter = fixtureTrendCommentaryWriter;
+            _newsWriter = newsWriter;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -168,6 +176,7 @@ namespace SportMonks.Football.FixtureWorker.Services
                     await ExecuteStandingTopScorerReferences(leagues, stoppingToken);
                     await ExecuteTransferReferences(stoppingToken);
                     await ExecuteTvStationReferences(stoppingToken);
+                    await ExecuteNewsReferences(stoppingToken);
                     await ExecuteFixtureWindow(stoppingToken);
                 }
                 catch (Exception exc)
@@ -481,6 +490,72 @@ namespace SportMonks.Football.FixtureWorker.Services
             await _fixtureMediaWeatherWriter.UpsertTvStationsAsync(tvStations, cancellationToken);
         }
 
+        private async Task ExecuteNewsReferences(CancellationToken cancellationToken)
+        {
+            if (!GetBoolean("SportMonksNewsSync:Enabled", false))
+            {
+                return;
+            }
+
+            if (GetBoolean("SportMonksNewsSync:SyncAllPreMatchNews", false))
+            {
+                await ExecuteNewsEndpoint(
+                    "sportmonks.football.news.pre-match",
+                    GetConfiguredEndpoint("SportMonksUrls:preMatchNews", "news/pre-match"),
+                    "Sync SportMonks pre-match news.",
+                    cancellationToken);
+            }
+
+            if (GetBoolean("SportMonksNewsSync:SyncUpcomingPreMatchNews", false))
+            {
+                await ExecuteNewsEndpoint(
+                    "sportmonks.football.news.pre-match.upcoming",
+                    GetConfiguredEndpoint("SportMonksUrls:preMatchNewsUpcoming", "news/pre-match/upcoming"),
+                    "Sync SportMonks pre-match news for upcoming fixtures.",
+                    cancellationToken);
+            }
+
+            if (GetBoolean("SportMonksNewsSync:SyncAllPostMatchNews", false))
+            {
+                await ExecuteNewsEndpoint(
+                    "sportmonks.football.news.post-match",
+                    GetConfiguredEndpoint("SportMonksUrls:postMatchNews", "news/post-match"),
+                    "Sync SportMonks post-match news.",
+                    cancellationToken);
+            }
+        }
+
+        private async Task ExecuteNewsEndpoint(
+            string jobKey,
+            string endpoint,
+            string description,
+            CancellationToken cancellationToken)
+        {
+            var request = SportMonksApiRequest.Create(endpoint);
+            var order = NullIfWhiteSpace(_configuration["SportMonksNewsSync:Order"]);
+
+            if (order != null)
+            {
+                request.WithQueryParameter("order", order);
+            }
+
+            if (GetBoolean("SportMonksNewsSync:IncludeLines", true))
+            {
+                request.WithInclude(NewsIncludes);
+            }
+
+            var news = (await _syncRunner.GetAllAsync<News>(
+                SportMonksSyncJobDefinition.Create(
+                    jobKey,
+                    "football.news",
+                    description),
+                request,
+                cursorKey: endpoint,
+                cancellationToken: cancellationToken)).ToList();
+
+            await _newsWriter.UpsertNewsAsync(news, cancellationToken);
+        }
+
         private async Task ExecuteFixtureWindow(CancellationToken cancellationToken)
         {
             if (!GetBoolean("SportMonksFixtureSync:Enabled", false))
@@ -546,6 +621,11 @@ namespace SportMonks.Football.FixtureWorker.Services
             {
                 await _fixtureTrendCommentaryWriter.UpsertTrendsAndCommentariesAsync(fixtures, cancellationToken);
             }
+
+            if (ShouldSyncFixtureNews())
+            {
+                await _newsWriter.UpsertFixtureNewsAsync(fixtures, cancellationToken);
+            }
         }
 
         private IEnumerable<string> BuildFixtureSyncIncludes()
@@ -569,6 +649,11 @@ namespace SportMonks.Football.FixtureWorker.Services
             }
 
             foreach (var include in BuildFixtureTimelineIncludes())
+            {
+                yield return include;
+            }
+
+            foreach (var include in BuildFixtureNewsIncludes())
             {
                 yield return include;
             }
@@ -636,9 +721,51 @@ namespace SportMonks.Football.FixtureWorker.Services
                     GetBoolean("SportMonksFixtureTimelineSync:SyncCommentaries", false));
         }
 
+        private IEnumerable<string> BuildFixtureNewsIncludes()
+        {
+            if (!GetBoolean("SportMonksNewsSync:Enabled", false))
+            {
+                yield break;
+            }
+
+            var includeLines = GetBoolean("SportMonksNewsSync:IncludeLines", true);
+
+            if (GetBoolean("SportMonksNewsSync:SyncFixturePreMatchNews", false))
+            {
+                yield return "prematchNews";
+
+                if (includeLines)
+                {
+                    yield return "prematchNews.lines";
+                }
+            }
+
+            if (GetBoolean("SportMonksNewsSync:SyncFixturePostMatchNews", false))
+            {
+                yield return "postmatchNews";
+
+                if (includeLines)
+                {
+                    yield return "postmatchNews.lines";
+                }
+            }
+        }
+
+        private bool ShouldSyncFixtureNews()
+        {
+            return GetBoolean("SportMonksNewsSync:Enabled", false) &&
+                   (GetBoolean("SportMonksNewsSync:SyncFixturePreMatchNews", false) ||
+                    GetBoolean("SportMonksNewsSync:SyncFixturePostMatchNews", false));
+        }
+
         private string GetFixtureByDateEndpoint()
         {
             return NullIfWhiteSpace(_configuration["SportMonksUrls:fixtureByDate"]) ?? "fixtures/date/";
+        }
+
+        private string GetConfiguredEndpoint(string key, string defaultValue)
+        {
+            return NullIfWhiteSpace(_configuration[key]) ?? defaultValue;
         }
 
         private bool GetBoolean(string key, bool defaultValue)
