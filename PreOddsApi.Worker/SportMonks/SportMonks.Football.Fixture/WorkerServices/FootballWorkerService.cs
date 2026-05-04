@@ -30,6 +30,32 @@ namespace SportMonks.Football.FixtureWorker.Services
             "referees"
         ];
 
+        private static readonly string[] PlayerReferenceIncludes =
+        [
+            "sport",
+            "country",
+            "city",
+            "nationality"
+        ];
+
+        private static readonly string[] CoachReferenceIncludes =
+        [
+            "country",
+            "player"
+        ];
+
+        private static readonly string[] RivalReferenceIncludes =
+        [
+            "team",
+            "rival"
+        ];
+
+        private static readonly string[] TeamSquadIncludes =
+        [
+            "team",
+            "player"
+        ];
+
         private readonly ILogger<FootballWorkerService> _logger;
         private readonly IConfiguration _configuration;
         private readonly ISportMonksSyncRunner _syncRunner;
@@ -39,6 +65,7 @@ namespace SportMonks.Football.FixtureWorker.Services
         private readonly ISportMonksFixtureEventStatisticWriter _fixtureEventStatisticWriter;
         private readonly ISportMonksFixtureLineupFormationWriter _fixtureLineupFormationWriter;
         private readonly ISportMonksFixtureRefereeWriter _fixtureRefereeWriter;
+        private readonly ISportMonksPlayerCoachSquadRivalWriter _playerCoachSquadRivalWriter;
 
         public FootballWorkerService(
             ILogger<FootballWorkerService> logger,
@@ -49,7 +76,8 @@ namespace SportMonks.Football.FixtureWorker.Services
             ISportMonksFixtureCoreWriter fixtureCoreWriter,
             ISportMonksFixtureEventStatisticWriter fixtureEventStatisticWriter,
             ISportMonksFixtureLineupFormationWriter fixtureLineupFormationWriter,
-            ISportMonksFixtureRefereeWriter fixtureRefereeWriter)
+            ISportMonksFixtureRefereeWriter fixtureRefereeWriter,
+            ISportMonksPlayerCoachSquadRivalWriter playerCoachSquadRivalWriter)
         {
             _logger = logger;
             _configuration = configuration;
@@ -60,6 +88,7 @@ namespace SportMonks.Football.FixtureWorker.Services
             _fixtureEventStatisticWriter = fixtureEventStatisticWriter;
             _fixtureLineupFormationWriter = fixtureLineupFormationWriter;
             _fixtureRefereeWriter = fixtureRefereeWriter;
+            _playerCoachSquadRivalWriter = playerCoachSquadRivalWriter;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -73,7 +102,8 @@ namespace SportMonks.Football.FixtureWorker.Services
                     await ExecuteStates(stoppingToken);
                     await ExecuteVenues(stoppingToken);
                     await ExecuteLeague(stoppingToken);
-                    await ExecuteTeams(stoppingToken);
+                    var teams = await ExecuteTeams(stoppingToken);
+                    await ExecutePlayerCoachSquadRivalReferences(teams, stoppingToken);
                     await ExecuteFixtureWindow(stoppingToken);
                 }
                 catch (Exception exc)
@@ -133,7 +163,7 @@ namespace SportMonks.Football.FixtureWorker.Services
             await _footballCoreReferenceWriter.UpsertVenuesAsync(venues, cancellationToken);
         }
 
-        private async Task ExecuteTeams(CancellationToken cancellationToken)
+        private async Task<List<Team>> ExecuteTeams(CancellationToken cancellationToken)
         {
             var teams = (await _syncRunner.GetAllAsync<Team>(
                 SportMonksSyncJobDefinition.Create(
@@ -145,6 +175,99 @@ namespace SportMonks.Football.FixtureWorker.Services
                 cancellationToken: cancellationToken)).ToList();
 
             await _footballCoreReferenceWriter.UpsertTeamsWithVenuesAsync(teams, cancellationToken);
+            return teams;
+        }
+
+        private async Task ExecutePlayerCoachSquadRivalReferences(
+            IReadOnlyCollection<Team> teams,
+            CancellationToken cancellationToken)
+        {
+            if (!GetBoolean("SportMonksPlayerReferenceSync:Enabled", false))
+            {
+                return;
+            }
+
+            if (GetBoolean("SportMonksPlayerReferenceSync:SyncPlayers", true))
+            {
+                var players = (await _syncRunner.GetAllAsync<Player>(
+                    SportMonksSyncJobDefinition.Create(
+                        "sportmonks.football.players",
+                        "football.player",
+                        "Sync SportMonks football player reference data."),
+                    SportMonksApiRequest.Create("players")
+                        .WithInclude(PlayerReferenceIncludes),
+                    cancellationToken: cancellationToken)).ToList();
+
+                await _playerCoachSquadRivalWriter.UpsertPlayersAsync(players, cancellationToken);
+            }
+
+            if (GetBoolean("SportMonksPlayerReferenceSync:SyncCoaches", true))
+            {
+                var coaches = (await _syncRunner.GetAllAsync<Coach>(
+                    SportMonksSyncJobDefinition.Create(
+                        "sportmonks.football.coaches",
+                        "football.coach",
+                        "Sync SportMonks football coach reference data."),
+                    SportMonksApiRequest.Create("coaches")
+                        .WithInclude(CoachReferenceIncludes),
+                    cancellationToken: cancellationToken)).ToList();
+
+                await _playerCoachSquadRivalWriter.UpsertCoachesAsync(coaches, cancellationToken);
+            }
+
+            if (GetBoolean("SportMonksPlayerReferenceSync:SyncRivals", true))
+            {
+                var rivals = (await _syncRunner.GetAllAsync<Rival>(
+                    SportMonksSyncJobDefinition.Create(
+                        "sportmonks.football.rivals",
+                        "football.team_rival",
+                        "Sync SportMonks football team rival reference data."),
+                    SportMonksApiRequest.Create("rivals")
+                        .WithInclude(RivalReferenceIncludes),
+                    cancellationToken: cancellationToken)).ToList();
+
+                await _playerCoachSquadRivalWriter.UpsertTeamRivalsAsync(rivals, cancellationToken);
+            }
+
+            if (GetBoolean("SportMonksPlayerReferenceSync:SyncTeamSquads", false))
+            {
+                await ExecuteTeamSquads(teams, cancellationToken);
+            }
+        }
+
+        private async Task ExecuteTeamSquads(
+            IReadOnlyCollection<Team> teams,
+            CancellationToken cancellationToken)
+        {
+            var maxTeamsPerRun = Math.Max(0, GetInteger("SportMonksPlayerReferenceSync:MaxSquadTeamsPerRun", 0));
+            var teamList = teams
+                .Where(team => team != null && team.Id > 0)
+                .GroupBy(team => team.Id)
+                .Select(group => group.Last())
+                .OrderBy(team => team.Id)
+                .ToList();
+
+            if (maxTeamsPerRun > 0)
+            {
+                teamList = teamList.Take(maxTeamsPerRun).ToList();
+            }
+
+            foreach (var team in teamList)
+            {
+                var endpoint = $"squads/teams/{team.Id}";
+                var teamSquads = (await _syncRunner.GetAllAsync<TeamSquad>(
+                    SportMonksSyncJobDefinition.Create(
+                        "sportmonks.football.team-squads.by-team",
+                        "football.team_squad",
+                        "Sync SportMonks football team squad rows by team."),
+                    SportMonksApiRequest.Create(endpoint)
+                        .WithInclude(TeamSquadIncludes)
+                        .WithoutDefaultPagination(),
+                    cursorKey: endpoint,
+                    cancellationToken: cancellationToken)).ToList();
+
+                await _playerCoachSquadRivalWriter.UpsertTeamSquadsAsync(teamSquads, cancellationToken);
+            }
         }
 
         private async Task ExecuteFixtureWindow(CancellationToken cancellationToken)

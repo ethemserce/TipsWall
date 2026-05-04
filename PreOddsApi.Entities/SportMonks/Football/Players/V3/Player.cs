@@ -56,7 +56,7 @@ namespace PreOddsApi.Entities.SportMonks.Football.V3
         public int? Weight { get; set; }
         
         [JsonProperty("date_of_birth")]
-        public DateOnly DateOfBirth { get; set; }
+        public DateOnly? DateOfBirth { get; set; }
 
         [JsonProperty("sport")] // if add to Query Params "include=sport"
         public Sport Sport { get; set; }
