@@ -36,6 +36,8 @@ builder.Services.AddSingleton<PreOddsApi.WebApi.V3.Data.IFixtureReader,
     PreOddsApi.WebApi.V3.Data.PostgresFixtureReader>();
 builder.Services.AddSingleton<PreOddsApi.WebApi.V3.Data.IStandingsNewsReader,
     PreOddsApi.WebApi.V3.Data.PostgresStandingsNewsReader>();
+builder.Services.AddScoped<PreOddsApi.WebApi.V3.Data.IUserIdentityService,
+    PreOddsApi.WebApi.V3.Data.PostgresUserIdentityService>();
 
 builder.Services.AddRateLimiter(options =>
 {
