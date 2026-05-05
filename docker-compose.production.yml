@@ -53,6 +53,7 @@ services:
       PREODDS_INTERNAL_API_KEY: ${PREODDS_INTERNAL_API_KEY:-}
       Authentication__Issuer: ${AUTH_ISSUER:-http://localhost:8080}
       Authentication__Audience: ${AUTH_AUDIENCE:-http://localhost:8080}
+      Cors__AllowedOrigins__0: ${CORS_ORIGIN_0:?required}
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8080/health/live"]
       interval: 30s
