@@ -1,3 +1,13 @@
+# Local development PostgreSQL stack for PreOddsApi.
+#
+# Usage:
+#   docker compose -f docker-compose.postgres.yml up -d
+#
+# - Postgres init mount applies SQL files on first volume creation only.
+# - Migrator runs on every `up` to apply NEW SQL files added after the
+#   first init, tracking them in sync.schema_migrations.
+# - Workers and WebApi run separately (via `dotnet run`) for fast iteration.
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -7,7 +17,7 @@ services:
       POSTGRES_USER: preodds
       POSTGRES_PASSWORD: preodds_dev_password
     ports:
-      - "5432:5432"
+      - "${POSTGRES_HOST_PORT:-15432}:5432"
     volumes:
       - preodds-postgres-data:/var/lib/postgresql/data
       - ./database/postgres:/docker-entrypoint-initdb.d:ro
@@ -16,6 +26,18 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  migrator:
+    build:
+      context: .
+      dockerfile: Dockerfile.migrator
+    container_name: preodds-migrator
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PREODDS_POSTGRES_CONNECTION: "Host=postgres;Port=5432;Database=preodds;Username=preodds;Password=preodds_dev_password"
 
 volumes:
   preodds-postgres-data:
