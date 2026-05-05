@@ -23,6 +23,34 @@ namespace PreOddsApi.WebApi.V3.Data
 
         Task<PreferencesOutcome> UpsertPreferencesAsync(
             Guid userId, UpdateUserPreferencesRequest request, CancellationToken ct = default);
+
+        Task<IReadOnlyList<DeviceDto>> GetDevicesAsync(
+            Guid userId, CancellationToken ct = default);
+
+        Task<DeviceOutcome> RegisterDeviceAsync(
+            Guid userId, RegisterDeviceRequest request, CancellationToken ct = default);
+
+        Task<bool> RevokeDeviceAsync(
+            Guid userId, Guid deviceId, CancellationToken ct = default);
+
+        Task<(IReadOnlyList<NotificationDto> Items, int Total)> GetNotificationsAsync(
+            Guid userId, string? status, int page, int perPage, CancellationToken ct = default);
+
+        Task<NotificationDto?> MarkNotificationReadAsync(
+            Guid userId, Guid notificationId, CancellationToken ct = default);
+    }
+
+    public sealed class DeviceOutcome
+    {
+        public DeviceDto? Device { get; init; }
+        public string? ErrorCode { get; init; }
+        public string? ErrorMessage { get; init; }
+
+        public bool Succeeded => Device != null && ErrorCode == null;
+
+        public static DeviceOutcome Ok(DeviceDto d) => new() { Device = d };
+        public static DeviceOutcome Fail(string code, string message) =>
+            new() { ErrorCode = code, ErrorMessage = message };
     }
 
     public sealed class FavoriteOutcome
