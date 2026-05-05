@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using PreOddsApi.WebApi.V3.Contracts;
 using PreOddsApi.WebApi.V3.Dtos;
 
 namespace PreOddsApi.WebApi.V3.Data
@@ -40,5 +41,51 @@ namespace PreOddsApi.WebApi.V3.Data
             string? ipAddress,
             string? userAgent,
             CancellationToken ct = default);
+
+        Task<TipOutcome> CreateTipAsync(
+            Guid userId,
+            CreateTipRequest request,
+            CancellationToken ct = default);
+
+        Task<bool> DeleteTipAsync(
+            Guid userId,
+            Guid tipId,
+            CancellationToken ct = default);
+
+        Task<CouponOutcome> CreateCouponAsync(
+            Guid userId,
+            CreateCouponRequest request,
+            CancellationToken ct = default);
+
+        Task<bool> DeleteCouponAsync(
+            Guid userId,
+            Guid couponId,
+            CancellationToken ct = default);
+    }
+
+    public sealed class TipOutcome
+    {
+        public TipDto? Tip { get; init; }
+        public string? ErrorCode { get; init; }
+        public string? ErrorMessage { get; init; }
+
+        public bool Succeeded => Tip != null && ErrorCode == null;
+
+        public static TipOutcome Ok(TipDto tip) => new() { Tip = tip };
+        public static TipOutcome Fail(string code, string message) =>
+            new() { ErrorCode = code, ErrorMessage = message };
+    }
+
+    public sealed class CouponOutcome
+    {
+        public CouponDetailDto? Coupon { get; init; }
+        public string? ErrorCode { get; init; }
+        public string? ErrorMessage { get; init; }
+
+        public bool Succeeded => Coupon != null && ErrorCode == null;
+
+        public static CouponOutcome Ok(CouponDetailDto coupon) => new() { Coupon = coupon };
+        public static CouponOutcome Fail(string code, string message) =>
+            new() { ErrorCode = code, ErrorMessage = message };
     }
 }
