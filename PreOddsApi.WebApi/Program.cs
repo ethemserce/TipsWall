@@ -26,6 +26,8 @@ IWebHostEnvironment environment = builder.Environment;
 DependencyService.SetDependencyTypes(builder.Services, builder.Configuration);
 builder.Services.AddSingleton<PreOddsApi.WebApi.V3.Data.IOddsReader,
     PreOddsApi.WebApi.V3.Data.PostgresOddsReader>();
+builder.Services.AddSingleton<PreOddsApi.WebApi.V3.Data.IAppSchemaService,
+    PreOddsApi.WebApi.V3.Data.PostgresAppSchemaService>();
 
 builder.Services.AddRateLimiter(options =>
 {
