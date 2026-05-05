@@ -28,6 +28,8 @@ builder.Services.AddSingleton<PreOddsApi.WebApi.V3.Data.IOddsReader,
     PreOddsApi.WebApi.V3.Data.PostgresOddsReader>();
 builder.Services.AddSingleton<PreOddsApi.WebApi.V3.Data.IAppSchemaService,
     PreOddsApi.WebApi.V3.Data.PostgresAppSchemaService>();
+builder.Services.AddSingleton<PreOddsApi.WebApi.V3.Data.ISyncDiagnostics,
+    PreOddsApi.WebApi.V3.Data.PostgresSyncDiagnostics>();
 
 builder.Services.AddRateLimiter(options =>
 {
