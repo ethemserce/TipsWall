@@ -138,12 +138,33 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
     };
 });
 
+var corsAllowedOrigins = builder.Configuration
+    .GetSection("Cors:AllowedOrigins")
+    .Get<string[]>() ?? Array.Empty<string>();
+
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("CorsPolicy",
-        builder => builder.AllowAnyOrigin()
-            .AllowAnyMethod()
-            .AllowAnyHeader());
+    options.AddDefaultPolicy(policy =>
+    {
+        if (corsAllowedOrigins.Length == 0)
+        {
+            if (builder.Environment.IsDevelopment())
+            {
+                policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
+            }
+            else
+            {
+                throw new InvalidOperationException(
+                    "Cors:AllowedOrigins must be configured outside Development.");
+            }
+        }
+        else
+        {
+            policy.WithOrigins(corsAllowedOrigins)
+                  .AllowAnyMethod()
+                  .AllowAnyHeader();
+        }
+    });
 });
 
 builder.Services.Configure<GzipCompressionProviderOptions>(o => o.Level = System.IO.Compression.CompressionLevel.Optimal);
@@ -151,17 +172,6 @@ builder.Services.AddResponseCompression(o =>
 {
     o.EnableForHttps = true;
     o.Providers.Add<GzipCompressionProvider>();
-});
-
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowSpecificOrigins",
-        builder =>
-        {
-            builder.WithOrigins("http://localhost:28333") // İzin verilen orijinleri buraya ekleyin
-                   .AllowAnyHeader()
-                   .AllowAnyMethod();
-        });
 });
 
 var app = builder.Build();
@@ -188,7 +198,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(options => options.SwaggerEndpoint("/swagger/v3/swagger.json", "PreOdds API v3"));
 }
 
-app.UseCors("AllowSpecificOrigins");
+app.UseCors();
 
 app.UseHttpsRedirection();
 
