@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -10,6 +11,12 @@ namespace PreOddsApi.WebApi.V3.Controllers
     [Route("api/v3/[controller]")]
     public abstract class ApiControllerBase : ControllerBase
     {
+        protected Guid? GetUserId()
+        {
+            var uid = User.FindFirst("uid")?.Value;
+            return Guid.TryParse(uid, out var id) ? id : null;
+        }
+
         protected IActionResult OkResponse<T>(T data)
             => Ok(ApiResponse<T>.Ok(data));
 
