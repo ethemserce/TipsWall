@@ -43,6 +43,10 @@ builder.Services.AddSingleton<PreOddsApi.WebApi.V3.Data.IRefreshTokenService,
 builder.Services.AddSingleton<PreOddsApi.WebApi.V3.Data.IUserDataService,
     PreOddsApi.WebApi.V3.Data.PostgresUserDataService>();
 
+builder.Services.AddHealthChecks()
+    .AddCheck<PreOddsApi.WebApi.V3.Health.PostgresHealthCheck>(
+        "postgres", tags: new[] { "ready" });
+
 builder.Services.AddRateLimiter(options =>
 {
     options.AddFixedWindowLimiter("auth", limiterOptions =>
@@ -191,6 +195,16 @@ app.UseHttpsRedirection();
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.MapHealthChecks("/health/live", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = _ => false
+}).AllowAnonymous();
+
+app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("ready")
+}).AllowAnonymous();
 
 app.MapControllers();
 
