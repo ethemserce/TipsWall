@@ -1,3 +1,4 @@
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
@@ -31,6 +32,38 @@ namespace PreOddsApi.WebApi.V3.Controllers
                 ct);
 
             return OkPagedResponse(items, paging.NormalizedPage, paging.NormalizedPerPage, total);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> CreateAsync(
+            [FromBody] CreateTipRequest request,
+            CancellationToken ct)
+        {
+            var userId = GetUserId();
+            if (userId == null)
+                return Unauthorized(ApiResponse<object>.Fail(
+                    ApiError.Codes.Unauthorized, "Token is missing user id."));
+
+            var outcome = await _appSchema.CreateTipAsync(userId.Value, request, ct);
+            if (!outcome.Succeeded)
+                return BadRequestResponse(outcome.ErrorMessage ?? "Validation failed.");
+
+            return Ok(ApiResponse<object>.Ok(outcome.Tip!));
+        }
+
+        [HttpDelete("{id:guid}")]
+        public async Task<IActionResult> DeleteAsync(Guid id, CancellationToken ct)
+        {
+            var userId = GetUserId();
+            if (userId == null)
+                return Unauthorized(ApiResponse<object>.Fail(
+                    ApiError.Codes.Unauthorized, "Token is missing user id."));
+
+            var deleted = await _appSchema.DeleteTipAsync(userId.Value, id, ct);
+            if (!deleted)
+                return NotFoundResponse($"Tip {id} not found.");
+
+            return OkResponse(new { deleted = true });
         }
     }
 }
