@@ -19,16 +19,21 @@ namespace PreOddsApi.WebApi.V3.Controllers
     [EnableRateLimiting("auth")]
     public sealed class AuthController : ApiControllerBase
     {
-        private const int TokenLifetimeSeconds = 86400;
+        private const int AccessTokenLifetimeSeconds = 86400;
 
         private readonly IUserIdentityService _identity;
+        private readonly IRefreshTokenService _refreshTokens;
         private readonly string _jwtSecret;
         private readonly string _jwtIssuer;
         private readonly string _jwtAudience;
 
-        public AuthController(IUserIdentityService identity, IConfiguration configuration)
+        public AuthController(
+            IUserIdentityService identity,
+            IRefreshTokenService refreshTokens,
+            IConfiguration configuration)
         {
             _identity = identity;
+            _refreshTokens = refreshTokens;
             _jwtSecret = Environment.GetEnvironmentVariable("PREODDS_JWT_SECRET")
                 ?? configuration["Authentication:JwtSecret"]
                 ?? "CHANGE_ME_PREODDS_JWT_SECRET_32_CHARS_MINIMUM";
@@ -49,11 +54,15 @@ namespace PreOddsApi.WebApi.V3.Controllers
                 return Unauthorized(ApiResponse<object>.Fail(
                     ApiError.Codes.Unauthorized, "Invalid credentials."));
 
+            var refresh = await _refreshTokens.IssueAsync(
+                user.Id, GetUserAgent(), GetIpAddress(), ct);
+
             return OkResponse(new TokenDto
             {
-                AccessToken = GenerateToken(user),
+                AccessToken = GenerateAccessToken(user),
+                RefreshToken = refresh.RawToken,
                 TokenType = "Bearer",
-                ExpiresIn = TokenLifetimeSeconds
+                ExpiresIn = AccessTokenLifetimeSeconds
             });
         }
 
@@ -63,11 +72,7 @@ namespace PreOddsApi.WebApi.V3.Controllers
             CancellationToken ct)
         {
             var outcome = await _identity.SignupAsync(
-                request.Username,
-                request.Email,
-                request.Password,
-                request.DisplayName,
-                ct);
+                request.Username, request.Email, request.Password, request.DisplayName, ct);
 
             if (!outcome.Succeeded)
             {
@@ -81,13 +86,56 @@ namespace PreOddsApi.WebApi.V3.Controllers
             }
 
             var user = outcome.User!;
+            var refresh = await _refreshTokens.IssueAsync(
+                user.Id, GetUserAgent(), GetIpAddress(), ct);
+
             return Ok(ApiResponse<AuthResponseDto>.Ok(new AuthResponseDto
             {
                 User = user,
-                AccessToken = GenerateToken(user),
+                AccessToken = GenerateAccessToken(user),
+                RefreshToken = refresh.RawToken,
                 TokenType = "Bearer",
-                ExpiresIn = TokenLifetimeSeconds
+                ExpiresIn = AccessTokenLifetimeSeconds
             }));
+        }
+
+        [HttpPost("refresh")]
+        public async Task<IActionResult> RefreshAsync(
+            [FromBody] RefreshTokenRequest request,
+            CancellationToken ct)
+        {
+            if (string.IsNullOrWhiteSpace(request.RefreshToken))
+                return BadRequestResponse("refresh_token is required.");
+
+            var result = await _refreshTokens.RotateAsync(
+                request.RefreshToken, GetUserAgent(), GetIpAddress(), ct);
+
+            if (!result.Succeeded || result.NewToken == null)
+                return Unauthorized(ApiResponse<object>.Fail(
+                    ApiError.Codes.Unauthorized,
+                    $"Refresh token invalid: {result.FailureReason ?? "unknown"}."));
+
+            var user = new UserDto { Id = result.UserId };
+
+            return OkResponse(new TokenDto
+            {
+                AccessToken = GenerateAccessToken(user),
+                RefreshToken = result.NewToken.RawToken,
+                TokenType = "Bearer",
+                ExpiresIn = AccessTokenLifetimeSeconds
+            });
+        }
+
+        [HttpPost("logout")]
+        public async Task<IActionResult> LogoutAsync(
+            [FromBody] RefreshTokenRequest request,
+            CancellationToken ct)
+        {
+            if (string.IsNullOrWhiteSpace(request.RefreshToken))
+                return BadRequestResponse("refresh_token is required.");
+
+            await _refreshTokens.RevokeAsync(request.RefreshToken, "logout", ct);
+            return OkResponse(new { revoked = true });
         }
 
         [Authorize]
@@ -106,7 +154,7 @@ namespace PreOddsApi.WebApi.V3.Controllers
             });
         }
 
-        private string GenerateToken(UserDto user)
+        private string GenerateAccessToken(UserDto user)
         {
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSecret));
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -125,10 +173,18 @@ namespace PreOddsApi.WebApi.V3.Controllers
                 issuer: _jwtIssuer,
                 audience: _jwtAudience,
                 claims: claims,
-                expires: DateTime.UtcNow.AddSeconds(TokenLifetimeSeconds),
+                expires: DateTime.UtcNow.AddSeconds(AccessTokenLifetimeSeconds),
                 signingCredentials: credentials);
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
+
+        private string? GetUserAgent()
+        {
+            var ua = Request.Headers.UserAgent.ToString();
+            return string.IsNullOrWhiteSpace(ua) ? null : ua;
+        }
+
+        private string? GetIpAddress() => HttpContext.Connection.RemoteIpAddress?.ToString();
     }
 }

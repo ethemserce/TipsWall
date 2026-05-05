@@ -7,6 +7,9 @@ namespace PreOddsApi.WebApi.V3.Dtos
         [JsonProperty("access_token")]
         public string AccessToken { get; init; } = string.Empty;
 
+        [JsonProperty("refresh_token", NullValueHandling = NullValueHandling.Ignore)]
+        public string? RefreshToken { get; init; }
+
         [JsonProperty("token_type")]
         public string TokenType { get; init; } = "Bearer";
 
