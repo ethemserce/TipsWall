@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using PreOddsApi.ExternalApis.Analytics;
 using PreOddsApi.ExternalApis.SportMonks;
 using PreOddsApi.ExternalApis.SportMonks.Sync;
 using PreOddsApi.ExternalApis.SportMonks.Sync.Writers;
@@ -33,6 +34,7 @@ namespace PreOddsApi.ExternalApis.DependencyInjection
             services.AddSingleton<ISportMonksNewsWriter, SportMonksNewsWriter>();
             services.AddSingleton<ISportMonksPrematchOddsWriter, SportMonksPrematchOddsWriter>();
             services.AddSingleton<ISportMonksInplayOddsWriter, SportMonksInplayOddsWriter>();
+            services.AddSingleton<IAnalyticsEngine, PostgresAnalyticsEngine>();
             services.AddHttpClient<ISportMonksApiClient, SportMonksApiClient>(httpClient =>
             {
                 httpClient.BaseAddress = new Uri(options.BaseUrl);
