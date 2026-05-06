@@ -82,11 +82,11 @@ namespace PreOddsApi.ExternalApis.SportMonks.Sync.Writers
 
                 foreach (var country in countryList)
                 {
-                    await UpsertCountryAsync(connection, transaction, country, cancellationToken);
+                    var localCountryId = await UpsertCountryAsync(connection, transaction, country, cancellationToken);
 
                     foreach (var region in country.Regions ?? Enumerable.Empty<Region>())
                     {
-                        await UpsertRegionAsync(connection, transaction, region, country.Id, cancellationToken);
+                        var localRegionId = await UpsertRegionAsync(connection, transaction, region, localCountryId, cancellationToken);
                         regionCount++;
 
                         foreach (var city in region.Cities ?? Enumerable.Empty<City>())
@@ -95,8 +95,10 @@ namespace PreOddsApi.ExternalApis.SportMonks.Sync.Writers
                                 connection,
                                 transaction,
                                 city,
-                                country.Id,
-                                region.Id,
+                                //country.Id,
+                                localCountryId,
+                                //region.Id,
+                                localRegionId,
                                 cancellationToken);
                             cityCount++;
                         }
@@ -110,7 +112,7 @@ namespace PreOddsApi.ExternalApis.SportMonks.Sync.Writers
                     regionCount,
                     cityCount);
             }
-            catch
+            catch (Exception exc)
             {
                 await transaction.RollbackAsync(cancellationToken);
                 throw;
@@ -189,6 +191,66 @@ namespace PreOddsApi.ExternalApis.SportMonks.Sync.Writers
             }
         }
 
+        public async Task UpsertSportsAsync(
+            IEnumerable<Sport> sports,
+            CancellationToken cancellationToken = default)
+        {
+            var sportList = sports
+                .Where(sport => sport != null)
+                .GroupBy(sport => sport.Id)
+                .Select(group => group.Last())
+                .ToList();
+
+            if (sportList.Count == 0)
+            {
+                return;
+            }
+
+            await using var connection = await OpenConnectionAsync(cancellationToken);
+            await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+
+            try
+            {
+                foreach (var sport in sportList)
+                {
+                    await using var command = connection.CreateCommand();
+                    command.Transaction = transaction;
+                    command.CommandText = """
+                        insert into catalog.sports (
+                            id,
+                            name,
+                            code,
+                            last_synced_at)
+                        values (
+                            @id,
+                            @name,
+                            @code,
+                            now())
+                        on conflict (id) do update set
+                            name = excluded.name,
+                            code = excluded.code,
+                            last_synced_at = now(),
+                            updated_at = now();
+                        """;
+                    command.Parameters.Add(Parameter("id", sport.Id));
+                    command.Parameters.Add(Parameter("name", GetRequiredName(sport.Name, "sport", sport.Id)));
+                    command.Parameters.Add(Parameter("code", NullIfWhiteSpace(sport.Code)));
+
+                    await command.ExecuteNonQueryAsync(cancellationToken);
+                }
+
+                await transaction.CommitAsync(cancellationToken);
+                _logger.LogInformation(
+                    "Upserted {SportCount} SportMonks sports into catalog.sports.",
+                    sportList.Count);
+            }
+            catch
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                throw;
+            }
+        }
+
         private static async Task UpsertContinentAsync(
             NpgsqlConnection connection,
             NpgsqlTransaction transaction,
@@ -221,7 +283,7 @@ namespace PreOddsApi.ExternalApis.SportMonks.Sync.Writers
             await command.ExecuteNonQueryAsync(cancellationToken);
         }
 
-        private static async Task UpsertCountryAsync(
+        private static async Task<long> UpsertCountryAsync(
             NpgsqlConnection connection,
             NpgsqlTransaction transaction,
             Country country,
@@ -292,9 +354,10 @@ namespace PreOddsApi.ExternalApis.SportMonks.Sync.Writers
             });
 
             await command.ExecuteNonQueryAsync(cancellationToken);
+            return country.Id;
         }
 
-        private static async Task UpsertRegionAsync(
+        private static async Task<long> UpsertRegionAsync(
             NpgsqlConnection connection,
             NpgsqlTransaction transaction,
             Region region,
@@ -321,13 +384,14 @@ namespace PreOddsApi.ExternalApis.SportMonks.Sync.Writers
                     updated_at = now();
                 """;
             command.Parameters.Add(Parameter("id", region.Id));
-            command.Parameters.Add(Parameter("country_id", region.CountryId == 0 ? fallbackCountryId : region.CountryId));
+            command.Parameters.Add(Parameter("country_id", fallbackCountryId));
             command.Parameters.Add(Parameter("name", GetRequiredName(region.Name, "region", region.Id)));
 
             await command.ExecuteNonQueryAsync(cancellationToken);
+            return region.Id;
         }
 
-        private static async Task UpsertCityAsync(
+        private static async Task<int> UpsertCityAsync(
             NpgsqlConnection connection,
             NpgsqlTransaction transaction,
             City city,
@@ -376,13 +440,13 @@ namespace PreOddsApi.ExternalApis.SportMonks.Sync.Writers
                 regionId = fallbackRegionId;
             }
 
-            command.Parameters.Add(Parameter("country_id", countryId));
-            command.Parameters.Add(Parameter("region_id", regionId));
+            command.Parameters.Add(Parameter("country_id", fallbackCountryId));
+            command.Parameters.Add(Parameter("region_id", fallbackRegionId));
             command.Parameters.Add(Parameter("name", GetRequiredName(city.Name, "city", city.Id)));
             command.Parameters.Add(Parameter("latitude", TryParseDecimal(city.Latitude)));
             command.Parameters.Add(Parameter("longitude", TryParseDecimal(city.Longitude)));
 
-            await command.ExecuteNonQueryAsync(cancellationToken);
+            return await command.ExecuteNonQueryAsync(cancellationToken);
         }
 
         private async Task<NpgsqlConnection> OpenConnectionAsync(CancellationToken cancellationToken)
