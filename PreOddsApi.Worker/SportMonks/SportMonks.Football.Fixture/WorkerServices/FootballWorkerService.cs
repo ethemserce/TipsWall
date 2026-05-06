@@ -26,23 +26,8 @@ namespace SportMonks.Football.FixtureWorker.Services
 
         private static readonly string[] FixtureSyncIncludes =
         [
-            "sport",
-            "league",
-            "season",
-            "stage",
-            "group",
-            "round",
-            "state",
-            "venue",
             "participants",
-            "scores",
-            "periods",
-            "events",
-            "statistics",
-            "lineups",
-            "lineups.details.type",
-            "formations",
-            "referees"
+            "scores"
         ];
 
         private static readonly string[] FixtureSidelinedIncludes =
@@ -312,16 +297,8 @@ namespace SportMonks.Football.FixtureWorker.Services
                 SportMonksSyncJobDefinition.Create(
                     "sportmonks.football.leagues",
                     "competition.league",
-                    "Sync SportMonks football leagues with sport, seasons, stages, rounds, and groups."),
-                SportMonksApiRequest.Create("leagues")
-                    .WithInclude(
-                        "sport",
-                        "seasons",
-                        "currentSeason",
-                        "stages",
-                        "stages.rounds",
-                        "stages.groups",
-                        "seasons.groups"),
+                    "Sync SportMonks football leagues."),
+                SportMonksApiRequest.Create("leagues"),
                 cancellationToken: cancellationToken)).ToList();
 
             await _competitionReferenceWriter.UpsertLeaguesWithHierarchyAsync(leagues, cancellationToken);
@@ -335,8 +312,7 @@ namespace SportMonks.Football.FixtureWorker.Services
                     "sportmonks.football.states",
                     "catalog.state",
                     "Sync SportMonks football states with type include."),
-                SportMonksApiRequest.Create("states")
-                    .WithInclude("type"),
+                SportMonksApiRequest.Create("states"),
                 cancellationToken: cancellationToken)).ToList();
 
             await _footballCoreReferenceWriter.UpsertStatesAsync(states, cancellationToken);
@@ -349,8 +325,7 @@ namespace SportMonks.Football.FixtureWorker.Services
                     "sportmonks.football.venues",
                     "football.venue",
                     "Sync SportMonks football venues."),
-                SportMonksApiRequest.Create("venues")
-                    .WithInclude("country", "city"),
+                SportMonksApiRequest.Create("venues"),
                 cancellationToken: cancellationToken)).ToList();
 
             await _footballCoreReferenceWriter.UpsertVenuesAsync(venues, cancellationToken);
@@ -363,8 +338,7 @@ namespace SportMonks.Football.FixtureWorker.Services
                     "sportmonks.football.teams",
                     "football.team",
                     "Sync SportMonks football teams with sport and venue include."),
-                SportMonksApiRequest.Create("teams")
-                    .WithInclude("sport", "venue"),
+                SportMonksApiRequest.Create("teams"),
                 cancellationToken: cancellationToken)).ToList();
 
             await _footballCoreReferenceWriter.UpsertTeamsWithVenuesAsync(teams, cancellationToken);

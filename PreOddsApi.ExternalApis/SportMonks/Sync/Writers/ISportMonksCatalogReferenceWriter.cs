@@ -15,5 +15,9 @@ namespace PreOddsApi.ExternalApis.SportMonks.Sync.Writers
         Task UpsertTypesAsync(
             IEnumerable<Types> types,
             CancellationToken cancellationToken = default);
+
+        Task UpsertSportsAsync(
+            IEnumerable<Sport> sports,
+            CancellationToken cancellationToken = default);
     }
 }
