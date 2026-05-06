@@ -15,7 +15,6 @@ using PreOddsApi.WebApi.V3.Dtos;
 
 namespace PreOddsApi.WebApi.V3.Controllers
 {
-    [AllowAnonymous]
     [EnableRateLimiting("auth")]
     public sealed class AuthController : ApiControllerBase
     {
@@ -41,6 +40,7 @@ namespace PreOddsApi.WebApi.V3.Controllers
             _jwtAudience = configuration["Authentication:Audience"] ?? "http://localhost:28332";
         }
 
+        [AllowAnonymous]
         [HttpPost("token")]
         public async Task<IActionResult> TokenAsync(
             [FromBody] LoginRequest request,
@@ -66,6 +66,7 @@ namespace PreOddsApi.WebApi.V3.Controllers
             });
         }
 
+        [AllowAnonymous]
         [HttpPost("signup")]
         public async Task<IActionResult> SignupAsync(
             [FromBody] SignupRequest request,
@@ -99,6 +100,7 @@ namespace PreOddsApi.WebApi.V3.Controllers
             }));
         }
 
+        [AllowAnonymous]
         [HttpPost("refresh")]
         public async Task<IActionResult> RefreshAsync(
             [FromBody] RefreshTokenRequest request,
@@ -126,6 +128,7 @@ namespace PreOddsApi.WebApi.V3.Controllers
             });
         }
 
+        [AllowAnonymous]
         [HttpPost("logout")]
         public async Task<IActionResult> LogoutAsync(
             [FromBody] RefreshTokenRequest request,
