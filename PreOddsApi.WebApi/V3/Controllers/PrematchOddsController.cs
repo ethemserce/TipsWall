@@ -6,6 +6,7 @@ using PreOddsApi.WebApi.V3.Data;
 
 namespace PreOddsApi.WebApi.V3.Controllers
 {
+    [Route("api/v3/prematch-odds")]
     public sealed class PrematchOddsController : ApiControllerBase
     {
         private readonly IOddsReader _reader;

@@ -7,6 +7,7 @@ using PreOddsApi.WebApi.V3.Data;
 
 namespace PreOddsApi.WebApi.V3.Controllers
 {
+    [Route("api/v3/featured-fixtures")]
     public sealed class FeaturedFixturesController : ApiControllerBase
     {
         private readonly IAppSchemaService _appSchema;

@@ -172,6 +172,34 @@ namespace PreOddsApi.WebApi.V3.Data
             return (user, hash);
         }
 
+        public async Task<UserDto?> GetByIdAsync(
+            Guid userId,
+            CancellationToken ct = default)
+        {
+            await using var connection = await OpenAsync(ct);
+            await using var command = new NpgsqlCommand(
+                """
+                select id, username, email, display_name, role
+                from app.users
+                where id = @id and status = 'active'
+                limit 1;
+                """, connection);
+            command.Parameters.Add(new NpgsqlParameter("id", userId));
+
+            await using var reader = await command.ExecuteReaderAsync(ct);
+            if (!await reader.ReadAsync(ct))
+                return null;
+
+            return new UserDto
+            {
+                Id = reader.GetGuid(reader.GetOrdinal("id")),
+                Username = ReadNullableString(reader, "username"),
+                Email = ReadNullableString(reader, "email"),
+                DisplayName = ReadNullableString(reader, "display_name"),
+                Role = reader.GetString(reader.GetOrdinal("role"))
+            };
+        }
+
         private async Task<UserDto> BridgeLegacyUserAsync(
             string username,
             string? email,
