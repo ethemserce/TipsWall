@@ -8,10 +8,10 @@ namespace PreOddsApi.Entities.SportMonks.Football.V3
     {
 
         [JsonProperty("country_id")]
-        public long CountryId { get; set; }
+        public long? CountryId { get; set; }
 
         [JsonProperty("city_id")]
-        public long CityId { get; set; }
+        public long? CityId { get; set; }
 
         [JsonProperty("name")]
         public string Name { get; set; }
@@ -29,7 +29,7 @@ namespace PreOddsApi.Entities.SportMonks.Football.V3
         public string Longitude { get; set; }
 
         [JsonProperty("capacity")]
-        public int Capacity { get; set; }
+        public int? Capacity { get; set; }
 
         [JsonProperty("image_path")]
         public string? ImagePath { get; set; }

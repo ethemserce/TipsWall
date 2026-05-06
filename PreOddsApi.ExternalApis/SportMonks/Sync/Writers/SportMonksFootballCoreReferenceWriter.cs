@@ -509,6 +509,11 @@ namespace PreOddsApi.ExternalApis.SportMonks.Sync.Writers
             return value == 0 ? null : value;
         }
 
+        private static int? NullIfZero(int? value)
+        {
+            return value.GetValueOrDefault() == 0 ? null : value;
+        }
+
         private static long? NullIfZero(long value)
         {
             return value == 0 ? null : value;
