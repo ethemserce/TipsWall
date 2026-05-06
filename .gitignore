@@ -41,3 +41,6 @@ Desktop.ini
 
 # Claude Code workspace
 .claude/
+
+# VS Code workspace
+.vscode/
