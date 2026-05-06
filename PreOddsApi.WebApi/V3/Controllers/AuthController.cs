@@ -117,7 +117,8 @@ namespace PreOddsApi.WebApi.V3.Controllers
                     ApiError.Codes.Unauthorized,
                     $"Refresh token invalid: {result.FailureReason ?? "unknown"}."));
 
-            var user = new UserDto { Id = result.UserId };
+            var user = await _identity.GetByIdAsync(result.UserId, ct)
+                ?? new UserDto { Id = result.UserId };
 
             return OkResponse(new TokenDto
             {

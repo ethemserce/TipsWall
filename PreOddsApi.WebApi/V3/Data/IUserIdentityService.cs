@@ -1,3 +1,4 @@
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using PreOddsApi.WebApi.V3.Dtos;
@@ -16,6 +17,10 @@ namespace PreOddsApi.WebApi.V3.Data
             string email,
             string password,
             string? displayName,
+            CancellationToken ct = default);
+
+        Task<UserDto?> GetByIdAsync(
+            Guid userId,
             CancellationToken ct = default);
     }
 
