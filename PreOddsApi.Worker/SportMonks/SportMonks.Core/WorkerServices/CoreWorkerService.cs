@@ -34,7 +34,7 @@ namespace SportMonks.Core.Worker.WorkerServices
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             var pollingInterval = TimeSpan.FromSeconds(
-                GetInteger("SportMonksCoreWorkerSettings:PollingIntervalSeconds", 3600));
+                GetInteger("SportMonksCoreWorkerSettings:PollingIntervalSeconds", 120));
 
             while (!stoppingToken.IsCancellationRequested)
             {
@@ -111,7 +111,7 @@ namespace SportMonks.Core.Worker.WorkerServices
                 cancellationToken: cancellationToken)).ToList();
         }
 
-        private static void ApplyMissingContinentIds(
+private static void ApplyMissingContinentIds(
             IEnumerable<Continent> continents,
             IEnumerable<Country> countries)
         {
