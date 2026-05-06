@@ -28,10 +28,10 @@ namespace PreOddsApi.ExternalApis.SportMonks
         {
         }
 
-        public SportMonksApiClient(
+        internal SportMonksApiClient(
             HttpClient httpClient,
             SportMonksApiOptions options,
-            ILogger? logger = null)
+            ILogger logger)
         {
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
             _options = options ?? throw new ArgumentNullException(nameof(options));
