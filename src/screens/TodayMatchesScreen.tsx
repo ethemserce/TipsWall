@@ -14,6 +14,7 @@ import { DateBar } from '@/src/components/DateBar';
 import { FixtureCard } from '@/src/components/FixtureCard';
 import { LeagueHeader } from '@/src/components/LeagueHeader';
 import { StateFilterBar, type FixtureFilter } from '@/src/components/StateFilterBar';
+import { useCountryLookup } from '@/src/hooks/useCountryLookup';
 import { useFixtures } from '@/src/hooks/useFixtures';
 import { useLeagueLookup } from '@/src/hooks/useLeagueLookup';
 import { getStateBucket } from '@/src/lib/fixtureState';
@@ -79,11 +80,23 @@ export function TodayMatchesScreen() {
   const leagueIds = useMemo(() => sections.map((s) => s.leagueId), [sections]);
   const { lookup: leagueLookup } = useLeagueLookup(leagueIds);
 
+  const countryIds = useMemo(
+    () => Array.from(leagueLookup.values()).map((l) => l.country_id),
+    [leagueLookup],
+  );
+  const { lookup: countryLookup } = useCountryLookup(countryIds);
+
   const sortedSections = useMemo(() => {
     return [...sections].sort((a, b) => {
-      const la = leagueLookup.get(a.leagueId)?.name ?? `Z${a.leagueId}`;
-      const lb = leagueLookup.get(b.leagueId)?.name ?? `Z${b.leagueId}`;
-      return la.localeCompare(lb);
+      const la = leagueLookup.get(a.leagueId);
+      const lb = leagueLookup.get(b.leagueId);
+      // Lower SportMonks category means a higher-tier competition.
+      const ca = la?.category ?? Number.MAX_SAFE_INTEGER;
+      const cb = lb?.category ?? Number.MAX_SAFE_INTEGER;
+      if (ca !== cb) return ca - cb;
+      const na = la?.name ?? `Z${a.leagueId}`;
+      const nb = lb?.name ?? `Z${b.leagueId}`;
+      return na.localeCompare(nb);
     });
   }, [sections, leagueLookup]);
 
@@ -117,13 +130,21 @@ export function TodayMatchesScreen() {
           sections={sortedSections}
           keyExtractor={(item) => String(item.id)}
           renderItem={({ item }) => <FixtureCard fixture={item} />}
-          renderSectionHeader={({ section }) => (
-            <LeagueHeader
-              leagueId={section.leagueId}
-              league={leagueLookup.get(section.leagueId)}
-              fixtureCount={section.data.length}
-            />
-          )}
+          renderSectionHeader={({ section }) => {
+            const league = leagueLookup.get(section.leagueId);
+            const country =
+              league?.country_id != null
+                ? countryLookup.get(league.country_id)
+                : undefined;
+            return (
+              <LeagueHeader
+                leagueId={section.leagueId}
+                league={league}
+                country={country}
+                fixtureCount={section.data.length}
+              />
+            );
+          }}
           stickySectionHeadersEnabled
           contentContainerStyle={styles.list}
           refreshControl={
