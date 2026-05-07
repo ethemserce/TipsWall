@@ -58,24 +58,34 @@ function TeamLayer({
     colsByRow.set(row, Math.max(colsByRow.get(row) ?? 0, col));
   }
 
+  // Inset the player tokens away from the pitch edges so the jersey circle
+  // and the name caption stay fully inside the playing area.
+  const X_INSET = 0.14;
+  const Y_INSET = 0.08;
+  const X_RANGE = 1 - 2 * X_INSET;
+  const HALF_RANGE = 0.5 - Y_INSET;
+
   return (
     <>
       {positioned.map(({ player, row, col }) => {
         const colCount = colsByRow.get(row) ?? 1;
         const xRatio = colCount > 1 ? (col - 1) / (colCount - 1) : 0.5;
         const yRatio = maxRow > 1 ? (row - 1) / (maxRow - 1) : 0;
-        // Home: top half, GK at top (yRatio=0 → top=2%). Strikers near halfway (yRatio=1 → top=46%).
-        // Away: bottom half, GK at bottom (yRatio=0 → top=98%). Strikers near halfway (yRatio=1 → top=54%).
         // Mirror x for away so col 1 lands on the same visual side as home col 1.
-        const top =
-          side === 'home' ? 0.02 + yRatio * 0.44 : 0.98 - yRatio * 0.44;
-        const left = side === 'home' ? xRatio : 1 - xRatio;
+        const xCentered =
+          side === 'home'
+            ? X_INSET + xRatio * X_RANGE
+            : 1 - X_INSET - xRatio * X_RANGE;
+        const yCentered =
+          side === 'home'
+            ? Y_INSET + yRatio * HALF_RANGE
+            : 1 - Y_INSET - yRatio * HALF_RANGE;
         return (
           <PlayerToken
             key={`${side}-${player.player_id ?? player.player_name ?? player.jersey_number}-${row}-${col}`}
             player={player}
-            leftPercent={left * 100}
-            topPercent={top * 100}
+            leftPercent={xCentered * 100}
+            topPercent={yCentered * 100}
           />
         );
       })}
@@ -217,28 +227,28 @@ const styles = StyleSheet.create({
   },
   token: {
     position: 'absolute',
-    width: 56,
-    marginLeft: -28,
+    width: 60,
+    marginLeft: -30,
     marginTop: -22,
     alignItems: 'center',
+    overflow: 'hidden',
   },
   jerseyCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   jerseyNumber: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
     fontVariant: ['tabular-nums'],
   },
   nameWrap: {
     marginTop: 2,
-    paddingHorizontal: 4,
-    maxWidth: 76,
+    width: '100%',
   },
   nameText: {
     color: '#ffffff',
