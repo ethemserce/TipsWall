@@ -29,6 +29,15 @@ namespace PreOddsApi.WebApi.V3.Controllers
                 data,
                 ApiPagination.From(page, perPage, total)));
 
+        protected IActionResult OkPagedObjectResponse<T>(
+            T data,
+            int page,
+            int perPage,
+            int total)
+            => Ok(ApiResponse<T>.OkPaged(
+                data,
+                ApiPagination.From(page, perPage, total)));
+
         protected IActionResult NotFoundResponse(string message)
             => NotFound(ApiResponse<object>.Fail(ApiError.Codes.NotFound, message));
 
