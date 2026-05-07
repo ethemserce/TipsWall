@@ -1,11 +1,19 @@
-const rawBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL;
+import { Platform } from 'react-native';
 
-if (!rawBaseUrl) {
-  throw new Error(
-    'EXPO_PUBLIC_API_BASE_URL is not set. Copy .env.example to .env and restart the dev server.',
-  );
+const PORT = 28333;
+
+function defaultBaseUrl(): string {
+  // Android emulator routes the host's localhost through 10.0.2.2.
+  // Browser, iOS simulator and macOS/Windows desktop reach it directly.
+  if (Platform.OS === 'android') return `http://10.0.2.2:${PORT}`;
+  return `http://localhost:${PORT}`;
 }
 
+const explicit = process.env.EXPO_PUBLIC_API_BASE_URL?.trim();
+
 export const env = {
-  apiBaseUrl: rawBaseUrl.replace(/\/+$/, ''),
+  apiBaseUrl: (explicit && explicit.length > 0 ? explicit : defaultBaseUrl()).replace(
+    /\/+$/,
+    '',
+  ),
 } as const;
