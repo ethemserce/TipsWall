@@ -113,11 +113,12 @@ function TeamLayer({
     colsByRow.set(row, Math.max(colsByRow.get(row) ?? 0, col));
   }
 
-  // Inset the player tokens 2% from the edges so wide players sit close to
-  // the touchline. Name captions flip side per team (home below jersey,
-  // away above) so they always point toward the centre and never run off.
+  // Inset the player tokens close to the edges so wide players sit near
+  // the touchline. Y inset is a touch larger so GKs aren't glued to the
+  // back-line. Name captions flip side per team (home below jersey, away
+  // above) so they always point toward the centre and never run off.
   const X_INSET = 0.02;
-  const Y_INSET = 0.02;
+  const Y_INSET = 0.05;
   const X_RANGE = 1 - 2 * X_INSET;
   const HALF_RANGE = 0.5 - Y_INSET;
 
