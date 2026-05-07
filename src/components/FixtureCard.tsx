@@ -2,7 +2,8 @@ import { format, parseISO } from 'date-fns';
 import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+import { getStateBucket, getStateLabel } from '@/src/lib/fixtureState';
+import { useTheme } from '@/src/lib/useTheme';
 import type { FixtureSummary } from '@/src/types/fixture';
 
 interface FixtureCardProps {
@@ -10,32 +11,62 @@ interface FixtureCardProps {
 }
 
 export function FixtureCard({ fixture }: FixtureCardProps) {
+  const c = useTheme();
+  const bucket = getStateBucket(fixture.state_id);
+  const live = bucket === 'live';
+  const finished = bucket === 'finished';
+
   const kickoff = fixture.starting_at
     ? format(parseISO(fixture.starting_at), 'HH:mm')
     : '--:--';
-
+  const stateLabel = getStateLabel(fixture.state_id);
   const [home, away] = splitName(fixture.name);
 
+  const statusColor = live ? c.live : finished ? c.textMuted : c.text;
+
   return (
-    <ThemedView style={styles.card}>
+    <View
+      style={[
+        styles.card,
+        { backgroundColor: c.bg, borderBottomColor: c.border },
+      ]}>
       <View style={styles.timeColumn}>
-        <ThemedText style={styles.time}>{kickoff}</ThemedText>
-        {fixture.has_odds ? <View style={styles.oddsDot} /> : null}
+        {live ? (
+          <View style={styles.liveRow}>
+            <View style={[styles.liveDot, { backgroundColor: c.live }]} />
+            <ThemedText style={[styles.timeStrong, { color: c.live }]}>{stateLabel || 'LIVE'}</ThemedText>
+          </View>
+        ) : (
+          <ThemedText style={[styles.timeStrong, { color: statusColor }]}>{kickoff}</ThemedText>
+        )}
+        {finished ? (
+          <ThemedText style={[styles.timeSub, { color: c.textMuted }]}>{stateLabel || 'FT'}</ThemedText>
+        ) : null}
       </View>
+
       <View style={styles.teams}>
-        <ThemedText style={styles.team} numberOfLines={1}>
+        <ThemedText
+          style={[styles.team, finished && { color: c.textMuted }]}
+          numberOfLines={1}>
           {home}
         </ThemedText>
-        <ThemedText style={styles.team} numberOfLines={1}>
+        <ThemedText
+          style={[styles.team, finished && { color: c.textMuted }]}
+          numberOfLines={1}>
           {away}
         </ThemedText>
       </View>
+
       <View style={styles.meta}>
-        <ThemedText style={styles.metaText}>
-          League #{fixture.league_id}
-        </ThemedText>
+        {fixture.has_odds ? (
+          <View style={[styles.oddsBadge, { backgroundColor: c.brand }]}>
+            <ThemedText style={[styles.oddsBadgeText, { color: c.textInverse }]}>
+              ODDS
+            </ThemedText>
+          </View>
+        ) : null}
       </View>
-    </ThemedView>
+    </View>
   );
 }
 
@@ -53,23 +84,29 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#2a2a2a',
     gap: 12,
   },
   timeColumn: {
-    width: 56,
+    width: 60,
+    alignItems: 'flex-start',
+    gap: 2,
+  },
+  timeStrong: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  timeSub: {
+    fontSize: 11,
+  },
+  liveRow: {
+    flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
-  time: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  oddsDot: {
+  liveDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#22c55e',
   },
   teams: {
     flex: 1,
@@ -79,11 +116,17 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   meta: {
-    width: 80,
+    width: 56,
     alignItems: 'flex-end',
   },
-  metaText: {
-    fontSize: 11,
-    opacity: 0.6,
+  oddsBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  oddsBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
 });

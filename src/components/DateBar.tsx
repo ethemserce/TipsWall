@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { useTheme } from '@/src/lib/useTheme';
 
 interface DateBarProps {
   selectedDate: Date;
@@ -17,6 +18,7 @@ export function DateBar({
   daysBack = 3,
   daysForward = 7,
 }: DateBarProps) {
+  const c = useTheme();
   const days = useMemo(() => {
     const today = startOfDay(new Date());
     const items: Date[] = [];
@@ -27,32 +29,49 @@ export function DateBar({
   }, [daysBack, daysForward]);
 
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.container}>
-      {days.map((day) => {
-        const active = isSameDay(day, selectedDate);
-        return (
-          <Pressable
-            key={day.toISOString()}
-            onPress={() => onSelect(day)}
-            style={[styles.cell, active && styles.cellActive]}>
-            <ThemedText style={[styles.weekday, active && styles.textActive]}>
-              {format(day, 'EEE').toUpperCase()}
-            </ThemedText>
-            <ThemedText style={[styles.day, active && styles.textActive]}>
-              {format(day, 'd MMM')}
-            </ThemedText>
-          </Pressable>
-        );
-      })}
-    </ScrollView>
+    <View style={[styles.container, { borderBottomColor: c.border }]}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.row}>
+        {days.map((day) => {
+          const active = isSameDay(day, selectedDate);
+          const isToday = isSameDay(day, new Date());
+          return (
+            <Pressable
+              key={day.toISOString()}
+              onPress={() => onSelect(day)}
+              style={[
+                styles.cell,
+                active && { backgroundColor: c.brand },
+              ]}>
+              <ThemedText
+                style={[
+                  styles.weekday,
+                  { color: active ? c.textInverse : c.textMuted },
+                ]}>
+                {isToday ? 'TODAY' : format(day, 'EEE').toUpperCase()}
+              </ThemedText>
+              <ThemedText
+                style={[
+                  styles.day,
+                  { color: active ? c.textInverse : c.text },
+                ]}>
+                {format(day, 'd MMM')}
+              </ThemedText>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  row: {
     paddingHorizontal: 12,
     paddingVertical: 8,
     gap: 8,
@@ -65,21 +84,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'transparent',
   },
-  cellActive: {
-    backgroundColor: '#2563eb',
-  },
   weekday: {
-    fontSize: 11,
-    opacity: 0.6,
+    fontSize: 10,
     letterSpacing: 0.5,
+    fontWeight: '600',
   },
   day: {
     fontSize: 14,
     fontWeight: '600',
     marginTop: 2,
-  },
-  textActive: {
-    color: '#fff',
-    opacity: 1,
   },
 });
