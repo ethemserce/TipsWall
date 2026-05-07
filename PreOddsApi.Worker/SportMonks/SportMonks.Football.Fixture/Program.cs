@@ -6,6 +6,13 @@ IHost host = Host.CreateDefaultBuilder(args)
     .ConfigureServices((configuration, services) =>
     {
         services.AddSportMonksApiClient(configuration.Configuration);
+
+        // Live bridge — worker → WebApi → SignalR clients.
+        services.AddHttpClient<IFixtureLiveBridge, HttpFixtureLiveBridge>(client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(5);
+        });
+
         services.AddHostedService<FootballWorkerService>();
     })
     .UseSerilog()

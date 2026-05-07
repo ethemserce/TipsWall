@@ -144,6 +144,7 @@ namespace SportMonks.Football.FixtureWorker.Services
         private readonly ISportMonksPrematchOddsWriter _prematchOddsWriter;
         private readonly ISportMonksInplayOddsWriter _inplayOddsWriter;
         private readonly IAnalyticsEngine _analyticsEngine;
+        private readonly IFixtureLiveBridge _liveBridge;
 
         private List<League> _cachedLeagues = [];
 
@@ -166,7 +167,8 @@ namespace SportMonks.Football.FixtureWorker.Services
             ISportMonksNewsWriter newsWriter,
             ISportMonksPrematchOddsWriter prematchOddsWriter,
             ISportMonksInplayOddsWriter inplayOddsWriter,
-            IAnalyticsEngine analyticsEngine)
+            IAnalyticsEngine analyticsEngine,
+            IFixtureLiveBridge liveBridge)
         {
             _logger = logger;
             _configuration = configuration;
@@ -187,6 +189,7 @@ namespace SportMonks.Football.FixtureWorker.Services
             _prematchOddsWriter = prematchOddsWriter;
             _inplayOddsWriter = inplayOddsWriter;
             _analyticsEngine = analyticsEngine;
+            _liveBridge = liveBridge;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -739,12 +742,13 @@ namespace SportMonks.Football.FixtureWorker.Services
                 toDate);
 
             for (var date = fromDate; date <= toDate; date = date.AddDays(1))
-                await ExecuteFixturesByDate(date, timezone, cancellationToken);
+                await ExecuteFixturesByDate(date, timezone, label, cancellationToken);
         }
 
         private async Task ExecuteFixturesByDate(
             DateOnly date,
             string? timezone,
+            string label,
             CancellationToken cancellationToken)
         {
             var dateValue = date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
@@ -783,6 +787,20 @@ namespace SportMonks.Football.FixtureWorker.Services
 
             if (ShouldSyncFixtureOdds())
                 await _prematchOddsWriter.UpsertPrematchOddsAsync(fixtures, cancellationToken);
+
+            // Live tier broadcasts a SignalR push per fixture so subscribed
+            // mobile clients refresh without polling. Backlog tier stays quiet
+            // (waking up sleeping mobile clients for week-old data is noise).
+            if (string.Equals(label, "live", StringComparison.OrdinalIgnoreCase))
+            {
+                foreach (var fixture in fixtures)
+                {
+                    await _liveBridge.NotifyFixtureUpdatedAsync(
+                        fixture.Id,
+                        $"fixture-{label}",
+                        cancellationToken);
+                }
+            }
         }
 
         private IEnumerable<string> BuildFixtureSyncIncludes()
