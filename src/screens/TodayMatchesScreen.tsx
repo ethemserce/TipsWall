@@ -34,7 +34,6 @@ export function TodayMatchesScreen() {
   const c = useTheme();
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [filter, setFilter] = useState<FixtureFilter>('all');
-  const [oddsToggle, setOddsToggle] = useState(false);
   const isoDate = format(selectedDate, 'yyyy-MM-dd');
 
   const { data, isLoading, isFetching, isError, error, refetch } = useFixtures(
@@ -50,26 +49,20 @@ export function TodayMatchesScreen() {
   const fixtures = data?.items ?? [];
 
   const filtered = useMemo(() => {
-    let list = fixtures;
-    if (oddsToggle) list = list.filter((f) => f.has_odds);
-    if (filter !== 'all') {
-      list = list.filter((f) => getStateBucket(f.state_id) === filter);
-    }
-    return list;
-  }, [fixtures, filter, oddsToggle]);
+    if (filter === 'all') return fixtures;
+    return fixtures.filter((f) => getStateBucket(f.state_id) === filter);
+  }, [fixtures, filter]);
 
   const counts = useMemo<Record<FixtureFilter, number>>(() => {
     const acc = { all: fixtures.length, live: 0, upcoming: 0, finished: 0 };
-    const pool = oddsToggle ? fixtures.filter((f) => f.has_odds) : fixtures;
-    acc.all = pool.length;
-    for (const f of pool) {
+    for (const f of fixtures) {
       const bucket = getStateBucket(f.state_id);
       if (bucket === 'live') acc.live++;
       else if (bucket === 'upcoming') acc.upcoming++;
       else if (bucket === 'finished') acc.finished++;
     }
     return acc;
-  }, [fixtures, oddsToggle]);
+  }, [fixtures]);
 
   const sections = useMemo<Section[]>(() => {
     const groups = new Map<number, FixtureSummary[]>();
@@ -119,12 +112,7 @@ export function TodayMatchesScreen() {
         <AppBrand />
       </View>
 
-      <DateBar
-        selectedDate={selectedDate}
-        onSelect={setSelectedDate}
-        oddsToggle={oddsToggle}
-        onOddsToggle={setOddsToggle}
-      />
+      <DateBar selectedDate={selectedDate} onSelect={setSelectedDate} />
 
       <StateFilterBar selected={filter} onSelect={setFilter} counts={counts} />
 

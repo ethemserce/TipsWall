@@ -89,12 +89,6 @@ export function FixtureCard({ fixture }: FixtureCardProps) {
               c={c}
             />
           </>
-        ) : fixture.has_odds ? (
-          <View style={[styles.oddsBadge, { backgroundColor: c.brand }]}>
-            <ThemedText style={[styles.oddsBadgeText, { color: c.textInverse }]}>
-              ODDS
-            </ThemedText>
-          </View>
         ) : null}
       </View>
     </Pressable>
@@ -227,15 +221,5 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     minHeight: 18,
-  },
-  oddsBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  oddsBadgeText: {
-    fontSize: 9,
-    fontWeight: '700',
-    letterSpacing: 0.5,
   },
 });

@@ -15,16 +15,9 @@ function dfLocale(lang: string) {
 interface DateBarProps {
   selectedDate: Date;
   onSelect: (date: Date) => void;
-  oddsToggle?: boolean;
-  onOddsToggle?: (next: boolean) => void;
 }
 
-export function DateBar({
-  selectedDate,
-  onSelect,
-  oddsToggle = false,
-  onOddsToggle,
-}: DateBarProps) {
+export function DateBar({ selectedDate, onSelect }: DateBarProps) {
   const c = useTheme();
   const { t, i18n } = useTranslation();
   const [calendarOpen, setCalendarOpen] = useState(false);
@@ -53,31 +46,6 @@ export function DateBar({
           <MaterialCommunityIcons name="chevron-right" size={20} color={c.text} />
         </Pressable>
       </View>
-
-      {onOddsToggle ? (
-        <Pressable
-          onPress={() => onOddsToggle(!oddsToggle)}
-          style={styles.oddsRow}>
-          <ThemedText style={[styles.oddsLabel, { color: c.text }]}>
-            {t('home.filters.odds')}
-          </ThemedText>
-          <View
-            style={[
-              styles.toggleTrack,
-              { backgroundColor: oddsToggle ? c.brand : c.border },
-            ]}>
-            <View
-              style={[
-                styles.toggleThumb,
-                {
-                  backgroundColor: '#fff',
-                  transform: [{ translateX: oddsToggle ? 16 : 0 }],
-                },
-              ]}
-            />
-          </View>
-        </Pressable>
-      ) : null}
 
       <CalendarModal
         visible={calendarOpen}
@@ -246,27 +214,6 @@ const styles = StyleSheet.create({
   pillLabel: {
     fontSize: 14,
     fontWeight: '600',
-  },
-  oddsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  oddsLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  toggleTrack: {
-    width: 36,
-    height: 20,
-    borderRadius: 999,
-    padding: 2,
-    justifyContent: 'center',
-  },
-  toggleThumb: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
   },
   backdrop: {
     flex: 1,
