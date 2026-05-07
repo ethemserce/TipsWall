@@ -61,7 +61,8 @@ export function FixtureDetailScreen({ fixtureId }: FixtureDetailScreenProps) {
     ? countryLookup.get(league.country_id)
     : undefined;
 
-  const events = useFixtureEvents(fixtureId, tab === 'details');
+  // Hero shows scorer summary so we always need events.
+  const events = useFixtureEvents(fixtureId);
   const oddsRates = useFixtureOddsRates({
     fixtureId,
     bookmakerId: ODDS_BOOKMAKER_ID,
@@ -108,6 +109,7 @@ export function FixtureDetailScreen({ fixtureId }: FixtureDetailScreenProps) {
         league={league}
         country={country}
         scores={data.scores}
+        events={events.data}
       />
       <DetailTabBar selected={tab} onSelect={setTab} />
 

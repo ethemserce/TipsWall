@@ -14,6 +14,14 @@ export function EventTimelineCard({ events }: EventTimelineCardProps) {
 
   if (visible.length === 0) return null;
 
+  const firstHalf: FixtureEvent[] = [];
+  const secondHalf: FixtureEvent[] = [];
+  for (const e of visible) {
+    const m = e.minute ?? 0;
+    if (m <= 45) firstHalf.push(e);
+    else secondHalf.push(e);
+  }
+
   return (
     <View
       style={[
@@ -21,10 +29,28 @@ export function EventTimelineCard({ events }: EventTimelineCardProps) {
         { backgroundColor: c.surface, borderColor: c.border },
       ]}>
       <ThemedText style={[styles.title, { color: c.textMuted }]}>EVENTS</ThemedText>
-      {visible.map((e) => (
+      {firstHalf.length > 0 ? (
+        <Section title="1st Half" events={firstHalf} />
+      ) : null}
+      {secondHalf.length > 0 ? (
+        <Section title="2nd Half" events={secondHalf} />
+      ) : null}
+    </View>
+  );
+}
+
+function Section({ title, events }: { title: string; events: FixtureEvent[] }) {
+  const c = useTheme();
+  return (
+    <>
+      <ThemedText
+        style={[styles.sectionLabel, { color: c.textMuted, borderTopColor: c.border }]}>
+        {title.toUpperCase()}
+      </ThemedText>
+      {events.map((e) => (
         <EventRow key={e.id} event={e} />
       ))}
-    </View>
+    </>
   );
 }
 
@@ -160,6 +186,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingTop: 12,
     paddingBottom: 6,
+  },
+  sectionLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    paddingHorizontal: 14,
+    paddingTop: 10,
+    paddingBottom: 6,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
   row: {
     flexDirection: 'row',
