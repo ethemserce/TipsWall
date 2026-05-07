@@ -56,6 +56,8 @@ export function FixtureDetailHero({
   const goals = (events ?? []).filter((e) =>
     GOAL_TYPE_CODES.has((e.type_code ?? '').toUpperCase()),
   );
+  const homeGoals = goals.filter((g) => g.participant_location === 'home');
+  const awayGoals = goals.filter((g) => g.participant_location === 'away');
 
   return (
     <View
@@ -121,14 +123,6 @@ export function FixtureDetailHero({
               {stateLabel}
             </ThemedText>
           ) : null}
-
-          {goals.length > 0 ? (
-            <View style={styles.goalList}>
-              {goals.map((g) => (
-                <GoalLine key={g.id} goal={g} />
-              ))}
-            </View>
-          ) : null}
         </View>
 
         <TeamColumn
@@ -136,15 +130,35 @@ export function FixtureDetailHero({
           imagePath={fixture.away_team_image_path}
         />
       </View>
+
+      {homeGoals.length + awayGoals.length > 0 ? (
+        <View style={styles.goalSplit}>
+          <View style={styles.goalSideHome}>
+            {homeGoals.map((g) => (
+              <GoalLine key={g.id} goal={g} side="home" />
+            ))}
+          </View>
+          <View style={styles.goalGap} />
+          <View style={styles.goalSideAway}>
+            {awayGoals.map((g) => (
+              <GoalLine key={g.id} goal={g} side="away" />
+            ))}
+          </View>
+        </View>
+      ) : null}
     </View>
   );
 }
 
-function GoalLine({ goal }: { goal: FixtureEvent }) {
+function GoalLine({
+  goal,
+  side,
+}: {
+  goal: FixtureEvent;
+  side: 'home' | 'away';
+}) {
   const c = useTheme();
   const code = (goal.type_code ?? '').toUpperCase();
-  const dotColor =
-    goal.participant_location === 'home' ? c.brand : c.live;
   const minuteStr =
     goal.minute != null
       ? goal.extra_minute && goal.extra_minute > 0
@@ -157,16 +171,24 @@ function GoalLine({ goal }: { goal: FixtureEvent }) {
       : code === 'OWNGOAL'
         ? '(OG)'
         : null;
+  const text = `${goal.player_name ?? '—'} ${minuteStr}${tag ? ` ${tag}` : ''}`;
 
   return (
-    <View style={styles.goalRow}>
-      <View style={[styles.goalDot, { backgroundColor: dotColor }]} />
+    <View
+      style={
+        side === 'home' ? styles.goalRowHome : styles.goalRowAway
+      }>
+      {side === 'away' ? <ThemedText style={styles.goalBall}>⚽</ThemedText> : null}
       <ThemedText
-        style={[styles.goalText, { color: c.textMuted }]}
+        style={[
+          styles.goalText,
+          { color: c.textMuted },
+          side === 'home' ? styles.goalTextHome : styles.goalTextAway,
+        ]}
         numberOfLines={1}>
-        {goal.player_name ?? '—'} {minuteStr}
-        {tag ? ` ${tag}` : ''} ⚽
+        {text}
       </ThemedText>
+      {side === 'home' ? <ThemedText style={styles.goalBall}>⚽</ThemedText> : null}
     </View>
   );
 }
@@ -303,25 +325,48 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
     marginTop: 2,
   },
-  goalList: {
-    marginTop: 6,
-    gap: 3,
-    alignItems: 'center',
+  goalSplit: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginTop: -4,
   },
-  goalRow: {
+  goalGap: {
+    width: 24,
+  },
+  goalSideHome: {
+    flex: 1,
+    alignItems: 'flex-end',
+    gap: 3,
+  },
+  goalSideAway: {
+    flex: 1,
+    alignItems: 'flex-start',
+    gap: 3,
+  },
+  goalRowHome: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    maxWidth: 180,
+    gap: 4,
+    maxWidth: '100%',
   },
-  goalDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+  goalRowAway: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    maxWidth: '100%',
   },
   goalText: {
     fontSize: 11,
     fontWeight: '500',
     flexShrink: 1,
+  },
+  goalTextHome: {
+    textAlign: 'right',
+  },
+  goalTextAway: {
+    textAlign: 'left',
+  },
+  goalBall: {
+    fontSize: 11,
   },
 });
