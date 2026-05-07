@@ -27,6 +27,7 @@ import {
 } from '@/src/hooks/useFixtureExtras';
 import { useFixtureOddsRates } from '@/src/hooks/useFixtureOddsRates';
 import { useLeagueLookup } from '@/src/hooks/useLeagueLookup';
+import { useLiveFixture } from '@/src/hooks/useLiveFixture';
 import { useTheme } from '@/src/lib/useTheme';
 import type { FixtureOddsMarket } from '@/src/types/fixtureOdds';
 
@@ -60,6 +61,10 @@ export function FixtureDetailScreen({ fixtureId }: FixtureDetailScreenProps) {
   const country = league?.country_id
     ? countryLookup.get(league.country_id)
     : undefined;
+
+  // SignalR live updates: joins the fixture group and invalidates query
+  // caches whenever the backend pushes a FixtureUpdated event.
+  useLiveFixture(fixtureId);
 
   // Hero shows scorer summary so we always need events.
   const events = useFixtureEvents(fixtureId);
