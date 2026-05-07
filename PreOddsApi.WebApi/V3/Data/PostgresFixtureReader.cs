@@ -265,6 +265,10 @@ namespace PreOddsApi.WebApi.V3.Data
             string windowCode,
             CancellationToken ct = default)
         {
+            // analytics.fixture_signals.outcome_key follows the snapshot
+            // convention "label:total:handicap:value(4dp)", whereas
+            // odds.prematch_odds_current.outcome_key is just the bare label.
+            // Reconstruct the rich key inline so the JOIN matches.
             const string sql = """
                 select m.id as market_id,
                        m.name as market_name,
@@ -285,7 +289,10 @@ namespace PreOddsApi.WebApi.V3.Data
                     on fs.fixture_id    = poc.fixture_id
                    and fs.bookmaker_id  = poc.bookmaker_id
                    and fs.market_id     = poc.market_id
-                   and fs.outcome_key   = poc.outcome_key
+                   and fs.outcome_key   = lower(coalesce(poc.label, ''))
+                                          || ':' || coalesce(nullif(poc.total, ''), '-')
+                                          || ':' || coalesce(nullif(poc.handicap, ''), '-')
+                                          || ':' || to_char(poc.value::numeric, 'FM99999990.0000')
                    and fs.window_code   = @window_code
                    and fs.signal_type   = 'winning_rate'
                 where poc.fixture_id   = @fixture_id
