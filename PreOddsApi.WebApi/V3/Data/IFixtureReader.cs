@@ -21,5 +21,12 @@ namespace PreOddsApi.WebApi.V3.Data
             CancellationToken ct = default);
 
         Task<FixtureDetailDto?> GetFixtureByIdAsync(long id, CancellationToken ct = default);
+
+        Task<IReadOnlyList<FixtureOddsRatesDto>> GetFixtureOddsRatesAsync(
+            long fixtureId,
+            long bookmakerId,
+            IReadOnlyList<long> marketIds,
+            string windowCode,
+            CancellationToken ct = default);
     }
 }

@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -47,6 +49,38 @@ namespace PreOddsApi.WebApi.V3.Controllers
             if (detail == null)
                 return NotFoundResponse($"Fixture {id} not found.");
             return OkResponse(detail);
+        }
+
+        [HttpGet("{id:long}/odds-rates")]
+        public async Task<IActionResult> GetOddsRatesAsync(
+            long id,
+            [FromQuery(Name = "bookmaker_id")] long? bookmakerId,
+            [FromQuery(Name = "market_ids")] string? marketIds,
+            [FromQuery(Name = "window")] string? windowCode,
+            CancellationToken ct)
+        {
+            if (!bookmakerId.HasValue || bookmakerId.Value <= 0)
+                return BadRequestResponse("bookmaker_id is required.");
+
+            var ids = ParseMarketIds(marketIds);
+            if (ids.Count == 0)
+                return BadRequestResponse("market_ids is required (comma-separated, e.g. 1,52,80,31).");
+
+            var window = string.IsNullOrWhiteSpace(windowCode) ? "all" : windowCode.Trim();
+
+            var result = await _reader.GetFixtureOddsRatesAsync(
+                id, bookmakerId.Value, ids, window, ct);
+            return OkResponse(result);
+        }
+
+        private static IReadOnlyList<long> ParseMarketIds(string? raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw)) return Array.Empty<long>();
+            return raw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(part => long.TryParse(part, out var v) ? v : 0L)
+                .Where(v => v > 0)
+                .Distinct()
+                .ToList();
         }
     }
 }

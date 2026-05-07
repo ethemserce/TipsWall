@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -255,6 +256,101 @@ namespace PreOddsApi.WebApi.V3.Data
                 Participants = participants,
                 Scores = scores
             };
+        }
+
+        public async Task<IReadOnlyList<FixtureOddsRatesDto>> GetFixtureOddsRatesAsync(
+            long fixtureId,
+            long bookmakerId,
+            IReadOnlyList<long> marketIds,
+            string windowCode,
+            CancellationToken ct = default)
+        {
+            const string sql = """
+                select m.id as market_id,
+                       m.name as market_name,
+                       poc.label,
+                       poc.value,
+                       poc.total,
+                       poc.handicap,
+                       poc.participants,
+                       poc.sort_order,
+                       fs.win_count,
+                       fs.lost_count,
+                       fs.sample_count,
+                       fs.winning_percent,
+                       fs.earning_percent
+                from odds.prematch_odds_current poc
+                left join odds.markets m on m.id = poc.market_id
+                left join analytics.fixture_signals fs
+                    on fs.fixture_id    = poc.fixture_id
+                   and fs.bookmaker_id  = poc.bookmaker_id
+                   and fs.market_id     = poc.market_id
+                   and fs.outcome_key   = poc.outcome_key
+                   and fs.window_code   = @window_code
+                   and fs.signal_type   = 'winning_rate'
+                where poc.fixture_id   = @fixture_id
+                  and poc.bookmaker_id = @bookmaker_id
+                  and poc.market_id    = any(@market_ids)
+                order by poc.market_id, poc.sort_order nulls last, poc.label;
+                """;
+
+            await using var connection = await OpenAsync(ct);
+            await using var command = new NpgsqlCommand(sql, connection);
+            command.Parameters.Add(new NpgsqlParameter("fixture_id", fixtureId));
+            command.Parameters.Add(new NpgsqlParameter("bookmaker_id", bookmakerId));
+            command.Parameters.Add(new NpgsqlParameter("window_code", windowCode));
+            command.Parameters.Add(
+                new NpgsqlParameter("market_ids", marketIds.ToArray()));
+
+            var grouped = new Dictionary<long, (string? Name, List<FixtureOddOutcomeDto> Outcomes)>();
+            await using var reader = await command.ExecuteReaderAsync(ct);
+            while (await reader.ReadAsync(ct))
+            {
+                var marketId = reader.GetInt64(reader.GetOrdinal("market_id"));
+                if (!grouped.TryGetValue(marketId, out var bucket))
+                {
+                    bucket = (ReadNullableString(reader, "market_name"), new List<FixtureOddOutcomeDto>());
+                    grouped[marketId] = bucket;
+                }
+
+                var winCount = ReadNullableInt(reader, "win_count") ?? 0;
+                var lostCount = ReadNullableInt(reader, "lost_count") ?? 0;
+
+                bucket.Outcomes.Add(new FixtureOddOutcomeDto
+                {
+                    Label = reader.GetString(reader.GetOrdinal("label")),
+                    Value = ReadNullableDecimal(reader, "value"),
+                    Total = ReadNullableString(reader, "total"),
+                    Handicap = ReadNullableString(reader, "handicap"),
+                    Participants = ReadNullableString(reader, "participants"),
+                    SortOrder = ReadNullableInt(reader, "sort_order"),
+                    WinCount = winCount,
+                    LostCount = lostCount,
+                    SampleCount = ReadNullableInt(reader, "sample_count") ?? (winCount + lostCount),
+                    WinningPercent = ReadNullableDecimal(reader, "winning_percent"),
+                    EarningPercent = ReadNullableDecimal(reader, "earning_percent")
+                });
+            }
+
+            var orderedIds = marketIds.Where(grouped.ContainsKey).ToList();
+            return orderedIds
+                .Select(id =>
+                {
+                    var (name, outcomes) = grouped[id];
+                    return new FixtureOddsRatesDto
+                    {
+                        MarketId = id,
+                        MarketName = name,
+                        Outcomes = outcomes
+                    };
+                })
+                .ToList();
+        }
+
+        private static decimal? ReadNullableDecimal(NpgsqlDataReader r, string column)
+        {
+            var i = r.GetOrdinal(column);
+            return r.IsDBNull(i) ? null : r.GetDecimal(i);
         }
 
         private static FixtureSummaryDto MapSummaryWithTeams(NpgsqlDataReader r) => new()
