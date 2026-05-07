@@ -14,4 +14,16 @@ export interface FixtureSummary {
   result_info: string | null;
   leg: string | null;
   placeholder: boolean;
+
+  home_team_id?: number | null;
+  home_team_name?: string | null;
+  home_team_short_code?: string | null;
+  home_team_image_path?: string | null;
+  home_score?: number | null;
+
+  away_team_id?: number | null;
+  away_team_name?: string | null;
+  away_team_short_code?: string | null;
+  away_team_image_path?: string | null;
+  away_score?: number | null;
 }
