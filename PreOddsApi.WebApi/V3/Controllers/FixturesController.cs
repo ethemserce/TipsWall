@@ -73,6 +73,38 @@ namespace PreOddsApi.WebApi.V3.Controllers
             return OkResponse(result);
         }
 
+        [HttpGet("{id:long}/events")]
+        public async Task<IActionResult> GetEventsAsync(long id, CancellationToken ct)
+        {
+            var items = await _reader.GetFixtureEventsAsync(id, ct);
+            return OkResponse(items);
+        }
+
+        [HttpGet("{id:long}/statistics")]
+        public async Task<IActionResult> GetStatisticsAsync(long id, CancellationToken ct)
+        {
+            var items = await _reader.GetFixtureStatisticsAsync(id, ct);
+            return OkResponse(items);
+        }
+
+        [HttpGet("{id:long}/lineups")]
+        public async Task<IActionResult> GetLineupsAsync(long id, CancellationToken ct)
+        {
+            var lineups = await _reader.GetFixtureLineupsAsync(id, ct);
+            return OkResponse(lineups);
+        }
+
+        [HttpGet("{id:long}/h2h")]
+        public async Task<IActionResult> GetH2HAsync(
+            long id,
+            [FromQuery(Name = "limit")] int? limit,
+            CancellationToken ct)
+        {
+            var capped = limit is int l && l > 0 ? Math.Min(l, 50) : 10;
+            var items = await _reader.GetFixtureH2HAsync(id, capped, ct);
+            return OkResponse(items);
+        }
+
         private static IReadOnlyList<long> ParseMarketIds(string? raw)
         {
             if (string.IsNullOrWhiteSpace(raw)) return Array.Empty<long>();

@@ -28,5 +28,22 @@ namespace PreOddsApi.WebApi.V3.Data
             IReadOnlyList<long> marketIds,
             string windowCode,
             CancellationToken ct = default);
+
+        Task<IReadOnlyList<FixtureEventDto>> GetFixtureEventsAsync(
+            long fixtureId,
+            CancellationToken ct = default);
+
+        Task<IReadOnlyList<FixtureStatisticDto>> GetFixtureStatisticsAsync(
+            long fixtureId,
+            CancellationToken ct = default);
+
+        Task<FixtureLineupsDto> GetFixtureLineupsAsync(
+            long fixtureId,
+            CancellationToken ct = default);
+
+        Task<IReadOnlyList<FixtureSummaryDto>> GetFixtureH2HAsync(
+            long fixtureId,
+            int limit,
+            CancellationToken ct = default);
     }
 }
