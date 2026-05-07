@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   RefreshControl,
@@ -8,8 +8,9 @@ import {
 } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { DetailTabBar, type DetailTab } from '@/src/components/DetailTabBar';
 import { FixtureDetailHero } from '@/src/components/FixtureDetailHero';
-import { FixtureMetaRow } from '@/src/components/FixtureMetaRow';
+import { MatchInfoCard } from '@/src/components/MatchInfoCard';
 import { ScoreBreakdown } from '@/src/components/ScoreBreakdown';
 import { useCountryLookup } from '@/src/hooks/useCountryLookup';
 import { useFixture } from '@/src/hooks/useFixture';
@@ -22,6 +23,7 @@ interface FixtureDetailScreenProps {
 
 export function FixtureDetailScreen({ fixtureId }: FixtureDetailScreenProps) {
   const c = useTheme();
+  const [tab, setTab] = useState<DetailTab>('details');
   const { data, isLoading, isFetching, isError, error, refetch } =
     useFixture(fixtureId);
 
@@ -75,15 +77,55 @@ export function FixtureDetailScreen({ fixtureId }: FixtureDetailScreenProps) {
           tintColor={c.brand}
         />
       }>
-      <FixtureDetailHero fixture={data.fixture} />
-      <FixtureMetaRow
+      <FixtureDetailHero
         fixture={data.fixture}
         league={league}
         country={country}
       />
-      <ScoreBreakdown scores={data.scores} />
+      <DetailTabBar selected={tab} onSelect={setTab} />
+
+      {tab === 'details' ? (
+        <>
+          <MatchInfoCard
+            fixture={data.fixture}
+            league={league}
+            country={country}
+          />
+          <ScoreBreakdown
+            scores={data.scores}
+            homeName={data.fixture.home_team_short_code ?? data.fixture.home_team_name}
+            awayName={data.fixture.away_team_short_code ?? data.fixture.away_team_name}
+          />
+        </>
+      ) : (
+        <EmptyTab label={tab} />
+      )}
     </ScrollView>
   );
+}
+
+function EmptyTab({ label }: { label: DetailTab }) {
+  const c = useTheme();
+  return (
+    <View style={styles.empty}>
+      <ThemedText style={[styles.emptyText, { color: c.textMuted }]}>
+        {prettyTabName(label)} coming soon.
+      </ThemedText>
+    </View>
+  );
+}
+
+function prettyTabName(tab: DetailTab): string {
+  switch (tab) {
+    case 'stats':
+      return 'Statistics';
+    case 'lineups':
+      return 'Lineups';
+    case 'h2h':
+      return 'Head-to-head';
+    default:
+      return 'Details';
+  }
 }
 
 const styles = StyleSheet.create({
@@ -105,5 +147,12 @@ const styles = StyleSheet.create({
   errorMessage: {
     fontSize: 13,
     textAlign: 'center',
+  },
+  empty: {
+    paddingVertical: 64,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 14,
   },
 });

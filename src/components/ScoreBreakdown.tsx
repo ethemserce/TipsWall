@@ -6,6 +6,8 @@ import type { FixtureScore } from '@/src/types/fixtureDetail';
 
 interface ScoreBreakdownProps {
   scores: FixtureScore[];
+  homeName?: string | null;
+  awayName?: string | null;
 }
 
 const SECTION_ORDER = ['1ST_HALF', '2ND_HALF', 'EXTRA_TIME', 'PENALTIES', 'NORMALTIME'];
@@ -18,7 +20,7 @@ const SECTION_LABEL: Record<string, string> = {
   NORMALTIME: 'Full Time',
 };
 
-export function ScoreBreakdown({ scores }: ScoreBreakdownProps) {
+export function ScoreBreakdown({ scores, homeName, awayName }: ScoreBreakdownProps) {
   const c = useTheme();
 
   const rows = SECTION_ORDER.flatMap((description) => {
@@ -42,32 +44,61 @@ export function ScoreBreakdown({ scores }: ScoreBreakdownProps) {
   if (rows.length === 0) return null;
 
   return (
-    <View style={[styles.container, { backgroundColor: c.bg, borderColor: c.border }]}>
-      <ThemedText style={[styles.title, { color: c.textMuted }]}>
-        SCORE BREAKDOWN
-      </ThemedText>
+    <View
+      style={[
+        styles.card,
+        { backgroundColor: c.surface, borderColor: c.border },
+      ]}>
+      <ThemedText style={[styles.title, { color: c.textMuted }]}>SCORE</ThemedText>
+
+      <View style={styles.headerRow}>
+        <ThemedText style={[styles.headerLabel, { color: c.textMuted }]} />
+        <View style={styles.scoreCells}>
+          <ThemedText
+            style={[styles.headerCell, { color: c.textMuted }]}
+            numberOfLines={1}>
+            {abbreviate(homeName) ?? 'H'}
+          </ThemedText>
+          <ThemedText
+            style={[styles.headerCell, { color: c.textMuted }]}
+            numberOfLines={1}>
+            {abbreviate(awayName) ?? 'A'}
+          </ThemedText>
+        </View>
+      </View>
+
       {rows.map((row) => (
-        <View key={row.key} style={[styles.row, { borderTopColor: c.border }]}>
-          <ThemedText style={[styles.label, { color: c.textMuted }]}>
+        <View
+          key={row.key}
+          style={[styles.row, { borderTopColor: c.border }]}>
+          <ThemedText style={[styles.label, { color: c.text }]}>
             {row.label}
           </ThemedText>
-          <ThemedText style={[styles.value, { color: c.text }]}>
-            {row.home ?? '-'}
-            <ThemedText style={[styles.dash, { color: c.textMuted }]}>{' : '}</ThemedText>
-            {row.away ?? '-'}
-          </ThemedText>
+          <View style={styles.scoreCells}>
+            <ThemedText style={[styles.cell, { color: c.text }]}>
+              {row.home ?? '-'}
+            </ThemedText>
+            <ThemedText style={[styles.cell, { color: c.text }]}>
+              {row.away ?? '-'}
+            </ThemedText>
+          </View>
         </View>
       ))}
     </View>
   );
 }
 
+function abbreviate(name: string | null | undefined): string | null {
+  if (!name) return null;
+  return name.length > 3 ? name.slice(0, 3).toUpperCase() : name.toUpperCase();
+}
+
 const styles = StyleSheet.create({
-  container: {
+  card: {
     marginHorizontal: 16,
     marginTop: 16,
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 10,
+    borderRadius: 12,
     overflow: 'hidden',
   },
   title: {
@@ -76,26 +107,45 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     paddingHorizontal: 14,
     paddingTop: 12,
-    paddingBottom: 8,
+    paddingBottom: 6,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingBottom: 6,
+  },
+  headerLabel: {
+    flex: 1,
+  },
+  headerCell: {
+    width: 32,
+    textAlign: 'center',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
   label: {
+    flex: 1,
     fontSize: 13,
     fontWeight: '500',
   },
-  value: {
+  scoreCells: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  cell: {
+    width: 32,
+    textAlign: 'center',
     fontSize: 14,
     fontWeight: '600',
     fontVariant: ['tabular-nums'],
-  },
-  dash: {
-    fontWeight: '400',
   },
 });

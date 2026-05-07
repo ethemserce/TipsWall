@@ -1,6 +1,6 @@
 import { format, parseISO } from 'date-fns';
 import { Image } from 'expo-image';
-import { Link, type Href } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -14,6 +14,7 @@ interface FixtureCardProps {
 
 export function FixtureCard({ fixture }: FixtureCardProps) {
   const c = useTheme();
+  const router = useRouter();
   const bucket = getStateBucket(fixture.state_id);
   const live = bucket === 'live';
   const finished = bucket === 'finished';
@@ -39,16 +40,16 @@ export function FixtureCard({ fixture }: FixtureCardProps) {
     fixture.away_score > fixture.home_score;
 
   return (
-    <Link href={`/fixture/${fixture.id}` as Href} asChild>
-      <Pressable
-        style={({ pressed }) => [
-          styles.card,
-          {
-            backgroundColor: pressed ? c.surface : c.bg,
-            borderBottomColor: c.border,
-          },
-        ]}>
-        <View style={styles.timeColumn}>
+    <Pressable
+      onPress={() => router.push(`/fixture/${fixture.id}` as never)}
+      style={({ pressed }) => [
+        styles.card,
+        {
+          backgroundColor: pressed ? c.surface : c.bg,
+          borderBottomColor: c.border,
+        },
+      ]}>
+      <View style={styles.timeColumn}>
         {live ? (
           <View style={styles.liveRow}>
             <View style={[styles.liveDot, { backgroundColor: c.live }]} />
@@ -61,7 +62,9 @@ export function FixtureCard({ fixture }: FixtureCardProps) {
             {stateLabel || 'FT'}
           </ThemedText>
         ) : (
-          <ThemedText style={[styles.timeStrong, { color: c.text }]}>{kickoff}</ThemedText>
+          <ThemedText style={[styles.timeStrong, { color: c.text }]}>
+            {kickoff}
+          </ThemedText>
         )}
       </View>
 
@@ -70,32 +73,31 @@ export function FixtureCard({ fixture }: FixtureCardProps) {
         <TeamRow team={away} dimmed={finished && !awayWinner} />
       </View>
 
-        <View style={styles.scoreColumn}>
-          {showScore ? (
-            <>
-              <ScoreText
-                value={fixture.home_score}
-                live={live}
-                winner={homeWinner}
-                c={c}
-              />
-              <ScoreText
-                value={fixture.away_score}
-                live={live}
-                winner={awayWinner}
-                c={c}
-              />
-            </>
-          ) : fixture.has_odds ? (
-            <View style={[styles.oddsBadge, { backgroundColor: c.brand }]}>
-              <ThemedText style={[styles.oddsBadgeText, { color: c.textInverse }]}>
-                ODDS
-              </ThemedText>
-            </View>
-          ) : null}
-        </View>
-      </Pressable>
-    </Link>
+      <View style={styles.scoreColumn}>
+        {showScore ? (
+          <>
+            <ScoreText
+              value={fixture.home_score}
+              live={live}
+              winner={homeWinner}
+              c={c}
+            />
+            <ScoreText
+              value={fixture.away_score}
+              live={live}
+              winner={awayWinner}
+              c={c}
+            />
+          </>
+        ) : fixture.has_odds ? (
+          <View style={[styles.oddsBadge, { backgroundColor: c.brand }]}>
+            <ThemedText style={[styles.oddsBadgeText, { color: c.textInverse }]}>
+              ODDS
+            </ThemedText>
+          </View>
+        ) : null}
+      </View>
+    </Pressable>
   );
 }
 
