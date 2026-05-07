@@ -42,6 +42,8 @@ builder.Services.AddSingleton<PreOddsApi.WebApi.V3.Data.IRefreshTokenService,
     PreOddsApi.WebApi.V3.Data.PostgresRefreshTokenService>();
 builder.Services.AddSingleton<PreOddsApi.WebApi.V3.Data.IUserDataService,
     PreOddsApi.WebApi.V3.Data.PostgresUserDataService>();
+builder.Services.AddSingleton<PreOddsApi.WebApi.V3.Data.IAnalyticsReader,
+    PreOddsApi.WebApi.V3.Data.PostgresAnalyticsReader>();
 
 builder.Services.AddHealthChecks()
     .AddCheck<PreOddsApi.WebApi.V3.Health.PostgresHealthCheck>(
