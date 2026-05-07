@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { CircularGauge } from '@/src/components/CircularGauge';
 import { useTheme } from '@/src/lib/useTheme';
 import type {
   FixtureOddOutcome,
@@ -16,6 +17,10 @@ interface DerivedRow {
   outcome: FixtureOddOutcome;
   iko: number | null;
 }
+
+const VBET_COLOR = '#f59e0b'; // amber
+const DSO_COLOR = '#22c55e'; // green
+const IKO_COLOR = '#3b82f6'; // blue
 
 export function OddsRatesCard({ market }: OddsRatesCardProps) {
   const c = useTheme();
@@ -53,13 +58,13 @@ export function OddsRatesCard({ market }: OddsRatesCardProps) {
         <ThemedText style={[styles.headerCell, styles.cellNumber, { color: c.textMuted }]}>
           ORAN
         </ThemedText>
-        <ThemedText style={[styles.headerCell, styles.cellNumber, { color: c.textMuted }]}>
+        <ThemedText style={[styles.headerCell, styles.cellGauge, { color: c.textMuted }]}>
           VBET
         </ThemedText>
-        <ThemedText style={[styles.headerCell, styles.cellNumber, { color: c.textMuted }]}>
+        <ThemedText style={[styles.headerCell, styles.cellGauge, { color: c.textMuted }]}>
           DSO
         </ThemedText>
-        <ThemedText style={[styles.headerCell, styles.cellNumber, { color: c.textMuted }]}>
+        <ThemedText style={[styles.headerCell, styles.cellGauge, { color: c.textMuted }]}>
           İKO
         </ThemedText>
         <ThemedText style={[styles.headerCell, styles.cellNarrow, { color: c.textMuted }]}>
@@ -73,7 +78,6 @@ export function OddsRatesCard({ market }: OddsRatesCardProps) {
       {rows.map(({ outcome, iko }) => {
         const sample = outcome.win_count + outcome.lost_count;
         const hasSample = sample > 0;
-        const vbetColor = colorForSigned(outcome.earning_percent, c);
         return (
           <View
             key={`${outcome.label}-${outcome.total ?? ''}-${outcome.handicap ?? ''}-${outcome.value ?? ''}`}
@@ -87,18 +91,21 @@ export function OddsRatesCard({ market }: OddsRatesCardProps) {
               style={[styles.cell, styles.cellNumber, styles.numberValue, { color: c.text }]}>
               {formatOdd(outcome.value)}
             </ThemedText>
-            <ThemedText
-              style={[styles.cell, styles.cellNumber, styles.numberValue, { color: vbetColor }]}>
-              {hasSample ? formatSigned(outcome.earning_percent) : '-'}
-            </ThemedText>
-            <ThemedText
-              style={[styles.cell, styles.cellNumber, styles.numberValue, { color: c.text }]}>
-              {hasSample ? formatPercent(outcome.winning_percent) : '-'}
-            </ThemedText>
-            <ThemedText
-              style={[styles.cell, styles.cellNumber, styles.numberValue, { color: c.text }]}>
-              {iko != null ? formatPercent(iko) : '-'}
-            </ThemedText>
+            <View style={styles.cellGauge}>
+              <CircularGauge
+                value={hasSample ? outcome.earning_percent : null}
+                color={VBET_COLOR}
+              />
+            </View>
+            <View style={styles.cellGauge}>
+              <CircularGauge
+                value={hasSample ? outcome.winning_percent : null}
+                color={DSO_COLOR}
+              />
+            </View>
+            <View style={styles.cellGauge}>
+              <CircularGauge value={iko} color={IKO_COLOR} />
+            </View>
             <ThemedText
               style={[styles.cell, styles.cellNarrow, styles.numberValue, { color: c.textMuted }]}>
               {hasSample ? outcome.win_count : '-'}
@@ -114,16 +121,6 @@ export function OddsRatesCard({ market }: OddsRatesCardProps) {
   );
 }
 
-function colorForSigned(
-  value: number | null | undefined,
-  c: ReturnType<typeof useTheme>,
-): string {
-  if (value == null) return c.textMuted;
-  if (value > 0) return c.brand;
-  if (value < 0) return c.live;
-  return c.text;
-}
-
 function formatLabel(o: FixtureOddOutcome): string {
   const suffix = o.total ?? o.handicap ?? null;
   return suffix ? `${o.label} ${suffix}` : o.label;
@@ -132,17 +129,6 @@ function formatLabel(o: FixtureOddOutcome): string {
 function formatOdd(value: number | null | undefined): string {
   if (value == null) return '-';
   return value.toFixed(2);
-}
-
-function formatPercent(value: number | null | undefined): string {
-  if (value == null) return '-';
-  return `${value.toFixed(1)}`;
-}
-
-function formatSigned(value: number | null | undefined): string {
-  if (value == null) return '-';
-  const sign = value > 0 ? '+' : '';
-  return `${sign}${value.toFixed(1)}`;
 }
 
 const styles = StyleSheet.create({
@@ -164,36 +150,44 @@ const styles = StyleSheet.create({
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
   headerCell: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '700',
-    letterSpacing: 0.5,
+    letterSpacing: 0.4,
+    textAlign: 'center',
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
     borderTopWidth: StyleSheet.hairlineWidth,
+    gap: 2,
   },
   cell: {
-    fontSize: 13,
+    fontSize: 12,
   },
   cellLabel: {
-    flex: 1.6,
+    flex: 1.2,
     fontWeight: '500',
+    paddingLeft: 6,
   },
   cellNumber: {
+    flex: 0.7,
+    textAlign: 'center',
+  },
+  cellGauge: {
     flex: 1,
-    textAlign: 'right',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   cellNarrow: {
-    flex: 0.6,
-    textAlign: 'right',
+    flex: 0.5,
+    textAlign: 'center',
   },
   numberValue: {
     fontVariant: ['tabular-nums'],
