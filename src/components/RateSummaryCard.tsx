@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -11,6 +12,7 @@ interface RateSummaryCardProps {
 
 export function RateSummaryCard({ summary, asOfDate }: RateSummaryCardProps) {
   const c = useTheme();
+  const { t } = useTranslation();
   const winRate =
     summary.bet_total > 0
       ? (summary.success_count / summary.bet_total) * 100
@@ -23,14 +25,18 @@ export function RateSummaryCard({ summary, asOfDate }: RateSummaryCardProps) {
         { backgroundColor: c.surface, borderColor: c.border },
       ]}>
       <View style={styles.row}>
-        <Stat label="SİNYAL" value={String(summary.total_signals)} color={c.text} />
         <Stat
-          label="ORT. ORAN"
+          label={t('rate.summary.signals').toUpperCase()}
+          value={String(summary.total_signals)}
+          color={c.text}
+        />
+        <Stat
+          label={t('rate.summary.avgOdd').toUpperCase()}
           value={summary.avg_odd_value != null ? summary.avg_odd_value.toFixed(2) : '-'}
           color={c.text}
         />
         <Stat
-          label="ORT. % KAZANMA"
+          label={t('rate.summary.avgWin').toUpperCase()}
           value={
             summary.avg_winning_percent != null
               ? `${summary.avg_winning_percent.toFixed(1)}%`
@@ -39,7 +45,7 @@ export function RateSummaryCard({ summary, asOfDate }: RateSummaryCardProps) {
           color="#22c55e"
         />
         <Stat
-          label="ORT. % ROI"
+          label={t('rate.summary.avgRoi').toUpperCase()}
           value={
             summary.avg_earning_percent != null
               ? `${summary.avg_earning_percent.toFixed(1)}%`
@@ -52,17 +58,17 @@ export function RateSummaryCard({ summary, asOfDate }: RateSummaryCardProps) {
       {summary.bet_total > 0 ? (
         <View style={[styles.verifyRow, { borderTopColor: c.border }]}>
           <Stat
-            label="DOĞRULAMA"
+            label={t('rate.summary.verification').toUpperCase()}
             value={`${summary.success_count} / ${summary.bet_total}`}
             color={c.text}
           />
           <Stat
-            label="GERÇEK %"
+            label={t('rate.summary.actualWin').toUpperCase()}
             value={winRate != null ? `${winRate.toFixed(1)}%` : '-'}
             color={c.brand}
           />
           <Stat
-            label="KAZANÇ"
+            label={t('rate.summary.earnings').toUpperCase()}
             value={
               summary.earning_total != null
                 ? summary.earning_total.toFixed(2)
@@ -75,7 +81,7 @@ export function RateSummaryCard({ summary, asOfDate }: RateSummaryCardProps) {
 
       {asOfDate ? (
         <ThemedText style={[styles.asOf, { color: c.textMuted }]}>
-          Son güncelleme: {asOfDate}
+          {t('rate.summary.lastRefresh', { date: asOfDate })}
         </ThemedText>
       ) : null}
     </View>

@@ -1,4 +1,5 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -6,13 +7,7 @@ import { useTheme } from '@/src/lib/useTheme';
 
 export type WindowCode = '1m' | '3m' | '6m' | '1y' | 'all';
 
-const WINDOWS: { key: WindowCode; label: string }[] = [
-  { key: '1m', label: '1 Ay' },
-  { key: '3m', label: '3 Ay' },
-  { key: '6m', label: '6 Ay' },
-  { key: '1y', label: '1 Yıl' },
-  { key: 'all', label: 'Tümü' },
-];
+const WINDOWS: WindowCode[] = ['1m', '3m', '6m', '1y', 'all'];
 
 export interface RateFilters {
   window: WindowCode;
@@ -29,6 +24,7 @@ const MIN_RATES: (number | null)[] = [null, 1.3, 1.5, 1.8, 2.0, 2.5, 3.0];
 
 export function RateFilterBar({ filters, onChange }: RateFilterBarProps) {
   const c = useTheme();
+  const { t } = useTranslation();
 
   return (
     <View style={[styles.bar, { borderBottomColor: c.border }]}>
@@ -38,9 +34,11 @@ export function RateFilterBar({ filters, onChange }: RateFilterBarProps) {
         contentContainerStyle={styles.row}>
         {/* Window picker */}
         <View style={styles.group}>
-          <ThemedText style={[styles.groupLabel, { color: c.textMuted }]}>PERİYOT</ThemedText>
+          <ThemedText style={[styles.groupLabel, { color: c.textMuted }]}>
+            {t('rate.filters.period').toUpperCase()}
+          </ThemedText>
           <View style={[styles.pillGroup, { borderColor: c.border }]}>
-            {WINDOWS.map(({ key, label }) => {
+            {WINDOWS.map((key) => {
               const active = filters.window === key;
               return (
                 <Pressable
@@ -55,7 +53,7 @@ export function RateFilterBar({ filters, onChange }: RateFilterBarProps) {
                       styles.pillText,
                       { color: active ? c.textInverse : c.text },
                     ]}>
-                    {label}
+                    {t(`rate.filters.windows.${key}`)}
                   </ThemedText>
                 </Pressable>
               );
@@ -65,7 +63,9 @@ export function RateFilterBar({ filters, onChange }: RateFilterBarProps) {
 
         {/* Min odd picker */}
         <View style={styles.group}>
-          <ThemedText style={[styles.groupLabel, { color: c.textMuted }]}>MİN ORAN</ThemedText>
+          <ThemedText style={[styles.groupLabel, { color: c.textMuted }]}>
+            {t('rate.filters.minOdd').toUpperCase()}
+          </ThemedText>
           <View style={[styles.pillGroup, { borderColor: c.border }]}>
             {MIN_RATES.map((value) => {
               const active = filters.minRate === value;
@@ -82,7 +82,7 @@ export function RateFilterBar({ filters, onChange }: RateFilterBarProps) {
                       styles.pillText,
                       { color: active ? c.textInverse : c.text },
                     ]}>
-                    {value == null ? 'Tümü' : value.toFixed(2)}
+                    {value == null ? t('rate.filters.all') : value.toFixed(2)}
                   </ThemedText>
                 </Pressable>
               );
@@ -92,7 +92,9 @@ export function RateFilterBar({ filters, onChange }: RateFilterBarProps) {
 
         {/* Not-started toggle */}
         <View style={styles.group}>
-          <ThemedText style={[styles.groupLabel, { color: c.textMuted }]}>DURUM</ThemedText>
+          <ThemedText style={[styles.groupLabel, { color: c.textMuted }]}>
+            {t('rate.filters.status').toUpperCase()}
+          </ThemedText>
           <Pressable
             onPress={() =>
               onChange({ ...filters, notStartedOnly: !filters.notStartedOnly })
@@ -115,7 +117,7 @@ export function RateFilterBar({ filters, onChange }: RateFilterBarProps) {
                 styles.pillText,
                 { color: filters.notStartedOnly ? c.textInverse : c.text },
               ]}>
-              Sadece Başlamayan
+              {t('rate.filters.notStartedOnly')}
             </ThemedText>
           </Pressable>
         </View>

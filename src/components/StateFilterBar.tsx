@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/src/lib/useTheme';
@@ -11,19 +12,21 @@ interface StateFilterBarProps {
   counts: Record<FixtureFilter, number>;
 }
 
-const ORDER: { key: FixtureFilter; label: string }[] = [
-  { key: 'all', label: 'All' },
-  { key: 'live', label: 'Live' },
-  { key: 'upcoming', label: 'Upcoming' },
-  { key: 'finished', label: 'Finished' },
+const ORDER: { key: FixtureFilter; i18nKey: string }[] = [
+  { key: 'all', i18nKey: 'common.all' },
+  { key: 'live', i18nKey: 'common.live' },
+  { key: 'upcoming', i18nKey: 'common.upcoming' },
+  { key: 'finished', i18nKey: 'common.finished' },
 ];
 
 export function StateFilterBar({ selected, onSelect, counts }: StateFilterBarProps) {
   const c = useTheme();
+  const { t } = useTranslation();
 
   return (
     <View style={[styles.bar, { borderBottomColor: c.border }]}>
-      {ORDER.map(({ key, label }) => {
+      {ORDER.map(({ key, i18nKey }) => {
+        const label = t(i18nKey);
         const active = key === selected;
         const showLiveDot = key === 'live' && counts.live > 0;
         return (

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   FlatList,
@@ -37,6 +38,7 @@ interface FixtureGroup {
 
 export function RateScreen({ kind, title, primaryMetric }: RateScreenProps) {
   const c = useTheme();
+  const { t } = useTranslation();
   const [filters, setFilters] = useState<RateFilters>({
     window: 'all',
     minRate: null,
@@ -102,10 +104,10 @@ export function RateScreen({ kind, title, primaryMetric }: RateScreenProps) {
       ) : isError ? (
         <View style={styles.center}>
           <ThemedText style={[styles.errorTitle, { color: c.text }]}>
-            Veriler yüklenemedi
+            {t('rate.couldNotLoad', { title })}
           </ThemedText>
           <ThemedText style={[styles.errorMessage, { color: c.textMuted }]}>
-            {error instanceof Error ? error.message : 'Bilinmeyen hata'}
+            {error instanceof Error ? error.message : t('common.somethingWentWrong')}
           </ThemedText>
         </View>
       ) : (
@@ -134,7 +136,7 @@ export function RateScreen({ kind, title, primaryMetric }: RateScreenProps) {
           ListEmptyComponent={
             <View style={styles.center}>
               <ThemedText style={{ color: c.textMuted }}>
-                Bu filtreyle sonuç bulunamadı.
+                {t('rate.noResults')}
               </ThemedText>
             </View>
           }

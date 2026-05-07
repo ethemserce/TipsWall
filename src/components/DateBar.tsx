@@ -1,10 +1,16 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { addDays, format, isSameDay, isToday, startOfMonth } from 'date-fns';
+import { enUS, tr as trLocale } from 'date-fns/locale';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Modal, Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/src/lib/useTheme';
+
+function dfLocale(lang: string) {
+  return lang.startsWith('tr') ? trLocale : enUS;
+}
 
 interface DateBarProps {
   selectedDate: Date;
@@ -20,11 +26,13 @@ export function DateBar({
   onOddsToggle,
 }: DateBarProps) {
   const c = useTheme();
+  const { t, i18n } = useTranslation();
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const locale = dfLocale(i18n.language);
 
   const pillLabel = isToday(selectedDate)
-    ? 'Bugün'
-    : format(selectedDate, 'd MMM');
+    ? t('common.today')
+    : format(selectedDate, 'd MMM', { locale });
 
   return (
     <View style={styles.bar}>
@@ -50,7 +58,9 @@ export function DateBar({
         <Pressable
           onPress={() => onOddsToggle(!oddsToggle)}
           style={styles.oddsRow}>
-          <ThemedText style={[styles.oddsLabel, { color: c.text }]}>Oranlar</ThemedText>
+          <ThemedText style={[styles.oddsLabel, { color: c.text }]}>
+            {t('home.filters.odds')}
+          </ThemedText>
           <View
             style={[
               styles.toggleTrack,
@@ -94,6 +104,8 @@ function CalendarModal({
   onSelect: (d: Date) => void;
 }) {
   const c = useTheme();
+  const { t, i18n } = useTranslation();
+  const locale = dfLocale(i18n.language);
   const [cursor, setCursor] = useState(() => startOfMonth(selectedDate));
 
   const days = buildMonthGrid(cursor);
@@ -123,7 +135,7 @@ function CalendarModal({
             <MaterialCommunityIcons name="chevron-left" size={22} color={c.brand} />
           </Pressable>
           <ThemedText style={[styles.monthLabel, { color: c.text }]}>
-            {format(cursor, 'MMMM yyyy')}
+            {format(cursor, 'MMMM yyyy', { locale })}
           </ThemedText>
           <Pressable
             onPress={() =>
@@ -137,7 +149,7 @@ function CalendarModal({
         </View>
 
         <View style={styles.weekRow}>
-          {WEEK_LABELS.map((w) => (
+          {weekLabels(locale).map((w) => (
             <ThemedText key={w} style={[styles.weekLabel, { color: c.textMuted }]}>
               {w}
             </ThemedText>
@@ -174,7 +186,7 @@ function CalendarModal({
           onPress={() => onSelect(new Date())}
           style={[styles.todayBtn, { backgroundColor: c.brand }]}>
           <ThemedText style={[styles.todayBtnText, { color: c.textInverse }]}>
-            BUGÜN
+            {t('common.today').toUpperCase()}
           </ThemedText>
         </Pressable>
       </View>
@@ -182,7 +194,12 @@ function CalendarModal({
   );
 }
 
-const WEEK_LABELS = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
+function weekLabels(locale: typeof enUS): string[] {
+  const monday = new Date(2024, 0, 1);
+  return Array.from({ length: 7 }, (_, i) =>
+    format(addDays(monday, i), 'EEE', { locale }),
+  );
+}
 
 function buildMonthGrid(month: Date): (Date | null)[] {
   const first = startOfMonth(month);

@@ -1,0 +1,117 @@
+{
+  "common": {
+    "loading": "Loading…",
+    "tbd": "TBD",
+    "today": "Today",
+    "all": "All",
+    "live": "Live",
+    "upcoming": "Upcoming",
+    "finished": "Finished",
+    "match": "Match",
+    "back": "Back",
+    "couldNotLoad": "Couldn't load",
+    "somethingWentWrong": "Something went wrong.",
+    "noResults": "No results.",
+    "comingSoon": "{{name}} coming soon."
+  },
+  "tabs": {
+    "home": "Home",
+    "winning": "Winning",
+    "hot": "Hot",
+    "earning": "Earning"
+  },
+  "home": {
+    "filters": {
+      "odds": "Odds"
+    },
+    "noFixturesForFilter": "No fixtures match this filter."
+  },
+  "fixture": {
+    "tabs": {
+      "details": "Details",
+      "odds": "Odds",
+      "stats": "Stats",
+      "lineups": "Lineups",
+      "h2h": "H2H"
+    },
+    "events": {
+      "firstHalf": "1st Half",
+      "secondHalf": "2nd Half"
+    },
+    "info": {
+      "title": "Match Info",
+      "tournament": "Tournament",
+      "country": "Country",
+      "type": "Type",
+      "kickOff": "Kick-off",
+      "length": "Length",
+      "leg": "Leg",
+      "result": "Result",
+      "lengthMinutes": "{{count}} min"
+    },
+    "score": {
+      "title": "Score",
+      "halftime": "HT",
+      "firstHalf": "1st Half",
+      "secondHalf": "2nd Half",
+      "extraTime": "Extra Time",
+      "penalties": "Penalties",
+      "fullTime": "Full Time"
+    },
+    "lineups": {
+      "notAvailable": "Lineups not available yet.",
+      "formation": "Formation",
+      "startingXi": "Starting XI",
+      "bench": "Bench",
+      "home": "Home",
+      "away": "Away"
+    },
+    "stats": {
+      "title": "Statistics",
+      "notAvailable": "No statistics for this match yet."
+    },
+    "h2h": {
+      "title": "Head-to-head ({{count}})",
+      "homeWins": "Home wins",
+      "draws": "Draws",
+      "awayWins": "Away wins",
+      "notAvailable": "No previous matches between these teams yet."
+    },
+    "odds": {
+      "noOdds": "No odds available for this match yet."
+    }
+  },
+  "rate": {
+    "filters": {
+      "period": "Period",
+      "minOdd": "Min Odd",
+      "status": "Status",
+      "notStartedOnly": "Upcoming only",
+      "all": "All",
+      "windows": {
+        "1m": "1 Mo",
+        "3m": "3 Mo",
+        "6m": "6 Mo",
+        "1y": "1 Yr",
+        "all": "All"
+      }
+    },
+    "summary": {
+      "signals": "Signals",
+      "avgOdd": "Avg Odd",
+      "avgWin": "Avg Win %",
+      "avgRoi": "Avg ROI %",
+      "verification": "Verified",
+      "actualWin": "Actual %",
+      "earnings": "Earnings",
+      "lastRefresh": "Last updated: {{date}}"
+    },
+    "noResults": "No results match your filter.",
+    "couldNotLoad": "Couldn't load {{title}}",
+    "titles": {
+      "hot": "Hot Rate",
+      "winning": "Winning Rate",
+      "earning": "Earning Rate"
+    }
+  }
+}

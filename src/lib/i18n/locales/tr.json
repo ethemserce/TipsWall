@@ -1,0 +1,117 @@
+{
+  "common": {
+    "loading": "Yükleniyor…",
+    "tbd": "—",
+    "today": "Bugün",
+    "all": "Tümü",
+    "live": "Canlı",
+    "upcoming": "Yaklaşan",
+    "finished": "Bitti",
+    "match": "Maç",
+    "back": "Geri",
+    "couldNotLoad": "Yüklenemedi",
+    "somethingWentWrong": "Bir şeyler ters gitti.",
+    "noResults": "Sonuç bulunamadı.",
+    "comingSoon": "{{name}} yakında."
+  },
+  "tabs": {
+    "home": "Anasayfa",
+    "winning": "Kazanma",
+    "hot": "Sıcak",
+    "earning": "Kâr"
+  },
+  "home": {
+    "filters": {
+      "odds": "Oranlar"
+    },
+    "noFixturesForFilter": "Bu filtreyle eşleşen maç yok."
+  },
+  "fixture": {
+    "tabs": {
+      "details": "Detaylar",
+      "odds": "Oranlar",
+      "stats": "İstatistikler",
+      "lineups": "Kadrolar",
+      "h2h": "Karşılaşmalar"
+    },
+    "events": {
+      "firstHalf": "1. Yarı",
+      "secondHalf": "2. Yarı"
+    },
+    "info": {
+      "title": "Maç Bilgisi",
+      "tournament": "Turnuva",
+      "country": "Ülke",
+      "type": "Tür",
+      "kickOff": "Başlangıç",
+      "length": "Süre",
+      "leg": "Etap",
+      "result": "Sonuç",
+      "lengthMinutes": "{{count}} dk"
+    },
+    "score": {
+      "title": "Skor",
+      "halftime": "İY",
+      "firstHalf": "1. Yarı",
+      "secondHalf": "2. Yarı",
+      "extraTime": "Uzatma",
+      "penalties": "Penaltılar",
+      "fullTime": "Maç Sonu"
+    },
+    "lineups": {
+      "notAvailable": "Kadrolar henüz açıklanmadı.",
+      "formation": "Diziliş",
+      "startingXi": "İlk 11",
+      "bench": "Yedekler",
+      "home": "Ev Sahibi",
+      "away": "Deplasman"
+    },
+    "stats": {
+      "title": "İstatistikler",
+      "notAvailable": "Bu maç için istatistik bulunmuyor."
+    },
+    "h2h": {
+      "title": "Karşılıklı ({{count}})",
+      "homeWins": "Ev sahibi galibiyet",
+      "draws": "Beraberlik",
+      "awayWins": "Deplasman galibiyet",
+      "notAvailable": "Bu iki takım arasında henüz oynanmış maç yok."
+    },
+    "odds": {
+      "noOdds": "Bu maç için henüz oran yok."
+    }
+  },
+  "rate": {
+    "filters": {
+      "period": "Periyot",
+      "minOdd": "Min Oran",
+      "status": "Durum",
+      "notStartedOnly": "Sadece Başlamayan",
+      "all": "Tümü",
+      "windows": {
+        "1m": "1 Ay",
+        "3m": "3 Ay",
+        "6m": "6 Ay",
+        "1y": "1 Yıl",
+        "all": "Tümü"
+      }
+    },
+    "summary": {
+      "signals": "Sinyal",
+      "avgOdd": "Ort. Oran",
+      "avgWin": "Ort. % Kazanma",
+      "avgRoi": "Ort. % ROI",
+      "verification": "Doğrulama",
+      "actualWin": "Gerçek %",
+      "earnings": "Kazanç",
+      "lastRefresh": "Son güncelleme: {{date}}"
+    },
+    "noResults": "Bu filtreyle sonuç bulunamadı.",
+    "couldNotLoad": "{{title}} yüklenemedi",
+    "titles": {
+      "hot": "Sıcak Bahisler",
+      "winning": "Kazanan Bahisler",
+      "earning": "Kârlı Bahisler"
+    }
+  }
+}

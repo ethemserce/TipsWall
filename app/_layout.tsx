@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import '@/src/lib/i18n';
 import { queryClient } from '@/src/lib/queryClient';
 
 export const unstable_settings = {
