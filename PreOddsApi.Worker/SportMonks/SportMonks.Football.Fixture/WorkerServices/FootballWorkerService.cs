@@ -18,7 +18,8 @@ namespace SportMonks.Football.FixtureWorker.Services
             public const string Transfers = "worker.football.transfers";
             public const string TvStations = "worker.football.tv-stations";
             public const string News = "worker.football.news";
-            public const string Fixture = "worker.football.fixture";
+            public const string FixtureLive = "worker.football.fixture.live";
+            public const string FixtureBacklog = "worker.football.fixture.backlog";
             public const string PrematchOdds = "worker.football.prematch-odds";
             public const string InplayOdds = "worker.football.inplay-odds";
             public const string Analytics = "worker.football.analytics";
@@ -190,32 +191,87 @@ namespace SportMonks.Football.FixtureWorker.Services
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            var pollingInterval = TimeSpan.FromSeconds(
-                GetInteger("SportMonksWorkerSettings:PollingIntervalSeconds", 60));
+            _logger.LogInformation(
+                "Football worker starting up: live ({Live}s) + pulse ({Pulse}s) + nightly ({Nightly}s) tiers.",
+                GetInteger("SportMonksWorkerSettings:LiveIntervalSeconds", 30),
+                GetInteger("SportMonksWorkerSettings:PulseIntervalSeconds", 1800),
+                GetInteger("SportMonksWorkerSettings:NightlyIntervalSeconds", 86400));
 
+            // Three independent parallel loops so a slow tick on one tier
+            // doesn't block the others. Each catches its own exceptions.
+            var live = RunTierLoopAsync(
+                "live",
+                GetInteger("SportMonksWorkerSettings:LiveIntervalSeconds", 30),
+                RunLiveTickAsync,
+                stoppingToken);
+            var pulse = RunTierLoopAsync(
+                "pulse",
+                GetInteger("SportMonksWorkerSettings:PulseIntervalSeconds", 1800),
+                RunPulseTickAsync,
+                stoppingToken);
+            var nightly = RunTierLoopAsync(
+                "nightly",
+                GetInteger("SportMonksWorkerSettings:NightlyIntervalSeconds", 86400),
+                RunNightlyTickAsync,
+                stoppingToken);
+
+            await Task.WhenAll(live, pulse, nightly);
+        }
+
+        private async Task RunTierLoopAsync(
+            string tierName,
+            int intervalSeconds,
+            Func<CancellationToken, Task> tick,
+            CancellationToken stoppingToken)
+        {
+            var interval = TimeSpan.FromSeconds(Math.Max(5, intervalSeconds));
             while (!stoppingToken.IsCancellationRequested)
             {
-                _logger.LogInformation("Football worker polling at {Time}.", DateTimeOffset.UtcNow);
-
+                _logger.LogInformation("[{Tier}] tick at {Time}", tierName, DateTimeOffset.UtcNow);
                 try
                 {
-                    await MaybeRunReferenceDataAsync(stoppingToken);
-                    await MaybeRunStandingsAsync(stoppingToken);
-                    await MaybeRunTransfersAsync(stoppingToken);
-                    await MaybeRunTvStationsAsync(stoppingToken);
-                    await MaybeRunNewsAsync(stoppingToken);
-                    await MaybeRunFixtureWindowAsync(stoppingToken);
-                    await MaybeRunLatestPrematchOddsAsync(stoppingToken);
-                    await MaybeRunLatestInplayOddsAsync(stoppingToken);
-                    await MaybeRunAnalyticsAsync(stoppingToken);
+                    await tick(stoppingToken);
                 }
                 catch (Exception exc)
                 {
-                    _logger.LogError(exc, exc.Message);
+                    _logger.LogError(exc, "[{Tier}] tick failed: {Message}", tierName, exc.Message);
                 }
 
-                await Task.Delay(pollingInterval, stoppingToken);
+                try
+                {
+                    await Task.Delay(interval, stoppingToken);
+                }
+                catch (TaskCanceledException)
+                {
+                    break;
+                }
             }
+        }
+
+        private async Task RunLiveTickAsync(CancellationToken cancellationToken)
+        {
+            // Tight loop while there is something live or about to start.
+            await MaybeRunFixtureLiveAsync(cancellationToken);
+            await MaybeRunLatestInplayOddsAsync(cancellationToken);
+        }
+
+        private async Task RunPulseTickAsync(CancellationToken cancellationToken)
+        {
+            // Mid-frequency catch-up — odds drift, fresh news, settled standings.
+            await MaybeRunNewsAsync(cancellationToken);
+            await MaybeRunStandingsAsync(cancellationToken);
+            await MaybeRunLatestPrematchOddsAsync(cancellationToken);
+        }
+
+        private async Task RunNightlyTickAsync(CancellationToken cancellationToken)
+        {
+            // Heavy lifting. Reference data, transfers, TV schedule, the full
+            // backlog window so every finished match settles, then analytics.
+            await MaybeRunReferenceDataAsync(cancellationToken);
+            await MaybeRunTransfersAsync(cancellationToken);
+            await MaybeRunTvStationsAsync(cancellationToken);
+            await MaybeRunFixtureBacklogAsync(cancellationToken);
+            await MaybeRunAnalyticsAsync(cancellationToken);
         }
 
         private async Task MaybeRunReferenceDataAsync(CancellationToken cancellationToken)
@@ -293,17 +349,49 @@ namespace SportMonks.Football.FixtureWorker.Services
             _scheduler.RecordRun(ScheduleKey.News);
         }
 
-        private async Task MaybeRunFixtureWindowAsync(CancellationToken cancellationToken)
+        private async Task MaybeRunFixtureLiveAsync(CancellationToken cancellationToken)
         {
-            if (!GetBoolean("SportMonksFixtureSync:Enabled", false))
+            // Today (and a small ±day buffer) every live tick. Falls back to the
+            // legacy SportMonksFixtureSync block when the live block is missing.
+            if (!GetBoolean("SportMonksFixtureLiveSync:Enabled",
+                    GetBoolean("SportMonksFixtureSync:Enabled", false)))
                 return;
 
-            var interval = GetInteger("SportMonksWorkerSettings:FixtureIntervalSeconds", 300);
-            if (!_scheduler.ShouldRun(ScheduleKey.Fixture, interval))
+            var interval = GetInteger("SportMonksWorkerSettings:FixtureLiveIntervalSeconds", 30);
+            if (!_scheduler.ShouldRun(ScheduleKey.FixtureLive, interval))
                 return;
 
-            await ExecuteFixtureWindow(cancellationToken);
-            _scheduler.RecordRun(ScheduleKey.Fixture);
+            var daysBack = Math.Max(0, GetInteger("SportMonksFixtureLiveSync:DaysBack", 0));
+            var daysForward = Math.Max(0, GetInteger("SportMonksFixtureLiveSync:DaysForward", 0));
+            var timezone = NullIfWhiteSpace(_configuration["SportMonksFixtureLiveSync:Timezone"])
+                ?? NullIfWhiteSpace(_configuration["SportMonksFixtureSync:Timezone"]);
+
+            await ExecuteFixtureWindow(daysBack, daysForward, timezone, "live", cancellationToken);
+            _scheduler.RecordRun(ScheduleKey.FixtureLive);
+        }
+
+        private async Task MaybeRunFixtureBacklogAsync(CancellationToken cancellationToken)
+        {
+            // Wide window in the nightly tier so freshly finished matches and
+            // upcoming weeks all upsert with their includes. Falls back to the
+            // legacy SportMonksFixtureSync block.
+            if (!GetBoolean("SportMonksFixtureBacklogSync:Enabled",
+                    GetBoolean("SportMonksFixtureSync:Enabled", false)))
+                return;
+
+            var interval = GetInteger("SportMonksWorkerSettings:FixtureBacklogIntervalSeconds", 86400);
+            if (!_scheduler.ShouldRun(ScheduleKey.FixtureBacklog, interval))
+                return;
+
+            var daysBack = Math.Max(0, GetInteger("SportMonksFixtureBacklogSync:DaysBack",
+                GetInteger("SportMonksFixtureSync:DaysBack", 2)));
+            var daysForward = Math.Max(0, GetInteger("SportMonksFixtureBacklogSync:DaysForward",
+                GetInteger("SportMonksFixtureSync:DaysForward", 14)));
+            var timezone = NullIfWhiteSpace(_configuration["SportMonksFixtureBacklogSync:Timezone"])
+                ?? NullIfWhiteSpace(_configuration["SportMonksFixtureSync:Timezone"]);
+
+            await ExecuteFixtureWindow(daysBack, daysForward, timezone, "backlog", cancellationToken);
+            _scheduler.RecordRun(ScheduleKey.FixtureBacklog);
         }
 
         private async Task<List<League>> ExecuteLeague(CancellationToken cancellationToken)
@@ -633,30 +721,36 @@ namespace SportMonks.Football.FixtureWorker.Services
             await _newsWriter.UpsertNewsAsync(news, cancellationToken);
         }
 
-        private async Task ExecuteFixtureWindow(CancellationToken cancellationToken)
+        private async Task ExecuteFixtureWindow(
+            int daysBack,
+            int daysForward,
+            string? timezone,
+            string label,
+            CancellationToken cancellationToken)
         {
-            var daysBack = Math.Max(0, GetInteger("SportMonksFixtureSync:DaysBack", 0));
-            var daysForward = Math.Max(0, GetInteger("SportMonksFixtureSync:DaysForward", 7));
             var today = DateOnly.FromDateTime(DateTime.UtcNow);
             var fromDate = today.AddDays(-daysBack);
             var toDate = today.AddDays(daysForward);
 
             _logger.LogInformation(
-                "Fixture window sync started for dates {FromDate} through {ToDate}.",
+                "Fixture {Label} sync started for dates {FromDate} through {ToDate}.",
+                label,
                 fromDate,
                 toDate);
 
             for (var date = fromDate; date <= toDate; date = date.AddDays(1))
-                await ExecuteFixturesByDate(date, cancellationToken);
+                await ExecuteFixturesByDate(date, timezone, cancellationToken);
         }
 
-        private async Task ExecuteFixturesByDate(DateOnly date, CancellationToken cancellationToken)
+        private async Task ExecuteFixturesByDate(
+            DateOnly date,
+            string? timezone,
+            CancellationToken cancellationToken)
         {
             var dateValue = date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
             var endpoint = $"{GetFixtureByDateEndpoint().TrimEnd('/')}/{dateValue}";
             var request = SportMonksApiRequest.Create(endpoint)
                 .WithInclude(BuildFixtureSyncIncludes().ToArray());
-            var timezone = NullIfWhiteSpace(_configuration["SportMonksFixtureSync:Timezone"]);
 
             if (timezone != null)
                 request.WithTimezone(timezone);
