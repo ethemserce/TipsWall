@@ -18,6 +18,7 @@ import { StateFilterBar, type FixtureFilter } from '@/src/components/StateFilter
 import { useCountryLookup } from '@/src/hooks/useCountryLookup';
 import { useFixtures } from '@/src/hooks/useFixtures';
 import { useLeagueLookup } from '@/src/hooks/useLeagueLookup';
+import { useLiveTicker } from '@/src/hooks/useLiveTicker';
 import { getStateBucket } from '@/src/lib/fixtureState';
 import { useTheme } from '@/src/lib/useTheme';
 import type { FixtureSummary } from '@/src/types/fixture';
@@ -40,6 +41,11 @@ export function TodayMatchesScreen() {
     { date: isoDate, perPage: 200 },
     { refetchIntervalMs: filter === 'live' ? LIVE_REFETCH_MS : undefined },
   );
+
+  // SignalR live-ticker keeps the home list fresh without polling: any
+  // fixture upsert in the worker's Live tier marks ['fixtures'] stale,
+  // and the active screen refetches automatically.
+  useLiveTicker();
 
   const fixtures = data?.items ?? [];
 

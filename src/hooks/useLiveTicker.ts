@@ -1,0 +1,58 @@
+import { useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
+
+import { ensureLiveConnected } from '@/src/lib/liveConnection';
+
+interface FixtureUpdatedPayload {
+  fixture_id: number;
+  source: string;
+  payload: unknown;
+  broadcast_at: string;
+}
+
+/**
+ * Subscribes to the global SignalR 'live-ticker' group so the home screen
+ * (or any list view of fixtures) refreshes whenever ANY fixture moves.
+ * Throttle is handled implicitly by TanStack Query — invalidate just marks
+ * the cache stale; refetch only fires when the screen is visible.
+ */
+export function useLiveTicker(enabled = true) {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!enabled) return undefined;
+    let mounted = true;
+    let unsub: (() => void) | undefined;
+
+    const handler = (envelope: FixtureUpdatedPayload) => {
+      if (!envelope) return;
+      // Refresh anything keyed by 'fixtures' (list endpoints) — the per-id
+      // detail caches are handled separately by useLiveFixture.
+      queryClient.invalidateQueries({ queryKey: ['fixtures'] });
+    };
+
+    (async () => {
+      try {
+        const conn = await ensureLiveConnected();
+        if (!mounted) return;
+        conn.on('FixtureUpdated', handler);
+        await conn.invoke('JoinLiveTicker');
+        unsub = () => {
+          conn.off('FixtureUpdated', handler);
+          conn
+            .invoke('LeaveLiveTicker')
+            .catch(() => {
+              /* leaving on a stale connection is harmless */
+            });
+        };
+      } catch {
+        // Network/auth failure — fall back to polling silently.
+      }
+    })();
+
+    return () => {
+      mounted = false;
+      unsub?.();
+    };
+  }, [enabled, queryClient]);
+}
