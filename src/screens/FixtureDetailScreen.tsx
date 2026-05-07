@@ -9,15 +9,26 @@ import {
 
 import { ThemedText } from '@/components/themed-text';
 import { DetailTabBar, type DetailTab } from '@/src/components/DetailTabBar';
+import { EventTimelineCard } from '@/src/components/EventTimelineCard';
 import { FixtureDetailHero } from '@/src/components/FixtureDetailHero';
+import { H2HTab } from '@/src/components/H2HTab';
+import { LineupsTab } from '@/src/components/LineupsTab';
 import { MatchInfoCard } from '@/src/components/MatchInfoCard';
 import { OddsRatesCard } from '@/src/components/OddsRatesCard';
 import { ScoreBreakdown } from '@/src/components/ScoreBreakdown';
+import { StatsTab } from '@/src/components/StatsTab';
 import { useCountryLookup } from '@/src/hooks/useCountryLookup';
 import { useFixture } from '@/src/hooks/useFixture';
+import {
+  useFixtureEvents,
+  useFixtureH2H,
+  useFixtureLineups,
+  useFixtureStatistics,
+} from '@/src/hooks/useFixtureExtras';
 import { useFixtureOddsRates } from '@/src/hooks/useFixtureOddsRates';
 import { useLeagueLookup } from '@/src/hooks/useLeagueLookup';
 import { useTheme } from '@/src/lib/useTheme';
+import type { FixtureOddsMarket } from '@/src/types/fixtureOdds';
 
 const ODDS_BOOKMAKER_ID = 1;
 const ODDS_MARKET_IDS = [1, 52, 80, 31];
@@ -50,11 +61,15 @@ export function FixtureDetailScreen({ fixtureId }: FixtureDetailScreenProps) {
     ? countryLookup.get(league.country_id)
     : undefined;
 
+  const events = useFixtureEvents(fixtureId, tab === 'details');
   const oddsRates = useFixtureOddsRates({
     fixtureId,
     bookmakerId: ODDS_BOOKMAKER_ID,
     marketIds: ODDS_MARKET_IDS,
   });
+  const stats = useFixtureStatistics(fixtureId, tab === 'stats');
+  const lineups = useFixtureLineups(fixtureId, tab === 'lineups');
+  const h2h = useFixtureH2H(fixtureId, 10, tab === 'h2h');
 
   if (isLoading) {
     return (
@@ -102,44 +117,76 @@ export function FixtureDetailScreen({ fixtureId }: FixtureDetailScreenProps) {
             league={league}
             country={country}
           />
+          {events.data && events.data.length > 0 ? (
+            <EventTimelineCard events={events.data} />
+          ) : null}
           <ScoreBreakdown
             scores={data.scores}
-            homeName={data.fixture.home_team_short_code ?? data.fixture.home_team_name}
-            awayName={data.fixture.away_team_short_code ?? data.fixture.away_team_name}
+            homeName={
+              data.fixture.home_team_short_code ?? data.fixture.home_team_name
+            }
+            awayName={
+              data.fixture.away_team_short_code ?? data.fixture.away_team_name
+            }
           />
-          {oddsRates.data?.map((market) => (
-            <OddsRatesCard key={market.market_id} market={market} />
-          ))}
         </>
-      ) : (
-        <EmptyTab label={tab} />
-      )}
+      ) : tab === 'odds' ? (
+        <OddsTabContent
+          loading={oddsRates.isLoading}
+          markets={oddsRates.data ?? []}
+        />
+      ) : tab === 'stats' ? (
+        <StatsTab loading={stats.isLoading} stats={stats.data ?? []} />
+      ) : tab === 'lineups' ? (
+        <LineupsTab
+          loading={lineups.isLoading}
+          lineups={lineups.data ?? null}
+          homeName={data.fixture.home_team_name}
+          awayName={data.fixture.away_team_name}
+        />
+      ) : tab === 'h2h' ? (
+        <H2HTab
+          loading={h2h.isLoading}
+          fixtures={h2h.data ?? []}
+          homeTeamId={data.fixture.home_team_id}
+          awayTeamId={data.fixture.away_team_id}
+        />
+      ) : null}
     </ScrollView>
   );
 }
 
-function EmptyTab({ label }: { label: DetailTab }) {
+function OddsTabContent({
+  loading,
+  markets,
+}: {
+  loading: boolean;
+  markets: FixtureOddsMarket[];
+}) {
   const c = useTheme();
-  return (
-    <View style={styles.empty}>
-      <ThemedText style={[styles.emptyText, { color: c.textMuted }]}>
-        {prettyTabName(label)} coming soon.
-      </ThemedText>
-    </View>
-  );
-}
-
-function prettyTabName(tab: DetailTab): string {
-  switch (tab) {
-    case 'stats':
-      return 'Statistics';
-    case 'lineups':
-      return 'Lineups';
-    case 'h2h':
-      return 'Head-to-head';
-    default:
-      return 'Details';
+  if (loading && markets.length === 0) {
+    return (
+      <View style={styles.empty}>
+        <ActivityIndicator color={c.brand} />
+      </View>
+    );
   }
+  if (markets.length === 0) {
+    return (
+      <View style={styles.empty}>
+        <ThemedText style={[styles.emptyText, { color: c.textMuted }]}>
+          No odds available for this match yet.
+        </ThemedText>
+      </View>
+    );
+  }
+  return (
+    <>
+      {markets.map((market) => (
+        <OddsRatesCard key={market.market_id} market={market} />
+      ))}
+    </>
+  );
 }
 
 const styles = StyleSheet.create({

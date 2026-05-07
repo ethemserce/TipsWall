@@ -3,7 +3,7 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/src/lib/useTheme';
 
-export type DetailTab = 'details' | 'stats' | 'lineups' | 'h2h';
+export type DetailTab = 'details' | 'odds' | 'stats' | 'lineups' | 'h2h';
 
 interface DetailTabBarProps {
   selected: DetailTab;
@@ -12,6 +12,7 @@ interface DetailTabBarProps {
 
 const ORDER: { key: DetailTab; label: string }[] = [
   { key: 'details', label: 'Details' },
+  { key: 'odds', label: 'Odds' },
   { key: 'stats', label: 'Stats' },
   { key: 'lineups', label: 'Lineups' },
   { key: 'h2h', label: 'H2H' },

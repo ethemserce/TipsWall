@@ -1,0 +1,44 @@
+export interface FixtureEvent {
+  id: number;
+  minute: number | null;
+  extra_minute: number | null;
+  type_id: number | null;
+  type_code: string | null;
+  type_name: string | null;
+  participant_id: number | null;
+  participant_location: 'home' | 'away' | null;
+  player_id: number | null;
+  player_name: string | null;
+  related_player_name: string | null;
+  result: string | null;
+  info: string | null;
+}
+
+export interface FixtureStatistic {
+  type_id: number;
+  type_code: string | null;
+  type_name: string | null;
+  home_value: number | null;
+  away_value: number | null;
+}
+
+export interface FixtureLineupPlayer {
+  player_id: number | null;
+  player_name: string | null;
+  jersey_number: number | null;
+  formation_field: string | null;
+  formation_position: number | null;
+  position_code: string | null;
+}
+
+export interface FixtureTeamLineup {
+  team_id: number | null;
+  formation: string | null;
+  starters: FixtureLineupPlayer[];
+  bench: FixtureLineupPlayer[];
+}
+
+export interface FixtureLineups {
+  home: FixtureTeamLineup | null;
+  away: FixtureTeamLineup | null;
+}
