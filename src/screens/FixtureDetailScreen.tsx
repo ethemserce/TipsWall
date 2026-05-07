@@ -11,11 +11,16 @@ import { ThemedText } from '@/components/themed-text';
 import { DetailTabBar, type DetailTab } from '@/src/components/DetailTabBar';
 import { FixtureDetailHero } from '@/src/components/FixtureDetailHero';
 import { MatchInfoCard } from '@/src/components/MatchInfoCard';
+import { OddsRatesCard } from '@/src/components/OddsRatesCard';
 import { ScoreBreakdown } from '@/src/components/ScoreBreakdown';
 import { useCountryLookup } from '@/src/hooks/useCountryLookup';
 import { useFixture } from '@/src/hooks/useFixture';
+import { useFixtureOddsRates } from '@/src/hooks/useFixtureOddsRates';
 import { useLeagueLookup } from '@/src/hooks/useLeagueLookup';
 import { useTheme } from '@/src/lib/useTheme';
+
+const ODDS_BOOKMAKER_ID = 1;
+const ODDS_MARKET_IDS = [1, 52, 80, 31];
 
 interface FixtureDetailScreenProps {
   fixtureId: number;
@@ -44,6 +49,12 @@ export function FixtureDetailScreen({ fixtureId }: FixtureDetailScreenProps) {
   const country = league?.country_id
     ? countryLookup.get(league.country_id)
     : undefined;
+
+  const oddsRates = useFixtureOddsRates({
+    fixtureId,
+    bookmakerId: ODDS_BOOKMAKER_ID,
+    marketIds: ODDS_MARKET_IDS,
+  });
 
   if (isLoading) {
     return (
@@ -96,6 +107,9 @@ export function FixtureDetailScreen({ fixtureId }: FixtureDetailScreenProps) {
             homeName={data.fixture.home_team_short_code ?? data.fixture.home_team_name}
             awayName={data.fixture.away_team_short_code ?? data.fixture.away_team_name}
           />
+          {oddsRates.data?.map((market) => (
+            <OddsRatesCard key={market.market_id} market={market} />
+          ))}
         </>
       ) : (
         <EmptyTab label={tab} />
