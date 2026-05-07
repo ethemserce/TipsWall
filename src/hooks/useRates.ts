@@ -19,6 +19,6 @@ export function useRate(kind: RateKind, params: RateQueryParams = {}) {
   return useQuery({
     queryKey: ['rate', kind, params],
     queryFn: () => FETCHERS[kind](params),
-    staleTime: 60 * 1000,
+    staleTime: 60 * 60 * 1000,
   });
 }

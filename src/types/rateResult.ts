@@ -18,3 +18,21 @@ export interface RateResult {
   rank_order: number;
   match_state: number | null;
 }
+
+export interface RateSummary {
+  total_signals: number;
+  total_samples: number;
+  avg_winning_percent: number | null;
+  avg_earning_percent: number | null;
+  avg_odd_value: number | null;
+  bet_total: number;
+  success_count: number;
+  fail_count: number;
+  earning_total: number | null;
+}
+
+export interface RateListResponse {
+  items: RateResult[];
+  summary: RateSummary;
+  as_of_date: string | null;
+}
