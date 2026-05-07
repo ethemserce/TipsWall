@@ -141,6 +141,8 @@ export function FixtureDetailScreen({ fixtureId }: FixtureDetailScreenProps) {
           lineups={lineups.data ?? null}
           homeName={data.fixture.home_team_name}
           awayName={data.fixture.away_team_name}
+          homeImagePath={data.fixture.home_team_image_path}
+          awayImagePath={data.fixture.away_team_image_path}
         />
       ) : tab === 'h2h' ? (
         <H2HTab

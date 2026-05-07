@@ -1,7 +1,9 @@
+import { Image } from 'expo-image';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { PitchView } from '@/src/components/PitchView';
 import { TabEmpty, TabError, TabLoading } from '@/src/components/TabFeedback';
 import { useTheme } from '@/src/lib/useTheme';
 import type {
@@ -16,6 +18,8 @@ interface LineupsTabProps {
   lineups: FixtureLineups | null;
   homeName?: string | null;
   awayName?: string | null;
+  homeImagePath?: string | null;
+  awayImagePath?: string | null;
 }
 
 type Side = 'home' | 'away';
@@ -26,6 +30,8 @@ export function LineupsTab({
   lineups,
   homeName,
   awayName,
+  homeImagePath,
+  awayImagePath,
 }: LineupsTabProps) {
   const [side, setSide] = useState<Side>('home');
 
@@ -34,30 +40,84 @@ export function LineupsTab({
   if (!lineups || (!lineups.home && !lineups.away))
     return <TabEmpty message="Lineups not available yet." />;
 
-  // Default to whichever side has data when one is missing.
   const hasHome = lineups.home != null;
   const hasAway = lineups.away != null;
-  const effective: Side = side === 'home' && !hasHome ? 'away' : side === 'away' && !hasAway ? 'home' : side;
-  const team = effective === 'home' ? lineups.home : lineups.away;
+  const effective: Side =
+    side === 'home' && !hasHome
+      ? 'away'
+      : side === 'away' && !hasAway
+        ? 'home'
+        : side;
+  const activeTeam =
+    effective === 'home' ? lineups.home ?? null : lineups.away ?? null;
 
   return (
     <>
+      <FormationSummary home={lineups.home} away={lineups.away} />
+
+      <PitchView home={lineups.home} away={lineups.away} />
+
       <SideToggle
         side={effective}
         onSelect={setSide}
+        homeImage={homeImagePath ?? null}
+        awayImage={awayImagePath ?? null}
         homeName={homeName ?? 'Home'}
         awayName={awayName ?? 'Away'}
         homeEnabled={hasHome}
         awayEnabled={hasAway}
       />
-      {team ? <TeamLineupCard team={team} /> : null}
+
+      {activeTeam && activeTeam.bench.length > 0 ? (
+        <BenchCard team={activeTeam} />
+      ) : null}
     </>
+  );
+}
+
+function FormationSummary({
+  home,
+  away,
+}: {
+  home: FixtureTeamLineup | null | undefined;
+  away: FixtureTeamLineup | null | undefined;
+}) {
+  const c = useTheme();
+  if (!home?.formation && !away?.formation) return null;
+  return (
+    <View style={[styles.formationRow, { backgroundColor: c.surface, borderColor: c.border }]}>
+      <FormationCell label="Home" formation={home?.formation ?? null} />
+      <View style={[styles.formationDivider, { backgroundColor: c.border }]} />
+      <FormationCell label="Away" formation={away?.formation ?? null} />
+    </View>
+  );
+}
+
+function FormationCell({
+  label,
+  formation,
+}: {
+  label: string;
+  formation: string | null;
+}) {
+  const c = useTheme();
+  return (
+    <View style={styles.formationCell}>
+      <ThemedText style={[styles.formationLabel, { color: c.textMuted }]}>
+        {label.toUpperCase()}
+      </ThemedText>
+      <ThemedText style={[styles.formationValue, { color: c.text }]}>
+        {formation ?? '—'}
+      </ThemedText>
+    </View>
   );
 }
 
 function SideToggle({
   side,
   onSelect,
+  homeImage,
+  awayImage,
   homeName,
   awayName,
   homeEnabled,
@@ -65,6 +125,8 @@ function SideToggle({
 }: {
   side: Side;
   onSelect: (s: Side) => void;
+  homeImage: string | null;
+  awayImage: string | null;
   homeName: string;
   awayName: string;
   homeEnabled: boolean;
@@ -76,12 +138,14 @@ function SideToggle({
       <ToggleButton
         active={side === 'home'}
         disabled={!homeEnabled}
+        image={homeImage}
         label={homeName}
         onPress={() => homeEnabled && onSelect('home')}
       />
       <ToggleButton
         active={side === 'away'}
         disabled={!awayEnabled}
+        image={awayImage}
         label={awayName}
         onPress={() => awayEnabled && onSelect('away')}
       />
@@ -92,11 +156,13 @@ function SideToggle({
 function ToggleButton({
   active,
   disabled,
+  image,
   label,
   onPress,
 }: {
   active: boolean;
   disabled: boolean;
+  image: string | null;
   label: string;
   onPress: () => void;
 }) {
@@ -107,13 +173,18 @@ function ToggleButton({
       disabled={disabled}
       style={[
         styles.toggleButton,
-        active && { backgroundColor: c.brand },
+        active && { backgroundColor: c.bg },
       ]}>
+      {image ? (
+        <Image source={{ uri: image }} style={styles.toggleLogo} contentFit="contain" />
+      ) : (
+        <View style={[styles.toggleLogo, { backgroundColor: c.border, borderRadius: 12 }]} />
+      )}
       <ThemedText
         numberOfLines={1}
         style={[
           styles.toggleText,
-          { color: active ? c.textInverse : disabled ? c.border : c.text },
+          { color: active ? c.text : disabled ? c.border : c.textMuted },
         ]}>
         {label}
       </ThemedText>
@@ -121,74 +192,72 @@ function ToggleButton({
   );
 }
 
-function TeamLineupCard({ team }: { team: FixtureTeamLineup }) {
-  const c = useTheme();
-  const hasStarters = team.starters.length > 0;
-  const hasBench = team.bench.length > 0;
-
-  return (
-    <View
-      style={[
-        styles.card,
-        { backgroundColor: c.surface, borderColor: c.border },
-      ]}>
-      {team.formation ? (
-        <View style={styles.header}>
-          <ThemedText style={[styles.headerLabel, { color: c.textMuted }]}>
-            FORMATION
-          </ThemedText>
-          <View style={[styles.formationPill, { backgroundColor: c.bg, borderColor: c.border }]}>
-            <ThemedText style={[styles.formationText, { color: c.text }]}>
-              {team.formation}
-            </ThemedText>
-          </View>
-        </View>
-      ) : null}
-
-      {hasStarters ? <PlayerSection title="Starting XI" players={team.starters} /> : null}
-      {hasBench ? <PlayerSection title="Bench" players={team.bench} /> : null}
-    </View>
-  );
-}
-
-function PlayerSection({
-  title,
-  players,
-}: {
-  title: string;
-  players: FixtureLineupPlayer[];
-}) {
+function BenchCard({ team }: { team: FixtureTeamLineup }) {
   const c = useTheme();
   return (
-    <View>
-      <ThemedText
-        style={[styles.sectionLabel, { color: c.textMuted, borderTopColor: c.border }]}>
-        {title.toUpperCase()}
-      </ThemedText>
-      {players.map((p, i) => (
-        <View
+    <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
+      <ThemedText style={[styles.cardTitle, { color: c.textMuted }]}>BENCH</ThemedText>
+      {team.bench.map((p, i) => (
+        <BenchRow
           key={`${p.player_id ?? p.player_name ?? i}-${i}`}
-          style={[styles.playerRow, { borderTopColor: c.border }]}>
-          <ThemedText style={[styles.jersey, { color: c.textMuted }]}>
-            {p.jersey_number ?? '–'}
-          </ThemedText>
-          <ThemedText
-            style={[styles.playerName, { color: c.text }]}
-            numberOfLines={1}>
-            {p.player_name ?? '—'}
-          </ThemedText>
-          <ThemedText
-            style={[styles.position, { color: c.textMuted }]}
-            numberOfLines={1}>
-            {p.position_code ?? p.formation_field ?? ''}
-          </ThemedText>
-        </View>
+          player={p}
+        />
       ))}
     </View>
   );
 }
 
+function BenchRow({ player }: { player: FixtureLineupPlayer }) {
+  const c = useTheme();
+  return (
+    <View style={[styles.benchRow, { borderTopColor: c.border }]}>
+      <View style={[styles.benchJersey, { backgroundColor: c.bg, borderColor: c.border }]}>
+        <ThemedText style={[styles.benchJerseyText, { color: c.text }]}>
+          {player.jersey_number ?? '–'}
+        </ThemedText>
+      </View>
+      <ThemedText
+        style={[styles.benchName, { color: c.text }]}
+        numberOfLines={1}>
+        {player.player_name ?? '—'}
+      </ThemedText>
+      <ThemedText
+        style={[styles.benchPosition, { color: c.textMuted }]}
+        numberOfLines={1}>
+        {player.position_code ?? ''}
+      </ThemedText>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  formationRow: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 12,
+  },
+  formationCell: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 2,
+  },
+  formationLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  formationValue: {
+    fontSize: 14,
+    fontWeight: '700',
+    fontVariant: ['tabular-nums'],
+  },
+  formationDivider: {
+    width: 1,
+    height: '100%',
+  },
   toggle: {
     flexDirection: 'row',
     marginHorizontal: 16,
@@ -200,14 +269,22 @@ const styles = StyleSheet.create({
   },
   toggleButton: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 999,
-    alignItems: 'center',
+  },
+  toggleLogo: {
+    width: 22,
+    height: 22,
   },
   toggleText: {
     fontSize: 13,
     fontWeight: '600',
+    flexShrink: 1,
   },
   card: {
     marginHorizontal: 16,
@@ -216,40 +293,15 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 14,
-    paddingTop: 12,
-    paddingBottom: 8,
-  },
-  headerLabel: {
+  cardTitle: {
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 0.5,
-  },
-  formationPill: {
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 999,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  formationText: {
-    fontSize: 12,
-    fontWeight: '600',
-    fontVariant: ['tabular-nums'],
-  },
-  sectionLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0.5,
     paddingHorizontal: 14,
-    paddingTop: 10,
+    paddingTop: 12,
     paddingBottom: 6,
-    borderTopWidth: StyleSheet.hairlineWidth,
   },
-  playerRow: {
+  benchRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 14,
@@ -257,18 +309,24 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     gap: 12,
   },
-  jersey: {
-    width: 28,
-    fontSize: 13,
+  benchJersey: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    borderWidth: StyleSheet.hairlineWidth,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  benchJerseyText: {
+    fontSize: 12,
     fontWeight: '700',
     fontVariant: ['tabular-nums'],
-    textAlign: 'center',
   },
-  playerName: {
+  benchName: {
     flex: 1,
     fontSize: 14,
   },
-  position: {
+  benchPosition: {
     fontSize: 11,
     fontWeight: '600',
   },
