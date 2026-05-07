@@ -7,6 +7,7 @@ import { PitchView } from '@/src/components/PitchView';
 import { TabEmpty, TabError, TabLoading } from '@/src/components/TabFeedback';
 import { useTheme } from '@/src/lib/useTheme';
 import type {
+  FixtureEvent,
   FixtureLineupPlayer,
   FixtureLineups,
   FixtureTeamLineup,
@@ -16,6 +17,7 @@ interface LineupsTabProps {
   loading: boolean;
   error?: unknown;
   lineups: FixtureLineups | null;
+  events?: FixtureEvent[];
   homeName?: string | null;
   awayName?: string | null;
   homeImagePath?: string | null;
@@ -28,6 +30,7 @@ export function LineupsTab({
   loading,
   error,
   lineups,
+  events,
   homeName,
   awayName,
   homeImagePath,
@@ -55,7 +58,7 @@ export function LineupsTab({
     <>
       <FormationSummary home={lineups.home} away={lineups.away} />
 
-      <PitchView home={lineups.home} away={lineups.away} />
+      <PitchView home={lineups.home} away={lineups.away} events={events} />
 
       <SideToggle
         side={effective}

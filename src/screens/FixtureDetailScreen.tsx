@@ -141,6 +141,7 @@ export function FixtureDetailScreen({ fixtureId }: FixtureDetailScreenProps) {
           loading={lineups.isLoading}
           error={lineups.error}
           lineups={lineups.data ?? null}
+          events={events.data}
           homeName={data.fixture.home_team_name}
           awayName={data.fixture.away_team_name}
           homeImagePath={data.fixture.home_team_image_path}

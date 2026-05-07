@@ -1,8 +1,10 @@
+import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/src/lib/useTheme';
 import type {
+  FixtureEvent,
   FixtureLineupPlayer,
   FixtureTeamLineup,
 } from '@/src/types/fixtureDetailExtras';
@@ -10,13 +12,64 @@ import type {
 interface PitchViewProps {
   home: FixtureTeamLineup | null | undefined;
   away: FixtureTeamLineup | null | undefined;
+  events?: FixtureEvent[];
+}
+
+interface PlayerMarkers {
+  goals: number;
+  assists: number;
+}
+
+const GOAL_TYPE_CODES = new Set([
+  'GOAL',
+  'PENALTY',
+  'OWNGOAL',
+  'GOAL_AWARDED',
+]);
+
+interface ScorerKey {
+  id: number | null;
+  name: string | null;
+}
+
+function buildPlayerMarkers(events: FixtureEvent[] | undefined) {
+  const goalEvents: ScorerKey[] = [];
+  const assistEvents: ScorerKey[] = [];
+  if (events) {
+    for (const e of events) {
+      if (!GOAL_TYPE_CODES.has((e.type_code ?? '').toUpperCase())) continue;
+      goalEvents.push({
+        id: e.player_id,
+        name: e.player_name?.trim().toLowerCase() ?? null,
+      });
+      if (e.related_player_name) {
+        assistEvents.push({
+          id: null,
+          name: e.related_player_name.trim().toLowerCase(),
+        });
+      }
+    }
+  }
+  return (player: FixtureLineupPlayer): PlayerMarkers => {
+    const pId = player.player_id ?? null;
+    const pName = player.player_name?.trim().toLowerCase() ?? null;
+    const matches = (k: ScorerKey) =>
+      (k.id != null && pId != null && k.id === pId) ||
+      (k.name != null && pName != null && k.name === pName);
+    return {
+      goals: goalEvents.filter(matches).length,
+      assists: assistEvents.filter(matches).length,
+    };
+  };
 }
 
 const PITCH_BG = '#1f3a2a';
 const PITCH_BG_DARK = '#16291e';
 const PITCH_LINE = 'rgba(255,255,255,0.25)';
 
-export function PitchView({ home, away }: PitchViewProps) {
+export function PitchView({ home, away, events }: PitchViewProps) {
+  const getMarkers = useMemo(() => buildPlayerMarkers(events), [events]);
+
   return (
     <View style={styles.wrapper}>
       <View style={styles.pitch}>
@@ -29,10 +82,10 @@ export function PitchView({ home, away }: PitchViewProps) {
         <View style={[styles.smallBox, styles.smallBoxBottom]} />
 
         {home?.starters?.length ? (
-          <TeamLayer team={home} side="home" />
+          <TeamLayer team={home} side="home" getMarkers={getMarkers} />
         ) : null}
         {away?.starters?.length ? (
-          <TeamLayer team={away} side="away" />
+          <TeamLayer team={away} side="away" getMarkers={getMarkers} />
         ) : null}
       </View>
     </View>
@@ -42,9 +95,11 @@ export function PitchView({ home, away }: PitchViewProps) {
 function TeamLayer({
   team,
   side,
+  getMarkers,
 }: {
   team: FixtureTeamLineup;
   side: 'home' | 'away';
+  getMarkers: (p: FixtureLineupPlayer) => PlayerMarkers;
 }) {
   const positioned = team.starters
     .map((p) => parsePosition(p))
@@ -69,7 +124,9 @@ function TeamLayer({
     <>
       {positioned.map(({ player, row, col }) => {
         const colCount = colsByRow.get(row) ?? 1;
-        const xRatio = colCount > 1 ? (col - 1) / (colCount - 1) : 0.5;
+        // Distribute evenly: each player sits in the middle of its slot,
+        // so a 2-player row lands at 25% / 75% (centered) instead of 0% / 100%.
+        const xRatio = (col - 0.5) / colCount;
         const yRatio = maxRow > 1 ? (row - 1) / (maxRow - 1) : 0;
         // Mirror x for away so col 1 lands on the same visual side as home col 1.
         const xCentered =
@@ -86,6 +143,7 @@ function TeamLayer({
             player={player}
             leftPercent={xCentered * 100}
             topPercent={yCentered * 100}
+            markers={getMarkers(player)}
           />
         );
       })}
@@ -104,10 +162,12 @@ function PlayerToken({
   player,
   leftPercent,
   topPercent,
+  markers,
 }: {
   player: FixtureLineupPlayer;
   leftPercent: number;
   topPercent: number;
+  markers: PlayerMarkers;
 }) {
   const c = useTheme();
   return (
@@ -119,10 +179,34 @@ function PlayerToken({
           top: `${topPercent}%`,
         },
       ]}>
-      <View style={[styles.jerseyCircle, { backgroundColor: c.bg, borderColor: c.brand }]}>
-        <ThemedText style={[styles.jerseyNumber, { color: c.text }]}>
-          {player.jersey_number ?? '–'}
-        </ThemedText>
+      <View style={styles.jerseyWrap}>
+        <View style={[styles.jerseyCircle, { backgroundColor: c.bg, borderColor: c.brand }]}>
+          <ThemedText style={[styles.jerseyNumber, { color: c.text }]}>
+            {player.jersey_number ?? '–'}
+          </ThemedText>
+        </View>
+        {markers.goals > 0 || markers.assists > 0 ? (
+          <View style={styles.badgeStack}>
+            {markers.goals > 0 ? (
+              <ThemedText
+                style={[
+                  styles.badge,
+                  { backgroundColor: c.bg, borderColor: c.border, color: c.text },
+                ]}>
+                {markers.goals > 1 ? `⚽${markers.goals}` : '⚽'}
+              </ThemedText>
+            ) : null}
+            {markers.assists > 0 ? (
+              <ThemedText
+                style={[
+                  styles.badge,
+                  { backgroundColor: c.bg, borderColor: c.border, color: c.text },
+                ]}>
+                {markers.assists > 1 ? `👟${markers.assists}` : '👟'}
+              </ThemedText>
+            ) : null}
+          </View>
+        ) : null}
       </View>
       <View style={styles.nameWrap}>
         <ThemedText
@@ -233,6 +317,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     overflow: 'hidden',
   },
+  jerseyWrap: {
+    position: 'relative',
+    width: 30,
+    height: 30,
+  },
   jerseyCircle: {
     width: 30,
     height: 30,
@@ -240,6 +329,26 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  badgeStack: {
+    position: 'absolute',
+    top: -8,
+    right: -12,
+    flexDirection: 'row',
+    gap: 2,
+  },
+  badge: {
+    fontSize: 9,
+    lineHeight: 14,
+    minWidth: 16,
+    height: 16,
+    paddingHorizontal: 3,
+    fontWeight: '700',
+    textAlign: 'center',
+    borderRadius: 8,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: 'hidden',
+    fontVariant: ['tabular-nums'],
   },
   jerseyNumber: {
     fontSize: 12,
