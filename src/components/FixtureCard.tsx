@@ -1,6 +1,7 @@
 import { format, parseISO } from 'date-fns';
 import { Image } from 'expo-image';
-import { StyleSheet, View } from 'react-native';
+import { Link, type Href } from 'expo-router';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { getStateBucket, getStateLabel } from '@/src/lib/fixtureState';
@@ -38,12 +39,16 @@ export function FixtureCard({ fixture }: FixtureCardProps) {
     fixture.away_score > fixture.home_score;
 
   return (
-    <View
-      style={[
-        styles.card,
-        { backgroundColor: c.bg, borderBottomColor: c.border },
-      ]}>
-      <View style={styles.timeColumn}>
+    <Link href={`/fixture/${fixture.id}` as Href} asChild>
+      <Pressable
+        style={({ pressed }) => [
+          styles.card,
+          {
+            backgroundColor: pressed ? c.surface : c.bg,
+            borderBottomColor: c.border,
+          },
+        ]}>
+        <View style={styles.timeColumn}>
         {live ? (
           <View style={styles.liveRow}>
             <View style={[styles.liveDot, { backgroundColor: c.live }]} />
@@ -65,31 +70,32 @@ export function FixtureCard({ fixture }: FixtureCardProps) {
         <TeamRow team={away} dimmed={finished && !awayWinner} />
       </View>
 
-      <View style={styles.scoreColumn}>
-        {showScore ? (
-          <>
-            <ScoreText
-              value={fixture.home_score}
-              live={live}
-              winner={homeWinner}
-              c={c}
-            />
-            <ScoreText
-              value={fixture.away_score}
-              live={live}
-              winner={awayWinner}
-              c={c}
-            />
-          </>
-        ) : fixture.has_odds ? (
-          <View style={[styles.oddsBadge, { backgroundColor: c.brand }]}>
-            <ThemedText style={[styles.oddsBadgeText, { color: c.textInverse }]}>
-              ODDS
-            </ThemedText>
-          </View>
-        ) : null}
-      </View>
-    </View>
+        <View style={styles.scoreColumn}>
+          {showScore ? (
+            <>
+              <ScoreText
+                value={fixture.home_score}
+                live={live}
+                winner={homeWinner}
+                c={c}
+              />
+              <ScoreText
+                value={fixture.away_score}
+                live={live}
+                winner={awayWinner}
+                c={c}
+              />
+            </>
+          ) : fixture.has_odds ? (
+            <View style={[styles.oddsBadge, { backgroundColor: c.brand }]}>
+              <ThemedText style={[styles.oddsBadgeText, { color: c.textInverse }]}>
+                ODDS
+              </ThemedText>
+            </View>
+          ) : null}
+        </View>
+      </Pressable>
+    </Link>
   );
 }
 
