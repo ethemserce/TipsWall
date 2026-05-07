@@ -152,18 +152,50 @@ namespace PreOddsApi.WebApi.V3.Data
 
             await using (var command = new NpgsqlCommand(
                 """
-                select id, name, league_id, season_id, stage_id, round_id,
-                       state_id, venue_id, starting_at, has_odds, has_premium_odds,
-                       length_minutes, result_info, leg, placeholder
-                from football.fixtures
-                where id = @id
+                select f.id, f.name, f.league_id, f.season_id, f.stage_id, f.round_id,
+                       f.state_id, f.venue_id, f.starting_at, f.has_odds, f.has_premium_odds,
+                       f.length_minutes, f.result_info, f.leg, f.placeholder,
+                       home_p.team_id as home_team_id,
+                       home_t.name as home_team_name,
+                       home_t.short_code as home_team_short_code,
+                       home_t.image_path as home_team_image_path,
+                       home_score.goals as home_score,
+                       away_p.team_id as away_team_id,
+                       away_t.name as away_team_name,
+                       away_t.short_code as away_team_short_code,
+                       away_t.image_path as away_team_image_path,
+                       away_score.goals as away_score
+                from football.fixtures f
+                left join football.fixture_participants home_p
+                    on home_p.fixture_id = f.id and home_p.location = 'home'
+                left join football.teams home_t on home_t.id = home_p.team_id
+                left join football.fixture_participants away_p
+                    on away_p.fixture_id = f.id and away_p.location = 'away'
+                left join football.teams away_t on away_t.id = away_p.team_id
+                left join lateral (
+                    select goals from football.fixture_scores
+                    where fixture_id = f.id
+                      and participant_location = 'home'
+                      and description = 'CURRENT'
+                    order by id desc
+                    limit 1
+                ) home_score on true
+                left join lateral (
+                    select goals from football.fixture_scores
+                    where fixture_id = f.id
+                      and participant_location = 'away'
+                      and description = 'CURRENT'
+                    order by id desc
+                    limit 1
+                ) away_score on true
+                where f.id = @id
                 limit 1;
                 """, connection))
             {
                 command.Parameters.Add(new NpgsqlParameter("id", id));
                 await using var reader = await command.ExecuteReaderAsync(ct);
                 if (await reader.ReadAsync(ct))
-                    summary = MapSummary(reader);
+                    summary = MapSummaryWithTeams(reader);
             }
 
             if (summary == null)
@@ -224,25 +256,6 @@ namespace PreOddsApi.WebApi.V3.Data
                 Scores = scores
             };
         }
-
-        private static FixtureSummaryDto MapSummary(NpgsqlDataReader r) => new()
-        {
-            Id = r.GetInt64(r.GetOrdinal("id")),
-            Name = ReadNullableString(r, "name"),
-            LeagueId = r.GetInt64(r.GetOrdinal("league_id")),
-            SeasonId = ReadNullableLong(r, "season_id"),
-            StageId = ReadNullableLong(r, "stage_id"),
-            RoundId = ReadNullableLong(r, "round_id"),
-            StateId = ReadNullableLong(r, "state_id"),
-            VenueId = ReadNullableLong(r, "venue_id"),
-            StartingAt = ReadNullableDateTimeOffset(r, "starting_at"),
-            HasOdds = r.GetBoolean(r.GetOrdinal("has_odds")),
-            HasPremiumOdds = r.GetBoolean(r.GetOrdinal("has_premium_odds")),
-            LengthMinutes = ReadNullableInt(r, "length_minutes"),
-            ResultInfo = ReadNullableString(r, "result_info"),
-            Leg = ReadNullableString(r, "leg"),
-            Placeholder = r.GetBoolean(r.GetOrdinal("placeholder"))
-        };
 
         private static FixtureSummaryDto MapSummaryWithTeams(NpgsqlDataReader r) => new()
         {
