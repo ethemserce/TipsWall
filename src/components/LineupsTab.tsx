@@ -1,4 +1,5 @@
-import { StyleSheet, View } from 'react-native';
+import { useState } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { TabEmpty, TabError, TabLoading } from '@/src/components/TabFeedback';
@@ -17,6 +18,8 @@ interface LineupsTabProps {
   awayName?: string | null;
 }
 
+type Side = 'home' | 'away';
+
 export function LineupsTab({
   loading,
   error,
@@ -24,36 +27,101 @@ export function LineupsTab({
   homeName,
   awayName,
 }: LineupsTabProps) {
+  const [side, setSide] = useState<Side>('home');
+
   if (error && !lineups) return <TabError error={error} />;
   if (loading && !lineups) return <TabLoading />;
   if (!lineups || (!lineups.home && !lineups.away))
     return <TabEmpty message="Lineups not available yet." />;
 
+  // Default to whichever side has data when one is missing.
+  const hasHome = lineups.home != null;
+  const hasAway = lineups.away != null;
+  const effective: Side = side === 'home' && !hasHome ? 'away' : side === 'away' && !hasAway ? 'home' : side;
+  const team = effective === 'home' ? lineups.home : lineups.away;
+
   return (
     <>
-      {lineups.home ? (
-        <TeamLineupCard
-          team={lineups.home}
-          title={homeName ?? 'Home'}
-        />
-      ) : null}
-      {lineups.away ? (
-        <TeamLineupCard
-          team={lineups.away}
-          title={awayName ?? 'Away'}
-        />
-      ) : null}
+      <SideToggle
+        side={effective}
+        onSelect={setSide}
+        homeName={homeName ?? 'Home'}
+        awayName={awayName ?? 'Away'}
+        homeEnabled={hasHome}
+        awayEnabled={hasAway}
+      />
+      {team ? <TeamLineupCard team={team} /> : null}
     </>
   );
 }
 
-function TeamLineupCard({
-  team,
-  title,
+function SideToggle({
+  side,
+  onSelect,
+  homeName,
+  awayName,
+  homeEnabled,
+  awayEnabled,
 }: {
-  team: FixtureTeamLineup;
-  title: string;
+  side: Side;
+  onSelect: (s: Side) => void;
+  homeName: string;
+  awayName: string;
+  homeEnabled: boolean;
+  awayEnabled: boolean;
 }) {
+  const c = useTheme();
+  return (
+    <View style={[styles.toggle, { backgroundColor: c.surface, borderColor: c.border }]}>
+      <ToggleButton
+        active={side === 'home'}
+        disabled={!homeEnabled}
+        label={homeName}
+        onPress={() => homeEnabled && onSelect('home')}
+      />
+      <ToggleButton
+        active={side === 'away'}
+        disabled={!awayEnabled}
+        label={awayName}
+        onPress={() => awayEnabled && onSelect('away')}
+      />
+    </View>
+  );
+}
+
+function ToggleButton({
+  active,
+  disabled,
+  label,
+  onPress,
+}: {
+  active: boolean;
+  disabled: boolean;
+  label: string;
+  onPress: () => void;
+}) {
+  const c = useTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      style={[
+        styles.toggleButton,
+        active && { backgroundColor: c.brand },
+      ]}>
+      <ThemedText
+        numberOfLines={1}
+        style={[
+          styles.toggleText,
+          { color: active ? c.textInverse : disabled ? c.border : c.text },
+        ]}>
+        {label}
+      </ThemedText>
+    </Pressable>
+  );
+}
+
+function TeamLineupCard({ team }: { team: FixtureTeamLineup }) {
   const c = useTheme();
   const hasStarters = team.starters.length > 0;
   const hasBench = team.bench.length > 0;
@@ -64,34 +132,26 @@ function TeamLineupCard({
         styles.card,
         { backgroundColor: c.surface, borderColor: c.border },
       ]}>
-      <View style={styles.header}>
-        <ThemedText style={[styles.teamTitle, { color: c.text }]}>
-          {title.toUpperCase()}
-        </ThemedText>
-        {team.formation ? (
+      {team.formation ? (
+        <View style={styles.header}>
+          <ThemedText style={[styles.headerLabel, { color: c.textMuted }]}>
+            FORMATION
+          </ThemedText>
           <View style={[styles.formationPill, { backgroundColor: c.bg, borderColor: c.border }]}>
             <ThemedText style={[styles.formationText, { color: c.text }]}>
               {team.formation}
             </ThemedText>
           </View>
-        ) : null}
-      </View>
-
-      {hasStarters ? (
-        <SectionList
-          title="Starting XI"
-          players={team.starters}
-        />
+        </View>
       ) : null}
 
-      {hasBench ? (
-        <SectionList title="Bench" players={team.bench} />
-      ) : null}
+      {hasStarters ? <PlayerSection title="Starting XI" players={team.starters} /> : null}
+      {hasBench ? <PlayerSection title="Bench" players={team.bench} /> : null}
     </View>
   );
 }
 
-function SectionList({
+function PlayerSection({
   title,
   players,
 }: {
@@ -129,9 +189,29 @@ function SectionList({
 }
 
 const styles = StyleSheet.create({
-  card: {
+  toggle: {
+    flexDirection: 'row',
     marginHorizontal: 16,
     marginTop: 16,
+    padding: 4,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    gap: 4,
+  },
+  toggleButton: {
+    flex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    alignItems: 'center',
+  },
+  toggleText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  card: {
+    marginHorizontal: 16,
+    marginTop: 12,
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 12,
     overflow: 'hidden',
@@ -144,10 +224,10 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 8,
   },
-  teamTitle: {
-    fontSize: 13,
+  headerLabel: {
+    fontSize: 11,
     fontWeight: '700',
-    letterSpacing: 0.4,
+    letterSpacing: 0.5,
   },
   formationPill: {
     paddingHorizontal: 10,

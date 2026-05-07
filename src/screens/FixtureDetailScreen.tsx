@@ -15,7 +15,6 @@ import { H2HTab } from '@/src/components/H2HTab';
 import { LineupsTab } from '@/src/components/LineupsTab';
 import { MatchInfoCard } from '@/src/components/MatchInfoCard';
 import { OddsRatesCard } from '@/src/components/OddsRatesCard';
-import { ScoreBreakdown } from '@/src/components/ScoreBreakdown';
 import { StatsTab } from '@/src/components/StatsTab';
 import { TabError, TabLoading, TabEmpty } from '@/src/components/TabFeedback';
 import { useCountryLookup } from '@/src/hooks/useCountryLookup';
@@ -108,27 +107,19 @@ export function FixtureDetailScreen({ fixtureId }: FixtureDetailScreenProps) {
         fixture={data.fixture}
         league={league}
         country={country}
+        scores={data.scores}
       />
       <DetailTabBar selected={tab} onSelect={setTab} />
 
       {tab === 'details' ? (
         <>
+          {events.data && events.data.length > 0 ? (
+            <EventTimelineCard events={events.data} />
+          ) : null}
           <MatchInfoCard
             fixture={data.fixture}
             league={league}
             country={country}
-          />
-          {events.data && events.data.length > 0 ? (
-            <EventTimelineCard events={events.data} />
-          ) : null}
-          <ScoreBreakdown
-            scores={data.scores}
-            homeName={
-              data.fixture.home_team_short_code ?? data.fixture.home_team_name
-            }
-            awayName={
-              data.fixture.away_team_short_code ?? data.fixture.away_team_name
-            }
           />
         </>
       ) : tab === 'odds' ? (

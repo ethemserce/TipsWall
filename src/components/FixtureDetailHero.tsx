@@ -7,18 +7,21 @@ import { getStateBucket, getStateLabel } from '@/src/lib/fixtureState';
 import { useTheme } from '@/src/lib/useTheme';
 import type { Country } from '@/src/types/country';
 import type { FixtureSummary } from '@/src/types/fixture';
+import type { FixtureScore } from '@/src/types/fixtureDetail';
 import type { League } from '@/src/types/league';
 
 interface FixtureDetailHeroProps {
   fixture: FixtureSummary;
   league?: League;
   country?: Country;
+  scores?: FixtureScore[];
 }
 
 export function FixtureDetailHero({
   fixture,
   league,
   country,
+  scores,
 }: FixtureDetailHeroProps) {
   const c = useTheme();
   const bucket = getStateBucket(fixture.state_id);
@@ -33,6 +36,12 @@ export function FixtureDetailHero({
   const kickoffTime = fixture.starting_at
     ? format(parseISO(fixture.starting_at), 'HH:mm')
     : null;
+
+  // Halftime score: only show once 1st half is over (state_id 2 == in 1H).
+  const firstHalfPart =
+    scored && fixture.state_id !== 2
+      ? findHalfScore(scores, '1ST_HALF')
+      : null;
 
   return (
     <View style={[styles.container, { backgroundColor: c.surface, borderColor: c.border }]}>
@@ -65,25 +74,32 @@ export function FixtureDetailHero({
 
         <View style={styles.scoreColumn}>
           {scored ? (
-            <View style={styles.scoreRow}>
-              <ThemedText
-                style={[
-                  styles.scoreText,
-                  { color: live ? c.live : c.text },
-                ]}>
-                {fixture.home_score ?? 0}
-              </ThemedText>
-              <ThemedText style={[styles.scoreSeparator, { color: c.textMuted }]}>
-                :
-              </ThemedText>
-              <ThemedText
-                style={[
-                  styles.scoreText,
-                  { color: live ? c.live : c.text },
-                ]}>
-                {fixture.away_score ?? 0}
-              </ThemedText>
-            </View>
+            <>
+              <View style={styles.scoreRow}>
+                <ThemedText
+                  style={[
+                    styles.scoreText,
+                    { color: live ? c.live : c.text },
+                  ]}>
+                  {fixture.home_score ?? 0}
+                </ThemedText>
+                <ThemedText style={[styles.scoreSeparator, { color: c.textMuted }]}>
+                  :
+                </ThemedText>
+                <ThemedText
+                  style={[
+                    styles.scoreText,
+                    { color: live ? c.live : c.text },
+                  ]}>
+                  {fixture.away_score ?? 0}
+                </ThemedText>
+              </View>
+              {firstHalfPart ? (
+                <ThemedText style={[styles.halfScore, { color: c.textMuted }]}>
+                  HT {firstHalfPart.home}-{firstHalfPart.away}
+                </ThemedText>
+              ) : null}
+            </>
           ) : (
             <ThemedText style={[styles.kickoffTime, { color: c.text }]}>
               {kickoffTime ?? '--:--'}
@@ -119,6 +135,21 @@ export function FixtureDetailHero({
       </View>
     </View>
   );
+}
+
+function findHalfScore(
+  scores: FixtureScore[] | undefined,
+  description: string,
+): { home: number; away: number } | null {
+  if (!scores) return null;
+  const home = scores.find(
+    (s) => s.description === description && s.participant_location === 'home',
+  );
+  const away = scores.find(
+    (s) => s.description === description && s.participant_location === 'away',
+  );
+  if (home?.goals == null || away?.goals == null) return null;
+  return { home: home.goals, away: away.goals };
 }
 
 function TeamColumn({
@@ -221,6 +252,13 @@ const styles = StyleSheet.create({
   scoreSeparator: {
     fontSize: 32,
     fontWeight: '500',
+  },
+  halfScore: {
+    marginTop: 4,
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.4,
+    fontVariant: ['tabular-nums'],
   },
   kickoffTime: {
     fontSize: 28,
