@@ -113,10 +113,11 @@ function TeamLayer({
     colsByRow.set(row, Math.max(colsByRow.get(row) ?? 0, col));
   }
 
-  // Inset the player tokens away from the pitch edges so the jersey circle
-  // and the name caption stay fully inside the playing area.
-  const X_INSET = 0.14;
-  const Y_INSET = 0.08;
+  // Inset the player tokens 2% from the edges so wide players sit close to
+  // the touchline. Name captions flip side per team (home below jersey,
+  // away above) so they always point toward the centre and never run off.
+  const X_INSET = 0.02;
+  const Y_INSET = 0.02;
   const X_RANGE = 1 - 2 * X_INSET;
   const HALF_RANGE = 0.5 - Y_INSET;
 
@@ -143,6 +144,7 @@ function TeamLayer({
             player={player}
             leftPercent={xCentered * 100}
             topPercent={yCentered * 100}
+            side={side}
             markers={getMarkers(player)}
           />
         );
@@ -162,14 +164,54 @@ function PlayerToken({
   player,
   leftPercent,
   topPercent,
+  side,
   markers,
 }: {
   player: FixtureLineupPlayer;
   leftPercent: number;
   topPercent: number;
+  side: 'home' | 'away';
   markers: PlayerMarkers;
 }) {
   const c = useTheme();
+  const isAway = side === 'away';
+
+  const jersey = (
+    <View style={styles.jerseyWrap}>
+      <View style={[styles.jerseyCircle, { backgroundColor: c.bg, borderColor: c.brand }]}>
+        <ThemedText style={[styles.jerseyNumber, { color: c.text }]}>
+          {player.jersey_number ?? '–'}
+        </ThemedText>
+      </View>
+      {markers.goals > 0 || markers.assists > 0 ? (
+        <View style={styles.badgeStack}>
+          {markers.goals > 0 ? (
+            <View style={[styles.badge, { backgroundColor: c.text }]}>
+              <ThemedText style={[styles.badgeText, { color: c.bg }]}>
+                G{markers.goals > 1 ? markers.goals : ''}
+              </ThemedText>
+            </View>
+          ) : null}
+          {markers.assists > 0 ? (
+            <View style={[styles.badge, { backgroundColor: c.brand }]}>
+              <ThemedText style={[styles.badgeText, { color: c.textInverse }]}>
+                A{markers.assists > 1 ? markers.assists : ''}
+              </ThemedText>
+            </View>
+          ) : null}
+        </View>
+      ) : null}
+    </View>
+  );
+
+  const name = (
+    <View style={styles.nameWrap}>
+      <ThemedText style={styles.nameText} numberOfLines={1}>
+        {shortName(player.player_name)}
+      </ThemedText>
+    </View>
+  );
+
   return (
     <View
       style={[
@@ -177,44 +219,11 @@ function PlayerToken({
         {
           left: `${leftPercent}%`,
           top: `${topPercent}%`,
+          marginTop: isAway ? -31 : -15,
         },
       ]}>
-      <View style={styles.jerseyWrap}>
-        <View style={[styles.jerseyCircle, { backgroundColor: c.bg, borderColor: c.brand }]}>
-          <ThemedText style={[styles.jerseyNumber, { color: c.text }]}>
-            {player.jersey_number ?? '–'}
-          </ThemedText>
-        </View>
-        {markers.goals > 0 || markers.assists > 0 ? (
-          <View style={styles.badgeStack}>
-            {markers.goals > 0 ? (
-              <ThemedText
-                style={[
-                  styles.badge,
-                  { backgroundColor: c.bg, borderColor: c.border, color: c.text },
-                ]}>
-                {markers.goals > 1 ? `⚽${markers.goals}` : '⚽'}
-              </ThemedText>
-            ) : null}
-            {markers.assists > 0 ? (
-              <ThemedText
-                style={[
-                  styles.badge,
-                  { backgroundColor: c.bg, borderColor: c.border, color: c.text },
-                ]}>
-                {markers.assists > 1 ? `👟${markers.assists}` : '👟'}
-              </ThemedText>
-            ) : null}
-          </View>
-        ) : null}
-      </View>
-      <View style={styles.nameWrap}>
-        <ThemedText
-          style={styles.nameText}
-          numberOfLines={1}>
-          {shortName(player.player_name)}
-        </ThemedText>
-      </View>
+      {isAway ? name : jersey}
+      {isAway ? jersey : name}
     </View>
   );
 }
@@ -313,9 +322,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 60,
     marginLeft: -30,
-    marginTop: -22,
     alignItems: 'center',
-    overflow: 'hidden',
   },
   jerseyWrap: {
     position: 'relative',
@@ -332,22 +339,23 @@ const styles = StyleSheet.create({
   },
   badgeStack: {
     position: 'absolute',
-    top: -8,
-    right: -12,
+    top: -6,
+    right: -10,
     flexDirection: 'row',
     gap: 2,
   },
   badge: {
-    fontSize: 9,
-    lineHeight: 14,
-    minWidth: 16,
-    height: 16,
+    minWidth: 14,
+    height: 14,
     paddingHorizontal: 3,
-    fontWeight: '700',
-    textAlign: 'center',
-    borderRadius: 8,
-    borderWidth: StyleSheet.hairlineWidth,
-    overflow: 'hidden',
+    borderRadius: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeText: {
+    fontSize: 9,
+    lineHeight: 11,
+    fontWeight: '800',
     fontVariant: ['tabular-nums'],
   },
   jerseyNumber: {
@@ -356,7 +364,7 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
   },
   nameWrap: {
-    marginTop: 2,
+    marginVertical: 2,
     width: '100%',
   },
   nameText: {
