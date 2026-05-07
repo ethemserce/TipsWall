@@ -176,6 +176,11 @@ builder.Services.AddResponseCompression(o =>
     o.Providers.Add<GzipCompressionProvider>();
 });
 
+// SignalR + live broadcaster.
+builder.Services.AddSignalR();
+builder.Services.AddSingleton<PreOddsApi.WebApi.V3.Hubs.ILiveBroadcaster,
+                              PreOddsApi.WebApi.V3.Hubs.LiveBroadcaster>();
+
 var app = builder.Build();
 IConfiguration configuration = app.Configuration;
 
@@ -219,6 +224,7 @@ app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.Health
 }).AllowAnonymous();
 
 app.MapControllers();
+app.MapHub<PreOddsApi.WebApi.V3.Hubs.LiveHub>("/hubs/live");
 
 app.Run();
 
