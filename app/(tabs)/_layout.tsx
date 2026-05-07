@@ -1,8 +1,8 @@
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Tabs } from 'expo-router';
 import React from 'react';
 
 import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useTheme } from '@/src/lib/useTheme';
 
 export default function TabLayout() {
@@ -19,16 +19,42 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Matches',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          title: 'Anasayfa',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="home-variant" size={size ?? 24} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="winning"
+        options={{
+          title: 'Winning',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="trophy" size={size ?? 24} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="hot"
+        options={{
+          title: 'Hot',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="fire" size={size ?? 24} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="earning"
+        options={{
+          title: 'Earning',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="chart-line" size={size ?? 24} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="explore"
-        options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
-        }}
+        options={{ href: null }}
       />
     </Tabs>
   );
