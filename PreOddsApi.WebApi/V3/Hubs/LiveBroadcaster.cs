@@ -13,7 +13,7 @@ namespace PreOddsApi.WebApi.V3.Hubs
             _hub = hub;
         }
 
-        public Task FixtureUpdatedAsync(long fixtureId, string source, object? payload = null)
+        public async Task FixtureUpdatedAsync(long fixtureId, string source, object? payload = null)
         {
             var envelope = new
             {
@@ -22,8 +22,10 @@ namespace PreOddsApi.WebApi.V3.Hubs
                 payload,
                 broadcast_at = DateTimeOffset.UtcNow,
             };
-            return _hub.Clients
-                .Group(LiveHub.GroupName(fixtureId))
+            // Per-fixture subscribers (detail screen) and the global live-
+            // ticker (home screen) both get the same envelope.
+            await _hub.Clients
+                .Groups(LiveHub.FixtureGroup(fixtureId), LiveHub.LiveTickerGroup)
                 .SendAsync("FixtureUpdated", envelope);
         }
     }
