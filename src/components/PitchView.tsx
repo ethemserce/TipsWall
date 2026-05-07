@@ -1,3 +1,4 @@
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 
@@ -115,12 +116,15 @@ function TeamLayer({
 
   // Inset the player tokens close to the edges so wide players sit near
   // the touchline. Y inset is a touch larger so GKs aren't glued to the
-  // back-line. Name captions flip side per team (home below jersey, away
-  // above) so they always point toward the centre and never run off.
+  // back-line. The HALF_RANGE leaves a 4% buffer below the halfway line so
+  // strikers stop short of crossing into the opposite half. Name captions
+  // flip side per team (home below jersey, away above) so they always
+  // point toward the centre and never run off.
   const X_INSET = 0.02;
   const Y_INSET = 0.05;
+  const STRIKER_BUFFER = 0.06;
   const X_RANGE = 1 - 2 * X_INSET;
-  const HALF_RANGE = 0.5 - Y_INSET;
+  const HALF_RANGE = 0.5 - Y_INSET - STRIKER_BUFFER;
 
   return (
     <>
@@ -188,16 +192,22 @@ function PlayerToken({
         <View style={styles.badgeStack}>
           {markers.goals > 0 ? (
             <View style={[styles.badge, { backgroundColor: c.text }]}>
-              <ThemedText style={[styles.badgeText, { color: c.bg }]}>
-                G{markers.goals > 1 ? markers.goals : ''}
-              </ThemedText>
+              <MaterialCommunityIcons name="soccer" size={10} color={c.bg} />
+              {markers.goals > 1 ? (
+                <ThemedText style={[styles.badgeText, { color: c.bg }]}>
+                  {markers.goals}
+                </ThemedText>
+              ) : null}
             </View>
           ) : null}
           {markers.assists > 0 ? (
             <View style={[styles.badge, { backgroundColor: c.brand }]}>
-              <ThemedText style={[styles.badgeText, { color: c.textInverse }]}>
-                A{markers.assists > 1 ? markers.assists : ''}
-              </ThemedText>
+              <MaterialCommunityIcons name="shoe-cleat" size={10} color={c.textInverse} />
+              {markers.assists > 1 ? (
+                <ThemedText style={[styles.badgeText, { color: c.textInverse }]}>
+                  {markers.assists}
+                </ThemedText>
+              ) : null}
             </View>
           ) : null}
         </View>
@@ -350,8 +360,10 @@ const styles = StyleSheet.create({
     height: 14,
     paddingHorizontal: 3,
     borderRadius: 7,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 1,
   },
   badgeText: {
     fontSize: 9,

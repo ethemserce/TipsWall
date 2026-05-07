@@ -21,6 +21,9 @@ export function EventTimelineCard({ events }: EventTimelineCardProps) {
     if (m <= 45) firstHalf.push(e);
     else secondHalf.push(e);
   }
+  // Latest minute on top: reverse within half, render 2nd half first.
+  firstHalf.reverse();
+  secondHalf.reverse();
 
   return (
     <View
@@ -28,23 +31,37 @@ export function EventTimelineCard({ events }: EventTimelineCardProps) {
         styles.card,
         { backgroundColor: c.surface, borderColor: c.border },
       ]}>
-      <ThemedText style={[styles.title, { color: c.textMuted }]}>EVENTS</ThemedText>
-      {firstHalf.length > 0 ? (
-        <Section title="1st Half" events={firstHalf} />
-      ) : null}
       {secondHalf.length > 0 ? (
-        <Section title="2nd Half" events={secondHalf} />
+        <Section title="2nd Half" events={secondHalf} first />
+      ) : null}
+      {firstHalf.length > 0 ? (
+        <Section title="1st Half" events={firstHalf} first={secondHalf.length === 0} />
       ) : null}
     </View>
   );
 }
 
-function Section({ title, events }: { title: string; events: FixtureEvent[] }) {
+function Section({
+  title,
+  events,
+  first,
+}: {
+  title: string;
+  events: FixtureEvent[];
+  first: boolean;
+}) {
   const c = useTheme();
   return (
     <>
       <ThemedText
-        style={[styles.sectionLabel, { color: c.textMuted, borderTopColor: c.border }]}>
+        style={[
+          styles.sectionLabel,
+          {
+            color: c.textMuted,
+            borderTopColor: c.border,
+            borderTopWidth: first ? 0 : StyleSheet.hairlineWidth,
+          },
+        ]}>
         {title.toUpperCase()}
       </ThemedText>
       {events.map((e) => (
@@ -179,22 +196,13 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
   },
-  title: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-    paddingHorizontal: 14,
-    paddingTop: 12,
-    paddingBottom: 6,
-  },
   sectionLabel: {
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 0.5,
     paddingHorizontal: 14,
-    paddingTop: 10,
+    paddingTop: 12,
     paddingBottom: 6,
-    borderTopWidth: StyleSheet.hairlineWidth,
   },
   row: {
     flexDirection: 'row',

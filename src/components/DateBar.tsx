@@ -1,6 +1,7 @@
-import { addDays, format, isSameDay, startOfDay } from 'date-fns';
-import { useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { addDays, format, isSameDay, isToday, startOfMonth } from 'date-fns';
+import { useState } from 'react';
+import { Modal, Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/src/lib/useTheme';
@@ -8,90 +9,324 @@ import { useTheme } from '@/src/lib/useTheme';
 interface DateBarProps {
   selectedDate: Date;
   onSelect: (date: Date) => void;
-  daysBack?: number;
-  daysForward?: number;
+  oddsToggle?: boolean;
+  onOddsToggle?: (next: boolean) => void;
 }
 
 export function DateBar({
   selectedDate,
   onSelect,
-  daysBack = 3,
-  daysForward = 7,
+  oddsToggle = false,
+  onOddsToggle,
 }: DateBarProps) {
   const c = useTheme();
-  const days = useMemo(() => {
-    const today = startOfDay(new Date());
-    const items: Date[] = [];
-    for (let i = -daysBack; i <= daysForward; i++) {
-      items.push(addDays(today, i));
-    }
-    return items;
-  }, [daysBack, daysForward]);
+  const [calendarOpen, setCalendarOpen] = useState(false);
+
+  const pillLabel = isToday(selectedDate)
+    ? 'Bugün'
+    : format(selectedDate, 'd MMM');
 
   return (
-    <View style={[styles.container, { borderBottomColor: c.border }]}>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.row}>
-        {days.map((day) => {
-          const active = isSameDay(day, selectedDate);
-          const isToday = isSameDay(day, new Date());
-          return (
-            <Pressable
-              key={day.toISOString()}
-              onPress={() => onSelect(day)}
+    <View style={styles.bar}>
+      <View style={[styles.pillGroup, { backgroundColor: c.surface, borderColor: c.border }]}>
+        <Pressable
+          onPress={() => onSelect(addDays(selectedDate, -1))}
+          style={styles.arrowBtn}>
+          <MaterialCommunityIcons name="chevron-left" size={20} color={c.text} />
+        </Pressable>
+        <Pressable onPress={() => setCalendarOpen(true)} style={styles.pillCenter}>
+          <ThemedText style={[styles.pillLabel, { color: c.text }]}>
+            {pillLabel}
+          </ThemedText>
+        </Pressable>
+        <Pressable
+          onPress={() => onSelect(addDays(selectedDate, 1))}
+          style={styles.arrowBtn}>
+          <MaterialCommunityIcons name="chevron-right" size={20} color={c.text} />
+        </Pressable>
+      </View>
+
+      {onOddsToggle ? (
+        <Pressable
+          onPress={() => onOddsToggle(!oddsToggle)}
+          style={styles.oddsRow}>
+          <ThemedText style={[styles.oddsLabel, { color: c.text }]}>Oranlar</ThemedText>
+          <View
+            style={[
+              styles.toggleTrack,
+              { backgroundColor: oddsToggle ? c.brand : c.border },
+            ]}>
+            <View
               style={[
-                styles.cell,
-                active && { backgroundColor: c.brand },
-              ]}>
-              <ThemedText
-                style={[
-                  styles.weekday,
-                  { color: active ? c.textInverse : c.textMuted },
-                ]}>
-                {isToday ? 'TODAY' : format(day, 'EEE').toUpperCase()}
-              </ThemedText>
-              <ThemedText
-                style={[
-                  styles.day,
-                  { color: active ? c.textInverse : c.text },
-                ]}>
-                {format(day, 'd MMM')}
-              </ThemedText>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
+                styles.toggleThumb,
+                {
+                  backgroundColor: '#fff',
+                  transform: [{ translateX: oddsToggle ? 16 : 0 }],
+                },
+              ]}
+            />
+          </View>
+        </Pressable>
+      ) : null}
+
+      <CalendarModal
+        visible={calendarOpen}
+        onClose={() => setCalendarOpen(false)}
+        selectedDate={selectedDate}
+        onSelect={(d) => {
+          onSelect(d);
+          setCalendarOpen(false);
+        }}
+      />
     </View>
   );
 }
 
+function CalendarModal({
+  visible,
+  onClose,
+  selectedDate,
+  onSelect,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  selectedDate: Date;
+  onSelect: (d: Date) => void;
+}) {
+  const c = useTheme();
+  const [cursor, setCursor] = useState(() => startOfMonth(selectedDate));
+
+  const days = buildMonthGrid(cursor);
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}>
+      <Pressable style={styles.backdrop} onPress={onClose} />
+      <View style={[styles.sheet, { backgroundColor: c.bg, borderColor: c.border }]}>
+        <View style={styles.sheetHandle}>
+          <View style={[styles.handleBar, { backgroundColor: c.border }]} />
+        </View>
+
+        <Pressable onPress={onClose} style={styles.closeBtn}>
+          <MaterialCommunityIcons name="close" size={22} color={c.text} />
+        </Pressable>
+
+        <View style={styles.monthRow}>
+          <Pressable
+            onPress={() =>
+              setCursor((d) => addDays(startOfMonth(d), -1))
+            }
+            style={styles.arrowBtn}>
+            <MaterialCommunityIcons name="chevron-left" size={22} color={c.brand} />
+          </Pressable>
+          <ThemedText style={[styles.monthLabel, { color: c.text }]}>
+            {format(cursor, 'MMMM yyyy')}
+          </ThemedText>
+          <Pressable
+            onPress={() =>
+              setCursor((d) =>
+                startOfMonth(addDays(startOfMonth(d), 32)),
+              )
+            }
+            style={styles.arrowBtn}>
+            <MaterialCommunityIcons name="chevron-right" size={22} color={c.brand} />
+          </Pressable>
+        </View>
+
+        <View style={styles.weekRow}>
+          {WEEK_LABELS.map((w) => (
+            <ThemedText key={w} style={[styles.weekLabel, { color: c.textMuted }]}>
+              {w}
+            </ThemedText>
+          ))}
+        </View>
+
+        <View style={styles.grid}>
+          {days.map((cell, i) => {
+            if (!cell) {
+              return <View key={`empty-${i}`} style={styles.cell} />;
+            }
+            const active = isSameDay(cell, selectedDate);
+            return (
+              <Pressable
+                key={cell.toISOString()}
+                onPress={() => onSelect(cell)}
+                style={[
+                  styles.cell,
+                  active && { backgroundColor: c.brand, borderRadius: 999 },
+                ]}>
+                <ThemedText
+                  style={[
+                    styles.cellText,
+                    { color: active ? c.textInverse : c.text },
+                  ]}>
+                  {format(cell, 'd')}
+                </ThemedText>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        <Pressable
+          onPress={() => onSelect(new Date())}
+          style={[styles.todayBtn, { backgroundColor: c.brand }]}>
+          <ThemedText style={[styles.todayBtnText, { color: c.textInverse }]}>
+            BUGÜN
+          </ThemedText>
+        </Pressable>
+      </View>
+    </Modal>
+  );
+}
+
+const WEEK_LABELS = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
+
+function buildMonthGrid(month: Date): (Date | null)[] {
+  const first = startOfMonth(month);
+  // Monday-based: 0=Mon, 6=Sun
+  const offset = (first.getDay() + 6) % 7;
+  const cells: (Date | null)[] = [];
+  for (let i = 0; i < offset; i++) cells.push(null);
+  let cur = first;
+  while (cur.getMonth() === first.getMonth()) {
+    cells.push(cur);
+    cur = addDays(cur, 1);
+  }
+  while (cells.length % 7 !== 0) cells.push(null);
+  return cells;
+}
+
 const styles = StyleSheet.create({
-  container: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  row: {
+  bar: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 8,
-    gap: 8,
+    gap: 12,
   },
-  cell: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 10,
-    minWidth: 64,
+  pillGroup: {
+    flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'transparent',
+    height: 36,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 4,
   },
-  weekday: {
-    fontSize: 10,
-    letterSpacing: 0.5,
-    fontWeight: '600',
+  arrowBtn: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  day: {
+  pillCenter: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  pillLabel: {
     fontSize: 14,
     fontWeight: '600',
-    marginTop: 2,
+  },
+  oddsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  oddsLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  toggleTrack: {
+    width: 36,
+    height: 20,
+    borderRadius: 999,
+    padding: 2,
+    justifyContent: 'center',
+  },
+  toggleThumb: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+  },
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  sheet: {
+    paddingTop: 8,
+    paddingBottom: 24,
+    paddingHorizontal: 16,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  sheetHandle: {
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  handleBar: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+  },
+  closeBtn: {
+    position: 'absolute',
+    top: 12,
+    right: 16,
+    padding: 6,
+  },
+  monthRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 8,
+    paddingBottom: 12,
+  },
+  monthLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  weekRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 4,
+    paddingBottom: 6,
+  },
+  weekLabel: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 4,
+  },
+  cell: {
+    width: `${100 / 7}%`,
+    aspectRatio: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cellText: {
+    fontSize: 14,
+    fontWeight: '600',
+    fontVariant: ['tabular-nums'],
+  },
+  todayBtn: {
+    marginTop: 16,
+    height: 44,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  todayBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
 });

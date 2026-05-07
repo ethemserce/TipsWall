@@ -2,14 +2,15 @@ import { format } from 'date-fns';
 import { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  FlatList,
   RefreshControl,
-  SectionList,
   StyleSheet,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
+import { AppBrand } from '@/src/components/AppBrand';
 import { DateBar } from '@/src/components/DateBar';
 import { FixtureCard } from '@/src/components/FixtureCard';
 import { LeagueHeader } from '@/src/components/LeagueHeader';
@@ -32,6 +33,7 @@ export function TodayMatchesScreen() {
   const c = useTheme();
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [filter, setFilter] = useState<FixtureFilter>('all');
+  const [oddsToggle, setOddsToggle] = useState(false);
   const isoDate = format(selectedDate, 'yyyy-MM-dd');
 
   const { data, isLoading, isFetching, isError, error, refetch } = useFixtures(
@@ -41,21 +43,27 @@ export function TodayMatchesScreen() {
 
   const fixtures = data?.items ?? [];
 
+  const filtered = useMemo(() => {
+    let list = fixtures;
+    if (oddsToggle) list = list.filter((f) => f.has_odds);
+    if (filter !== 'all') {
+      list = list.filter((f) => getStateBucket(f.state_id) === filter);
+    }
+    return list;
+  }, [fixtures, filter, oddsToggle]);
+
   const counts = useMemo<Record<FixtureFilter, number>>(() => {
     const acc = { all: fixtures.length, live: 0, upcoming: 0, finished: 0 };
-    for (const f of fixtures) {
+    const pool = oddsToggle ? fixtures.filter((f) => f.has_odds) : fixtures;
+    acc.all = pool.length;
+    for (const f of pool) {
       const bucket = getStateBucket(f.state_id);
       if (bucket === 'live') acc.live++;
       else if (bucket === 'upcoming') acc.upcoming++;
       else if (bucket === 'finished') acc.finished++;
     }
     return acc;
-  }, [fixtures]);
-
-  const filtered = useMemo(() => {
-    if (filter === 'all') return fixtures;
-    return fixtures.filter((f) => getStateBucket(f.state_id) === filter);
-  }, [fixtures, filter]);
+  }, [fixtures, oddsToggle]);
 
   const sections = useMemo<Section[]>(() => {
     const groups = new Map<number, FixtureSummary[]>();
@@ -90,7 +98,6 @@ export function TodayMatchesScreen() {
     return [...sections].sort((a, b) => {
       const la = leagueLookup.get(a.leagueId);
       const lb = leagueLookup.get(b.leagueId);
-      // Lower SportMonks category means a higher-tier competition.
       const ca = la?.category ?? Number.MAX_SAFE_INTEGER;
       const cb = lb?.category ?? Number.MAX_SAFE_INTEGER;
       if (ca !== cb) return ca - cb;
@@ -102,14 +109,17 @@ export function TodayMatchesScreen() {
 
   return (
     <SafeAreaView style={[styles.flex, { backgroundColor: c.bg }]} edges={['top']}>
-      <View style={styles.header}>
-        <ThemedText style={[styles.title, { color: c.text }]}>Matches</ThemedText>
-        <ThemedText style={[styles.subtitle, { color: c.textMuted }]}>
-          {format(selectedDate, 'EEEE, d MMMM yyyy')}
-        </ThemedText>
+      <View style={styles.headerRow}>
+        <AppBrand />
       </View>
 
-      <DateBar selectedDate={selectedDate} onSelect={setSelectedDate} />
+      <DateBar
+        selectedDate={selectedDate}
+        onSelect={setSelectedDate}
+        oddsToggle={oddsToggle}
+        onOddsToggle={setOddsToggle}
+      />
+
       <StateFilterBar selected={filter} onSelect={setFilter} counts={counts} />
 
       {isLoading ? (
@@ -126,26 +136,33 @@ export function TodayMatchesScreen() {
           </ThemedText>
         </View>
       ) : (
-        <SectionList
-          sections={sortedSections}
-          keyExtractor={(item) => String(item.id)}
-          renderItem={({ item }) => <FixtureCard fixture={item} />}
-          renderSectionHeader={({ section }) => {
-            const league = leagueLookup.get(section.leagueId);
+        <FlatList
+          data={sortedSections}
+          keyExtractor={(s) => String(s.leagueId)}
+          renderItem={({ item }) => {
+            const league = leagueLookup.get(item.leagueId);
             const country =
               league?.country_id != null
                 ? countryLookup.get(league.country_id)
                 : undefined;
             return (
-              <LeagueHeader
-                leagueId={section.leagueId}
-                league={league}
-                country={country}
-                fixtureCount={section.data.length}
-              />
+              <View
+                style={[
+                  styles.sectionCard,
+                  { backgroundColor: c.surface, borderColor: c.border },
+                ]}>
+                <LeagueHeader
+                  leagueId={item.leagueId}
+                  league={league}
+                  country={country}
+                  fixtureCount={item.data.length}
+                />
+                {item.data.map((fixture) => (
+                  <FixtureCard key={fixture.id} fixture={fixture} />
+                ))}
+              </View>
             );
           }}
-          stickySectionHeadersEnabled
           contentContainerStyle={styles.list}
           refreshControl={
             <RefreshControl
@@ -169,22 +186,22 @@ export function TodayMatchesScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  header: {
+  headerRow: {
     paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 4,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-  },
-  subtitle: {
-    fontSize: 13,
-    marginTop: 2,
-  },
   list: {
+    paddingHorizontal: 12,
+    paddingTop: 8,
     paddingBottom: 32,
+    gap: 12,
     flexGrow: 1,
+  },
+  sectionCard: {
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: 'hidden',
   },
   center: {
     flex: 1,
