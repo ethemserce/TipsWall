@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -15,10 +16,11 @@ const PERCENT_TYPES = new Set(['BALL_POSSESSION', 'SUCCESSFUL_DRIBBLES_PERCENTAG
 
 export function StatsTab({ loading, error, stats }: StatsTabProps) {
   const c = useTheme();
+  const { t } = useTranslation();
 
   if (error && stats.length === 0) return <TabError error={error} />;
   if (loading && stats.length === 0) return <TabLoading />;
-  if (stats.length === 0) return <TabEmpty message="No statistics for this match yet." />;
+  if (stats.length === 0) return <TabEmpty message={t('fixture.stats.notAvailable')} />;
 
   return (
     <View
@@ -27,7 +29,7 @@ export function StatsTab({ loading, error, stats }: StatsTabProps) {
         { backgroundColor: c.surface, borderColor: c.border },
       ]}>
       <ThemedText style={[styles.title, { color: c.textMuted }]}>
-        STATISTICS
+        {t('fixture.stats.title').toUpperCase()}
       </ThemedText>
       {stats.map((s) => (
         <StatRow key={s.type_id} stat={s} />

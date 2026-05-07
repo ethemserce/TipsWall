@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   RefreshControl,
@@ -40,6 +41,7 @@ interface FixtureDetailScreenProps {
 
 export function FixtureDetailScreen({ fixtureId }: FixtureDetailScreenProps) {
   const c = useTheme();
+  const { t } = useTranslation();
   const [tab, setTab] = useState<DetailTab>('details');
   const { data, isLoading, isFetching, isError, error, refetch } =
     useFixture(fixtureId);
@@ -89,10 +91,10 @@ export function FixtureDetailScreen({ fixtureId }: FixtureDetailScreenProps) {
     return (
       <View style={[styles.center, { backgroundColor: c.bg }]}>
         <ThemedText style={[styles.errorTitle, { color: c.text }]}>
-          Couldn&apos;t load fixture
+          {t('common.couldNotLoad')}
         </ThemedText>
         <ThemedText style={[styles.errorMessage, { color: c.textMuted }]}>
-          {error instanceof Error ? error.message : 'Unknown error'}
+          {error instanceof Error ? error.message : t('common.somethingWentWrong')}
         </ThemedText>
       </View>
     );
@@ -174,10 +176,11 @@ function OddsTabContent({
   error?: unknown;
   markets: FixtureOddsMarket[];
 }) {
+  const { t } = useTranslation();
   if (error && markets.length === 0) return <TabError error={error} />;
   if (loading && markets.length === 0) return <TabLoading />;
   if (markets.length === 0)
-    return <TabEmpty message="No odds available for this match yet." />;
+    return <TabEmpty message={t('fixture.odds.noOdds')} />;
   return (
     <>
       {markets.map((market) => (

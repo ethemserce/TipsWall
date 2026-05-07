@@ -1,6 +1,7 @@
 import { format, parseISO } from 'date-fns';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -24,11 +25,12 @@ export function H2HTab({
   awayTeamId,
 }: H2HTabProps) {
   const c = useTheme();
+  const { t } = useTranslation();
 
   if (error && fixtures.length === 0) return <TabError error={error} />;
   if (loading && fixtures.length === 0) return <TabLoading />;
   if (fixtures.length === 0)
-    return <TabEmpty message="No previous matches between these teams yet." />;
+    return <TabEmpty message={t('fixture.h2h.notAvailable')} />;
 
   const summary = computeRecord(fixtures, homeTeamId, awayTeamId);
 
@@ -39,13 +41,25 @@ export function H2HTab({
         { backgroundColor: c.surface, borderColor: c.border },
       ]}>
       <ThemedText style={[styles.title, { color: c.textMuted }]}>
-        HEAD-TO-HEAD ({fixtures.length})
+        {t('fixture.h2h.title', { count: fixtures.length }).toUpperCase()}
       </ThemedText>
       {summary ? (
         <View style={[styles.summaryRow, { borderTopColor: c.border }]}>
-          <SummaryCell label="Home wins" value={summary.homeWins} color={c.brand} />
-          <SummaryCell label="Draws" value={summary.draws} color={c.textMuted} />
-          <SummaryCell label="Away wins" value={summary.awayWins} color={c.live} />
+          <SummaryCell
+            label={t('fixture.h2h.homeWins')}
+            value={summary.homeWins}
+            color={c.brand}
+          />
+          <SummaryCell
+            label={t('fixture.h2h.draws')}
+            value={summary.draws}
+            color={c.textMuted}
+          />
+          <SummaryCell
+            label={t('fixture.h2h.awayWins')}
+            value={summary.awayWins}
+            color={c.live}
+          />
         </View>
       ) : null}
       {fixtures.map((f) => (

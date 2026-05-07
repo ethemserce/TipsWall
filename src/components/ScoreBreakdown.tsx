@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -12,16 +13,17 @@ interface ScoreBreakdownProps {
 
 const SECTION_ORDER = ['1ST_HALF', '2ND_HALF', 'EXTRA_TIME', 'PENALTIES', 'NORMALTIME'];
 
-const SECTION_LABEL: Record<string, string> = {
-  '1ST_HALF': '1st Half',
-  '2ND_HALF': '2nd Half',
-  EXTRA_TIME: 'Extra Time',
-  PENALTIES: 'Penalties',
-  NORMALTIME: 'Full Time',
+const SECTION_I18N: Record<string, string> = {
+  '1ST_HALF': 'fixture.score.firstHalf',
+  '2ND_HALF': 'fixture.score.secondHalf',
+  EXTRA_TIME: 'fixture.score.extraTime',
+  PENALTIES: 'fixture.score.penalties',
+  NORMALTIME: 'fixture.score.fullTime',
 };
 
 export function ScoreBreakdown({ scores, homeName, awayName }: ScoreBreakdownProps) {
   const c = useTheme();
+  const { t } = useTranslation();
 
   const rows = SECTION_ORDER.flatMap((description) => {
     const home = scores.find(
@@ -34,7 +36,7 @@ export function ScoreBreakdown({ scores, homeName, awayName }: ScoreBreakdownPro
     return [
       {
         key: description,
-        label: SECTION_LABEL[description] ?? description,
+        label: SECTION_I18N[description] ? t(SECTION_I18N[description]) : description,
         home: home?.goals ?? null,
         away: away?.goals ?? null,
       },
@@ -49,7 +51,9 @@ export function ScoreBreakdown({ scores, homeName, awayName }: ScoreBreakdownPro
         styles.card,
         { backgroundColor: c.surface, borderColor: c.border },
       ]}>
-      <ThemedText style={[styles.title, { color: c.textMuted }]}>SCORE</ThemedText>
+      <ThemedText style={[styles.title, { color: c.textMuted }]}>
+        {t('fixture.score.title').toUpperCase()}
+      </ThemedText>
 
       <View style={styles.headerRow}>
         <ThemedText style={[styles.headerLabel, { color: c.textMuted }]} />

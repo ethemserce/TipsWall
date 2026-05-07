@@ -1,5 +1,6 @@
 import { Image } from 'expo-image';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -36,12 +37,13 @@ export function LineupsTab({
   homeImagePath,
   awayImagePath,
 }: LineupsTabProps) {
+  const { t } = useTranslation();
   const [side, setSide] = useState<Side>('home');
 
   if (error && !lineups) return <TabError error={error} />;
   if (loading && !lineups) return <TabLoading />;
   if (!lineups || (!lineups.home && !lineups.away))
-    return <TabEmpty message="Lineups not available yet." />;
+    return <TabEmpty message={t('fixture.lineups.notAvailable')} />;
 
   const hasHome = lineups.home != null;
   const hasAway = lineups.away != null;
@@ -65,8 +67,8 @@ export function LineupsTab({
         onSelect={setSide}
         homeImage={homeImagePath ?? null}
         awayImage={awayImagePath ?? null}
-        homeName={homeName ?? 'Home'}
-        awayName={awayName ?? 'Away'}
+        homeName={homeName ?? t('fixture.lineups.home')}
+        awayName={awayName ?? t('fixture.lineups.away')}
         homeEnabled={hasHome}
         awayEnabled={hasAway}
       />
@@ -197,9 +199,12 @@ function ToggleButton({
 
 function BenchCard({ team }: { team: FixtureTeamLineup }) {
   const c = useTheme();
+  const { t } = useTranslation();
   return (
     <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
-      <ThemedText style={[styles.cardTitle, { color: c.textMuted }]}>BENCH</ThemedText>
+      <ThemedText style={[styles.cardTitle, { color: c.textMuted }]}>
+        {t('fixture.lineups.bench').toUpperCase()}
+      </ThemedText>
       {team.bench.map((p, i) => (
         <BenchRow
           key={`${p.player_id ?? p.player_name ?? i}-${i}`}

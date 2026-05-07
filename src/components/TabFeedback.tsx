@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -19,15 +20,16 @@ interface TabErrorProps {
 
 export function TabError({ error }: TabErrorProps) {
   const c = useTheme();
+  const { t } = useTranslation();
   const status = error instanceof ApiClientError ? error.status : undefined;
   const url = error instanceof ApiClientError ? error.url : undefined;
   const message =
-    error instanceof Error ? error.message : 'Something went wrong.';
+    error instanceof Error ? error.message : t('common.somethingWentWrong');
 
   return (
     <View style={styles.empty}>
       <ThemedText style={[styles.title, { color: c.text }]}>
-        Couldn&apos;t load this tab{status ? ` (HTTP ${status})` : ''}
+        {t('common.couldNotLoad')}{status ? ` (HTTP ${status})` : ''}
       </ThemedText>
       <ThemedText style={[styles.message, { color: c.textMuted }]} numberOfLines={3}>
         {message}

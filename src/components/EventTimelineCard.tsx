@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -32,25 +33,30 @@ export function EventTimelineCard({ events }: EventTimelineCardProps) {
         { backgroundColor: c.surface, borderColor: c.border },
       ]}>
       {secondHalf.length > 0 ? (
-        <Section title="2nd Half" events={secondHalf} first />
+        <Section i18nKey="fixture.events.secondHalf" events={secondHalf} first />
       ) : null}
       {firstHalf.length > 0 ? (
-        <Section title="1st Half" events={firstHalf} first={secondHalf.length === 0} />
+        <Section
+          i18nKey="fixture.events.firstHalf"
+          events={firstHalf}
+          first={secondHalf.length === 0}
+        />
       ) : null}
     </View>
   );
 }
 
 function Section({
-  title,
+  i18nKey,
   events,
   first,
 }: {
-  title: string;
+  i18nKey: string;
   events: FixtureEvent[];
   first: boolean;
 }) {
   const c = useTheme();
+  const { t } = useTranslation();
   return (
     <>
       <ThemedText
@@ -62,7 +68,7 @@ function Section({
             borderTopWidth: first ? 0 : StyleSheet.hairlineWidth,
           },
         ]}>
-        {title.toUpperCase()}
+        {t(i18nKey).toUpperCase()}
       </ThemedText>
       {events.map((e) => (
         <EventRow key={e.id} event={e} />
