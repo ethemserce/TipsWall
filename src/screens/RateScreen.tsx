@@ -11,8 +11,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { AppBrand } from '@/src/components/AppBrand';
+import { CircularGauge } from '@/src/components/CircularGauge';
+import { useMarkets } from '@/src/hooks/useMarkets';
 import { useRate, type RateKind } from '@/src/hooks/useRates';
 import { useTheme } from '@/src/lib/useTheme';
+import type { Market } from '@/src/types/market';
 import type { RateResult } from '@/src/types/rateResult';
 
 interface RateScreenProps {
@@ -23,6 +26,8 @@ interface RateScreenProps {
 
 const BOOKMAKER_ID = 1;
 const WINDOW = 'all';
+const DSO_COLOR = '#22c55e';
+const VBET_COLOR = '#f59e0b';
 
 export function RateScreen({ kind, title, primaryMetric }: RateScreenProps) {
   const c = useTheme();
@@ -31,6 +36,9 @@ export function RateScreen({ kind, title, primaryMetric }: RateScreenProps) {
     window: WINDOW,
     perPage: 50,
   });
+  const { lookup: marketLookup } = useMarkets();
+
+  const gaugeColor = primaryMetric === 'earning_percent' ? VBET_COLOR : DSO_COLOR;
 
   return (
     <SafeAreaView style={[styles.flex, { backgroundColor: c.bg }]} edges={['top']}>
@@ -39,9 +47,6 @@ export function RateScreen({ kind, title, primaryMetric }: RateScreenProps) {
       </View>
       <View style={[styles.titleRow, { borderBottomColor: c.border }]}>
         <ThemedText style={[styles.title, { color: c.text }]}>{title}</ThemedText>
-        <ThemedText style={[styles.subtitle, { color: c.textMuted }]}>
-          Bookmaker #{BOOKMAKER_ID} · Window: {WINDOW}
-        </ThemedText>
       </View>
 
       {isLoading ? (
@@ -68,7 +73,12 @@ export function RateScreen({ kind, title, primaryMetric }: RateScreenProps) {
           data={data?.items ?? []}
           keyExtractor={(it) => it.id}
           renderItem={({ item }) => (
-            <RateRow item={item} primaryMetric={primaryMetric} />
+            <RateRow
+              item={item}
+              market={marketLookup.get(item.market_id)}
+              primaryMetric={primaryMetric}
+              gaugeColor={gaugeColor}
+            />
           )}
           contentContainerStyle={styles.list}
           refreshControl={
@@ -86,23 +96,20 @@ export function RateScreen({ kind, title, primaryMetric }: RateScreenProps) {
 
 function RateRow({
   item,
+  market,
   primaryMetric,
+  gaugeColor,
 }: {
   item: RateResult;
+  market: Market | undefined;
   primaryMetric: 'winning_percent' | 'earning_percent';
+  gaugeColor: string;
 }) {
   const c = useTheme();
   const router = useRouter();
   const primaryValue = item[primaryMetric];
-  const primaryColor =
-    primaryMetric === 'earning_percent'
-      ? primaryValue != null && primaryValue > 0
-        ? c.brand
-        : primaryValue != null && primaryValue < 0
-          ? c.live
-          : c.text
-      : c.brand;
 
+  const marketName = market?.name ?? `Market #${item.market_id}`;
   const outcomeLabel = formatOutcome(item);
   return (
     <Pressable
@@ -120,11 +127,11 @@ function RateRow({
         </ThemedText>
       </View>
       <View style={styles.infoCol}>
-        <ThemedText style={[styles.outcomeText, { color: c.text }]} numberOfLines={1}>
-          {outcomeLabel}
+        <ThemedText style={[styles.marketText, { color: c.text }]} numberOfLines={1}>
+          {marketName}
         </ThemedText>
-        <ThemedText style={[styles.metaText, { color: c.textMuted }]} numberOfLines={1}>
-          Market #{item.market_id} · Fixture #{item.fixture_id}
+        <ThemedText style={[styles.outcomeText, { color: c.textMuted }]} numberOfLines={1}>
+          {outcomeLabel}
         </ThemedText>
         <View style={styles.statsRow}>
           <Stat label="ORAN" value={formatOdd(item.odd_value)} />
@@ -133,12 +140,12 @@ function RateRow({
         </View>
       </View>
       <View style={styles.metricCol}>
-        <ThemedText style={[styles.metricValue, { color: primaryColor }]}>
-          {formatPercent(primaryValue)}
-        </ThemedText>
-        <ThemedText style={[styles.metricLabel, { color: c.textMuted }]}>
-          {primaryMetric === 'winning_percent' ? 'WIN %' : 'ROI %'}
-        </ThemedText>
+        <CircularGauge
+          value={primaryValue}
+          color={gaugeColor}
+          size={52}
+          strokeWidth={4}
+        />
       </View>
     </Pressable>
   );
@@ -165,12 +172,6 @@ function formatOdd(value: number | null): string {
   return value != null ? value.toFixed(2) : '-';
 }
 
-function formatPercent(value: number | null): string {
-  if (value == null) return '-';
-  const sign = value > 0 ? '+' : '';
-  return `${sign}${value.toFixed(1)}%`;
-}
-
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   headerRow: {
@@ -187,10 +188,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: '700',
-  },
-  subtitle: {
-    fontSize: 12,
-    marginTop: 2,
   },
   list: {
     paddingHorizontal: 12,
@@ -222,12 +219,13 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 4,
   },
-  outcomeText: {
+  marketText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
   },
-  metaText: {
-    fontSize: 11,
+  outcomeText: {
+    fontSize: 12,
+    fontWeight: '500',
   },
   statsRow: {
     flexDirection: 'row',
@@ -248,19 +246,8 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
   },
   metricCol: {
-    width: 64,
+    width: 56,
     alignItems: 'center',
-  },
-  metricValue: {
-    fontSize: 16,
-    fontWeight: '800',
-    fontVariant: ['tabular-nums'],
-  },
-  metricLabel: {
-    fontSize: 9,
-    fontWeight: '700',
-    letterSpacing: 0.4,
-    marginTop: 2,
   },
   center: {
     flex: 1,
