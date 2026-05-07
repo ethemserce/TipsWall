@@ -1,6 +1,7 @@
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { TabEmpty, TabError, TabLoading } from '@/src/components/TabFeedback';
 import { useTheme } from '@/src/lib/useTheme';
 import type {
   FixtureLineupPlayer,
@@ -10,31 +11,23 @@ import type {
 
 interface LineupsTabProps {
   loading: boolean;
+  error?: unknown;
   lineups: FixtureLineups | null;
   homeName?: string | null;
   awayName?: string | null;
 }
 
-export function LineupsTab({ loading, lineups, homeName, awayName }: LineupsTabProps) {
-  const c = useTheme();
-
-  if (loading && !lineups) {
-    return (
-      <View style={styles.empty}>
-        <ActivityIndicator color={c.brand} />
-      </View>
-    );
-  }
-
-  if (!lineups || (!lineups.home && !lineups.away)) {
-    return (
-      <View style={styles.empty}>
-        <ThemedText style={[styles.emptyText, { color: c.textMuted }]}>
-          Lineups not available yet.
-        </ThemedText>
-      </View>
-    );
-  }
+export function LineupsTab({
+  loading,
+  error,
+  lineups,
+  homeName,
+  awayName,
+}: LineupsTabProps) {
+  if (error && !lineups) return <TabError error={error} />;
+  if (loading && !lineups) return <TabLoading />;
+  if (!lineups || (!lineups.home && !lineups.away))
+    return <TabEmpty message="Lineups not available yet." />;
 
   return (
     <>
@@ -198,12 +191,5 @@ const styles = StyleSheet.create({
   position: {
     fontSize: 11,
     fontWeight: '600',
-  },
-  empty: {
-    paddingVertical: 64,
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: 14,
   },
 });

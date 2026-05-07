@@ -17,6 +17,7 @@ import { MatchInfoCard } from '@/src/components/MatchInfoCard';
 import { OddsRatesCard } from '@/src/components/OddsRatesCard';
 import { ScoreBreakdown } from '@/src/components/ScoreBreakdown';
 import { StatsTab } from '@/src/components/StatsTab';
+import { TabError, TabLoading, TabEmpty } from '@/src/components/TabFeedback';
 import { useCountryLookup } from '@/src/hooks/useCountryLookup';
 import { useFixture } from '@/src/hooks/useFixture';
 import {
@@ -133,13 +134,19 @@ export function FixtureDetailScreen({ fixtureId }: FixtureDetailScreenProps) {
       ) : tab === 'odds' ? (
         <OddsTabContent
           loading={oddsRates.isLoading}
+          error={oddsRates.error}
           markets={oddsRates.data ?? []}
         />
       ) : tab === 'stats' ? (
-        <StatsTab loading={stats.isLoading} stats={stats.data ?? []} />
+        <StatsTab
+          loading={stats.isLoading}
+          error={stats.error}
+          stats={stats.data ?? []}
+        />
       ) : tab === 'lineups' ? (
         <LineupsTab
           loading={lineups.isLoading}
+          error={lineups.error}
           lineups={lineups.data ?? null}
           homeName={data.fixture.home_team_name}
           awayName={data.fixture.away_team_name}
@@ -147,6 +154,7 @@ export function FixtureDetailScreen({ fixtureId }: FixtureDetailScreenProps) {
       ) : tab === 'h2h' ? (
         <H2HTab
           loading={h2h.isLoading}
+          error={h2h.error}
           fixtures={h2h.data ?? []}
           homeTeamId={data.fixture.home_team_id}
           awayTeamId={data.fixture.away_team_id}
@@ -158,28 +166,17 @@ export function FixtureDetailScreen({ fixtureId }: FixtureDetailScreenProps) {
 
 function OddsTabContent({
   loading,
+  error,
   markets,
 }: {
   loading: boolean;
+  error?: unknown;
   markets: FixtureOddsMarket[];
 }) {
-  const c = useTheme();
-  if (loading && markets.length === 0) {
-    return (
-      <View style={styles.empty}>
-        <ActivityIndicator color={c.brand} />
-      </View>
-    );
-  }
-  if (markets.length === 0) {
-    return (
-      <View style={styles.empty}>
-        <ThemedText style={[styles.emptyText, { color: c.textMuted }]}>
-          No odds available for this match yet.
-        </ThemedText>
-      </View>
-    );
-  }
+  if (error && markets.length === 0) return <TabError error={error} />;
+  if (loading && markets.length === 0) return <TabLoading />;
+  if (markets.length === 0)
+    return <TabEmpty message="No odds available for this match yet." />;
   return (
     <>
       {markets.map((market) => (

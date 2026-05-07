@@ -1,39 +1,34 @@
 import { format, parseISO } from 'date-fns';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { TabEmpty, TabError, TabLoading } from '@/src/components/TabFeedback';
 import { useTheme } from '@/src/lib/useTheme';
 import type { FixtureSummary } from '@/src/types/fixture';
 
 interface H2HTabProps {
   loading: boolean;
+  error?: unknown;
   fixtures: FixtureSummary[];
   homeTeamId?: number | null;
   awayTeamId?: number | null;
 }
 
-export function H2HTab({ loading, fixtures, homeTeamId, awayTeamId }: H2HTabProps) {
+export function H2HTab({
+  loading,
+  error,
+  fixtures,
+  homeTeamId,
+  awayTeamId,
+}: H2HTabProps) {
   const c = useTheme();
 
-  if (loading && fixtures.length === 0) {
-    return (
-      <View style={styles.empty}>
-        <ActivityIndicator color={c.brand} />
-      </View>
-    );
-  }
-
-  if (fixtures.length === 0) {
-    return (
-      <View style={styles.empty}>
-        <ThemedText style={[styles.emptyText, { color: c.textMuted }]}>
-          No previous matches between these teams yet.
-        </ThemedText>
-      </View>
-    );
-  }
+  if (error && fixtures.length === 0) return <TabError error={error} />;
+  if (loading && fixtures.length === 0) return <TabLoading />;
+  if (fixtures.length === 0)
+    return <TabEmpty message="No previous matches between these teams yet." />;
 
   const summary = computeRecord(fixtures, homeTeamId, awayTeamId);
 
@@ -274,12 +269,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     fontVariant: ['tabular-nums'],
-  },
-  empty: {
-    paddingVertical: 64,
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: 14,
   },
 });

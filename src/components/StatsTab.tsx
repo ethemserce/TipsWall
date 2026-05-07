@@ -1,35 +1,24 @@
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { TabEmpty, TabError, TabLoading } from '@/src/components/TabFeedback';
 import { useTheme } from '@/src/lib/useTheme';
 import type { FixtureStatistic } from '@/src/types/fixtureDetailExtras';
 
 interface StatsTabProps {
   loading: boolean;
+  error?: unknown;
   stats: FixtureStatistic[];
 }
 
 const PERCENT_TYPES = new Set(['BALL_POSSESSION', 'SUCCESSFUL_DRIBBLES_PERCENTAGE']);
 
-export function StatsTab({ loading, stats }: StatsTabProps) {
+export function StatsTab({ loading, error, stats }: StatsTabProps) {
   const c = useTheme();
 
-  if (loading && stats.length === 0) {
-    return (
-      <View style={styles.empty}>
-        <ActivityIndicator color={c.brand} />
-      </View>
-    );
-  }
-  if (stats.length === 0) {
-    return (
-      <View style={styles.empty}>
-        <ThemedText style={[styles.emptyText, { color: c.textMuted }]}>
-          No statistics for this match yet.
-        </ThemedText>
-      </View>
-    );
-  }
+  if (error && stats.length === 0) return <TabError error={error} />;
+  if (loading && stats.length === 0) return <TabLoading />;
+  if (stats.length === 0) return <TabEmpty message="No statistics for this match yet." />;
 
   return (
     <View
@@ -179,12 +168,5 @@ const styles = StyleSheet.create({
   barDivider: {
     width: 1,
     height: 4,
-  },
-  empty: {
-    paddingVertical: 64,
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: 14,
   },
 });

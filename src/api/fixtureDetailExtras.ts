@@ -8,16 +8,28 @@ import type {
 } from '@/src/types/fixtureDetailExtras';
 
 async function fetchOk<T>(path: string, params?: Record<string, unknown>): Promise<T> {
-  const response = await apiClient.get<ApiResponse<T>>(path, { params });
-  const body = response.data;
-  if (!body.success || body.data === undefined) {
+  try {
+    const response = await apiClient.get<ApiResponse<T>>(path, { params });
+    const body = response.data;
+    if (!body.success || body.data === undefined) {
+      throw new ApiClientError(
+        body.error?.message ?? 'Request failed',
+        body.error?.code ?? 'unknown_error',
+        response.status,
+        path,
+      );
+    }
+    return body.data;
+  } catch (err) {
+    if (err instanceof ApiClientError) throw err;
+    const anyErr = err as { response?: { status?: number; data?: { error?: { code?: string; message?: string } } }; message?: string };
     throw new ApiClientError(
-      body.error?.message ?? 'Request failed',
-      body.error?.code ?? 'unknown_error',
-      response.status,
+      anyErr.response?.data?.error?.message ?? anyErr.message ?? 'Request failed',
+      anyErr.response?.data?.error?.code ?? 'network_error',
+      anyErr.response?.status,
+      path,
     );
   }
-  return body.data;
 }
 
 export function getFixtureEvents(fixtureId: number) {

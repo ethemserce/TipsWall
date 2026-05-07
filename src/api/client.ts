@@ -13,6 +13,7 @@ export class ApiClientError extends Error {
     message: string,
     public readonly code: string,
     public readonly status?: number,
+    public readonly url?: string,
   ) {
     super(message);
     this.name = 'ApiClientError';
@@ -31,6 +32,7 @@ export async function getPaged<T>(
         body.error?.message ?? 'API returned unsuccessful response',
         body.error?.code ?? 'unknown_error',
         response.status,
+        response.config.url,
       );
     }
     return {
@@ -50,6 +52,11 @@ export async function getPaged<T>(
       axiosErr.response?.data?.error?.message ??
       axiosErr.message ??
       'Failed to reach API';
-    throw new ApiClientError(message, code, axiosErr.response?.status);
+    throw new ApiClientError(
+      message,
+      code,
+      axiosErr.response?.status,
+      axiosErr.config?.url,
+    );
   }
 }
