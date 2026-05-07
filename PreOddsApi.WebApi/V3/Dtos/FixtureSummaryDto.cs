@@ -49,5 +49,35 @@ namespace PreOddsApi.WebApi.V3.Dtos
 
         [JsonProperty("placeholder")]
         public bool Placeholder { get; init; }
+
+        [JsonProperty("home_team_id", NullValueHandling = NullValueHandling.Ignore)]
+        public long? HomeTeamId { get; init; }
+
+        [JsonProperty("home_team_name", NullValueHandling = NullValueHandling.Ignore)]
+        public string? HomeTeamName { get; init; }
+
+        [JsonProperty("home_team_short_code", NullValueHandling = NullValueHandling.Ignore)]
+        public string? HomeTeamShortCode { get; init; }
+
+        [JsonProperty("home_team_image_path", NullValueHandling = NullValueHandling.Ignore)]
+        public string? HomeTeamImagePath { get; init; }
+
+        [JsonProperty("home_score", NullValueHandling = NullValueHandling.Ignore)]
+        public int? HomeScore { get; init; }
+
+        [JsonProperty("away_team_id", NullValueHandling = NullValueHandling.Ignore)]
+        public long? AwayTeamId { get; init; }
+
+        [JsonProperty("away_team_name", NullValueHandling = NullValueHandling.Ignore)]
+        public string? AwayTeamName { get; init; }
+
+        [JsonProperty("away_team_short_code", NullValueHandling = NullValueHandling.Ignore)]
+        public string? AwayTeamShortCode { get; init; }
+
+        [JsonProperty("away_team_image_path", NullValueHandling = NullValueHandling.Ignore)]
+        public string? AwayTeamImagePath { get; init; }
+
+        [JsonProperty("away_score", NullValueHandling = NullValueHandling.Ignore)]
+        public int? AwayScore { get; init; }
     }
 }
