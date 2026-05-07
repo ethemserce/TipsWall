@@ -1,50 +1,60 @@
-# Welcome to your Expo app 👋
+# PreOddsMobile
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+React Native (Expo) mobile client for the PreOddsApi V3 backend.
 
-## Get started
+The first milestone is a Sofascore-style "today's matches" screen wired to
+`/api/v3/fixtures`. The plan is to grow this app into the public face of the
+backend — fixtures, odds, leagues, analytics — one screen at a time.
 
-1. Install dependencies
+## Stack
 
-   ```bash
-   npm install
-   ```
+- Expo SDK 54 + React Native 0.81 + TypeScript
+- expo-router (file-based routing, bottom tabs)
+- @tanstack/react-query for data fetching/caching
+- axios for HTTP
+- date-fns for date math/formatting
 
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Getting started
 
 ```bash
-npm run reset-project
+npm install
+cp .env.example .env       # then edit it
+npm run start              # opens Metro; press a/i/w for Android/iOS/web
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+### API base URL
 
-## Learn more
+The app reads `EXPO_PUBLIC_API_BASE_URL` from `.env`. Set it to wherever the
+.NET backend (`PreOddsApi.WebApi`) is reachable from the device running the
+app:
 
-To learn more about developing your project with Expo, look at the following resources:
+| Where the app runs        | Value                          |
+| ------------------------- | ------------------------------ |
+| Android emulator          | `http://10.0.2.2:28333`        |
+| iOS simulator             | `http://localhost:28333`       |
+| Physical device on Wi-Fi  | `http://<your-LAN-IP>:28333`   |
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+The path `/api/v3` is appended automatically by the API client. After changing
+`.env` you need to restart the Metro bundler.
 
-## Join the community
+## Project layout
 
-Join our community of developers creating universal apps.
+```
+app/                 expo-router routes (tab screens, modals)
+src/
+  api/               axios client + per-resource fetchers
+  components/        reusable UI (FixtureCard, DateBar, …)
+  hooks/             TanStack Query hooks
+  lib/               env, queryClient
+  types/             V3 DTO mirrors (FixtureSummary, ApiResponse, …)
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Backend
+
+The companion repo lives at `D:\Projects\PreOddsApi`. Run the API with:
+
+```bash
+dotnet run --project D:\Projects\PreOddsApi\PreOddsApi.WebApi
+```
+
+It listens on `http://localhost:28333`.
