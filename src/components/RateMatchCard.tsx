@@ -1,6 +1,7 @@
 import { format, parseISO } from 'date-fns';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -19,25 +20,34 @@ interface RateMatchCardProps {
   gaugeColor: string;
 }
 
+const VBET_COLOR = '#f59e0b';
+const DSO_COLOR = '#22c55e';
+const IKO_COLOR = '#3b82f6';
+const STAR_COLOR = '#f59e0b';
+
 export function RateMatchCard({
   fixtureId,
   fixture,
   signals,
   marketLookup,
   primaryMetric,
-  gaugeColor,
 }: RateMatchCardProps) {
   const c = useTheme();
   const router = useRouter();
+  const { t } = useTranslation();
 
   const homeName = fixture?.fixture.home_team_name ?? null;
   const awayName = fixture?.fixture.away_team_name ?? null;
   const homeImg = fixture?.fixture.home_team_image_path ?? null;
   const awayImg = fixture?.fixture.away_team_image_path ?? null;
   const startingAt = fixture?.fixture.starting_at ?? null;
-  const startLine = startingAt
-    ? format(parseISO(startingAt), 'd MMM • HH:mm')
-    : null;
+  const dateLine = startingAt ? format(parseISO(startingAt), 'dd.MM.yyyy') : null;
+  const timeLine = startingAt ? format(parseISO(startingAt), 'HH:mm') : null;
+
+  const stars = computeStars(signals, primaryMetric);
+
+  // Compute per-signal İKO across the same market (no-vig probability).
+  const ikoByMarket = computeIkoByMarket(signals);
 
   return (
     <View
@@ -47,221 +57,362 @@ export function RateMatchCard({
       ]}>
       <Pressable
         onPress={() => router.push(`/fixture/${fixtureId}` as never)}
-        style={({ pressed }) => [
-          styles.header,
-          { borderBottomColor: c.border, backgroundColor: pressed ? c.bg : 'transparent' },
-        ]}>
-        <View style={styles.teamRow}>
-          <TeamSide name={homeName} imagePath={homeImg} alignRight />
-          <ThemedText style={[styles.vs, { color: c.textMuted }]}>vs</ThemedText>
-          <TeamSide name={awayName} imagePath={awayImg} />
-        </View>
-        {startLine ? (
-          <ThemedText style={[styles.startLine, { color: c.textMuted }]}>
-            {startLine}
+        style={({ pressed }) => [styles.topBar, pressed && { opacity: 0.7 }]}>
+        <View style={styles.idBadge}>
+          <View style={[styles.idAccent, { backgroundColor: c.brand }]} />
+          <ThemedText style={[styles.idText, { color: c.text }]}>
+            {fixtureId}
           </ThemedText>
-        ) : null}
+        </View>
+
+        <View style={styles.starsRow}>
+          {Array.from({ length: 3 }).map((_, i) => (
+            <ThemedText
+              key={i}
+              style={[
+                styles.star,
+                { color: i < stars ? STAR_COLOR : c.border },
+              ]}>
+              ★
+            </ThemedText>
+          ))}
+        </View>
+
+        <View style={[styles.detailBtn, { borderColor: c.border, backgroundColor: c.bg }]}>
+          <ThemedText style={[styles.detailBtnText, { color: c.text }]}>
+            {t('common.match').toUpperCase()}
+          </ThemedText>
+        </View>
       </Pressable>
 
-      {signals.map((s) => (
-        <SignalRow
-          key={s.id}
-          signal={s}
-          market={marketLookup.get(s.market_id)}
-          primaryMetric={primaryMetric}
-          gaugeColor={gaugeColor}
-        />
-      ))}
+      <View style={[styles.divider, { backgroundColor: c.border }]} />
+
+      <View style={styles.matchInfo}>
+        {dateLine ? (
+          <ThemedText style={[styles.date, { color: c.text }]}>{dateLine}</ThemedText>
+        ) : null}
+        {timeLine ? (
+          <ThemedText style={[styles.time, { color: c.textMuted }]}>
+            {timeLine}
+          </ThemedText>
+        ) : null}
+
+        <View style={styles.teamsRow}>
+          <TeamColumn name={homeName} imagePath={homeImg} />
+          <ThemedText style={[styles.vs, { color: c.text }]}>VS</ThemedText>
+          <TeamColumn name={awayName} imagePath={awayImg} />
+        </View>
+      </View>
+
+      <View style={[styles.divider, { backgroundColor: c.border }]} />
+
+      <View style={styles.headerRow}>
+        <ThemedText style={[styles.headerCell, styles.cellLabel, { color: c.textMuted }]}>
+          TİP
+        </ThemedText>
+        <ThemedText style={[styles.headerCell, styles.cellNumber, { color: c.textMuted }]}>
+          ORAN
+        </ThemedText>
+        <ThemedText style={[styles.headerCell, styles.cellGauge, { color: c.textMuted }]}>
+          VBET
+        </ThemedText>
+        <ThemedText style={[styles.headerCell, styles.cellGauge, { color: c.textMuted }]}>
+          DSO
+        </ThemedText>
+        <ThemedText style={[styles.headerCell, styles.cellGauge, { color: c.textMuted }]}>
+          İKO
+        </ThemedText>
+        <ThemedText style={[styles.headerCell, styles.cellNarrow, { color: c.textMuted }]}>
+          KZ
+        </ThemedText>
+        <ThemedText style={[styles.headerCell, styles.cellNarrow, { color: c.textMuted }]}>
+          KY
+        </ThemedText>
+      </View>
+
+      {signals.map((s) => {
+        const market = marketLookup.get(s.market_id);
+        const iko = ikoByMarket.get(s.market_id)?.get(s.id) ?? null;
+        const sample = s.win_count + s.lost_count;
+        const hasSample = sample > 0;
+        return (
+          <View
+            key={s.id}
+            style={[styles.signalRow, { borderTopColor: c.border }]}>
+            <View style={styles.cellLabel}>
+              <ThemedText
+                style={[styles.label, { color: c.text }]}
+                numberOfLines={1}>
+                {formatLabel(s, market)}
+              </ThemedText>
+            </View>
+            <ThemedText
+              style={[styles.cell, styles.cellNumber, styles.numberValue, { color: c.textMuted }]}>
+              {s.odd_value != null ? s.odd_value.toFixed(2) : '-'}
+            </ThemedText>
+            <View style={styles.cellGauge}>
+              <CircularGauge
+                value={hasSample ? s.earning_percent : null}
+                color={VBET_COLOR}
+              />
+            </View>
+            <View style={styles.cellGauge}>
+              <CircularGauge
+                value={hasSample ? s.winning_percent : null}
+                color={DSO_COLOR}
+              />
+            </View>
+            <View style={styles.cellGauge}>
+              <CircularGauge value={iko} color={IKO_COLOR} />
+            </View>
+            <ThemedText
+              style={[styles.cell, styles.cellNarrow, styles.numberValue, { color: c.textMuted }]}>
+              {hasSample ? s.win_count : '-'}
+            </ThemedText>
+            <ThemedText
+              style={[styles.cell, styles.cellNarrow, styles.numberValue, { color: c.textMuted }]}>
+              {hasSample ? s.lost_count : '-'}
+            </ThemedText>
+          </View>
+        );
+      })}
     </View>
   );
 }
 
-function TeamSide({
+function TeamColumn({
   name,
   imagePath,
-  alignRight,
 }: {
   name: string | null;
   imagePath: string | null;
-  alignRight?: boolean;
 }) {
   const c = useTheme();
-  const items = [
-    imagePath ? (
-      <Image
-        key="logo"
-        source={{ uri: imagePath }}
-        style={styles.logo}
-        contentFit="contain"
-      />
-    ) : (
-      <View
-        key="logo"
-        style={[styles.logoPlaceholder, { backgroundColor: c.border }]}
-      />
-    ),
-    <ThemedText
-      key="name"
-      style={[styles.team, { color: c.text }, alignRight && styles.teamRight]}
-      numberOfLines={1}>
-      {name ?? 'TBD'}
-    </ThemedText>,
-  ];
   return (
-    <View style={[styles.teamSide, alignRight && styles.teamSideRight]}>
-      {alignRight ? items.reverse() : items}
+    <View style={styles.teamColumn}>
+      {imagePath ? (
+        <Image
+          source={{ uri: imagePath }}
+          style={styles.teamLogo}
+          contentFit="contain"
+          transition={150}
+        />
+      ) : (
+        <View style={[styles.teamLogoPlaceholder, { backgroundColor: c.border }]} />
+      )}
+      <ThemedText
+        style={[styles.teamName, { color: c.text }]}
+        numberOfLines={2}>
+        {(name ?? 'TBD').toUpperCase()}
+      </ThemedText>
     </View>
   );
 }
 
-function SignalRow({
-  signal,
-  market,
-  primaryMetric,
-  gaugeColor,
-}: {
-  signal: RateResult;
-  market: Market | undefined;
-  primaryMetric: 'winning_percent' | 'earning_percent';
-  gaugeColor: string;
-}) {
-  const c = useTheme();
-  const marketName = market?.name ?? `Market #${signal.market_id}`;
-  const outcome = formatOutcome(signal);
-  const value = signal[primaryMetric];
-
-  return (
-    <View style={[styles.signalRow, { borderTopColor: c.border }]}>
-      <View style={styles.signalText}>
-        <ThemedText style={[styles.market, { color: c.text }]} numberOfLines={1}>
-          {marketName}
-        </ThemedText>
-        <ThemedText style={[styles.outcome, { color: c.textMuted }]} numberOfLines={1}>
-          {outcome}
-        </ThemedText>
-        <View style={styles.miniStats}>
-          <Mini label="ORAN" value={signal.odd_value != null ? signal.odd_value.toFixed(2) : '-'} />
-          <Mini label="KZ" value={String(signal.win_count)} />
-          <Mini label="KY" value={String(signal.lost_count)} />
-        </View>
-      </View>
-      <View style={styles.gaugeWrap}>
-        <CircularGauge value={value} color={gaugeColor} size={48} strokeWidth={3.5} />
-      </View>
-    </View>
-  );
+function formatLabel(s: RateResult, market: Market | undefined): string {
+  // Prefer outcome-style label when total/handicap is set, else fall back
+  // to plain label (matches the legacy 'MS 2,5 ÜST' style).
+  if (s.total != null) return `${s.label} ${s.total}`.trim();
+  if (s.handicap != null) return `${s.label} ${s.handicap}`.trim();
+  return s.label || market?.name || `Market #${s.market_id}`;
 }
 
-function Mini({ label, value }: { label: string; value: string }) {
-  const c = useTheme();
-  return (
-    <View style={styles.miniStat}>
-      <ThemedText style={[styles.miniLabel, { color: c.textMuted }]}>{label}</ThemedText>
-      <ThemedText style={[styles.miniValue, { color: c.text }]}>{value}</ThemedText>
-    </View>
-  );
+function computeStars(
+  signals: RateResult[],
+  primaryMetric: 'winning_percent' | 'earning_percent',
+): number {
+  if (signals.length === 0) return 0;
+  const best = signals.reduce<number>((acc, s) => {
+    const v = s[primaryMetric];
+    return v != null && v > acc ? v : acc;
+  }, -Infinity);
+  if (best === -Infinity) return 0;
+
+  if (primaryMetric === 'winning_percent') {
+    if (best >= 70) return 3;
+    if (best >= 60) return 2;
+    if (best >= 50) return 1;
+    return 0;
+  }
+  // earning_percent (ROI)
+  if (best >= 30) return 3;
+  if (best >= 15) return 2;
+  if (best >= 5) return 1;
+  return 0;
 }
 
-function formatOutcome(s: RateResult): string {
-  const parts = [s.label];
-  if (s.total) parts.push(s.total);
-  if (s.handicap) parts.push(`(${s.handicap})`);
-  return parts.join(' ');
+function computeIkoByMarket(signals: RateResult[]) {
+  // Group signals by market and compute no-vig implied probability per row.
+  const byMarket = new Map<number, RateResult[]>();
+  for (const s of signals) {
+    const list = byMarket.get(s.market_id);
+    if (list) list.push(s);
+    else byMarket.set(s.market_id, [s]);
+  }
+  const out = new Map<number, Map<string, number>>();
+  for (const [marketId, list] of byMarket.entries()) {
+    const totalImplied = list.reduce(
+      (acc, s) => (s.odd_value && s.odd_value > 0 ? acc + 1 / s.odd_value : acc),
+      0,
+    );
+    const inner = new Map<string, number>();
+    for (const s of list) {
+      if (s.odd_value && s.odd_value > 0 && totalImplied > 0) {
+        inner.set(s.id, (1 / s.odd_value / totalImplied) * 100);
+      }
+    }
+    out.set(marketId, inner);
+  }
+  return out;
 }
 
 const styles = StyleSheet.create({
   card: {
     marginHorizontal: 12,
-    marginTop: 8,
+    marginTop: 12,
     borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: 'hidden',
   },
-  header: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  idBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    minWidth: 80,
+  },
+  idAccent: {
+    width: 4,
+    height: 22,
+    borderRadius: 2,
+  },
+  idText: {
+    fontSize: 18,
+    fontWeight: '700',
+    fontVariant: ['tabular-nums'],
+  },
+  starsRow: {
+    flexDirection: 'row',
     gap: 4,
   },
-  teamRow: {
-    flexDirection: 'row',
+  star: {
+    fontSize: 14,
+  },
+  detailBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+    borderWidth: StyleSheet.hairlineWidth,
+    minWidth: 80,
     alignItems: 'center',
   },
-  teamSide: {
-    flex: 1,
-    flexDirection: 'row',
+  detailBtnText: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+  },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+  },
+  matchInfo: {
+    paddingVertical: 14,
+    paddingHorizontal: 16,
     alignItems: 'center',
-    gap: 6,
   },
-  teamSideRight: {
-    justifyContent: 'flex-end',
-  },
-  team: {
-    flexShrink: 1,
+  date: {
     fontSize: 13,
     fontWeight: '600',
+    fontVariant: ['tabular-nums'],
   },
-  teamRight: {
-    textAlign: 'right',
+  time: {
+    fontSize: 12,
+    marginTop: 2,
+    fontVariant: ['tabular-nums'],
   },
-  logo: {
-    width: 18,
-    height: 18,
+  teamsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    marginTop: 12,
   },
-  logoPlaceholder: {
-    width: 18,
-    height: 18,
-    borderRadius: 3,
+  teamColumn: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 8,
+  },
+  teamLogo: {
+    width: 56,
+    height: 56,
+  },
+  teamLogoPlaceholder: {
+    width: 56,
+    height: 56,
+    borderRadius: 8,
+  },
+  teamName: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.4,
+    textAlign: 'center',
   },
   vs: {
-    fontSize: 11,
-    fontWeight: '600',
-    marginHorizontal: 8,
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: 1,
+    paddingHorizontal: 8,
   },
-  startLine: {
-    fontSize: 11,
-    fontVariant: ['tabular-nums'],
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+  },
+  headerCell: {
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 0.4,
+    textAlign: 'center',
   },
   signalRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
     paddingVertical: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
-    gap: 10,
+    gap: 2,
   },
-  signalText: {
+  cell: {
+    fontSize: 12,
+  },
+  cellLabel: {
+    flex: 1.3,
+    paddingLeft: 6,
+  },
+  label: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  cellNumber: {
+    flex: 0.7,
+    textAlign: 'center',
+  },
+  cellGauge: {
     flex: 1,
-    gap: 3,
-  },
-  market: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  outcome: {
-    fontSize: 11,
-    fontWeight: '500',
-  },
-  miniStats: {
-    flexDirection: 'row',
-    gap: 14,
-    marginTop: 2,
-  },
-  miniStat: {
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  miniLabel: {
-    fontSize: 8,
-    fontWeight: '700',
-    letterSpacing: 0.3,
+  cellNarrow: {
+    flex: 0.5,
+    textAlign: 'center',
   },
-  miniValue: {
-    fontSize: 11,
-    fontWeight: '700',
+  numberValue: {
     fontVariant: ['tabular-nums'],
-  },
-  gaugeWrap: {
-    width: 52,
-    alignItems: 'center',
+    fontWeight: '600',
   },
 });
