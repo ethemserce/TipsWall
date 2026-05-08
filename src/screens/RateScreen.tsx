@@ -1,3 +1,4 @@
+import { format } from 'date-fns';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -11,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { AppBrand } from '@/src/components/AppBrand';
+import { DateBar } from '@/src/components/DateBar';
 import { RateFilterBar, type RateFilters } from '@/src/components/RateFilterBar';
 import { RateMatchCard } from '@/src/components/RateMatchCard';
 import { RateSummaryCard } from '@/src/components/RateSummaryCard';
@@ -39,6 +41,7 @@ interface FixtureGroup {
 export function RateScreen({ kind, title, primaryMetric }: RateScreenProps) {
   const c = useTheme();
   const { t } = useTranslation();
+  const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [filters, setFilters] = useState<RateFilters>({
     window: 'all',
     minRate: null,
@@ -47,6 +50,7 @@ export function RateScreen({ kind, title, primaryMetric }: RateScreenProps) {
 
   const { data, isLoading, isFetching, isError, error, refetch } = useRate(kind, {
     bookmakerId: BOOKMAKER_ID,
+    fixtureDate: format(selectedDate, 'yyyy-MM-dd'),
     window: filters.window,
     minRate: filters.minRate ?? undefined,
     matchState: filters.notStartedOnly ? NOT_STARTED_STATE_ID : undefined,
@@ -94,6 +98,8 @@ export function RateScreen({ kind, title, primaryMetric }: RateScreenProps) {
       <View style={[styles.titleRow, { borderBottomColor: c.border }]}>
         <ThemedText style={[styles.title, { color: c.text }]}>{title}</ThemedText>
       </View>
+
+      <DateBar selectedDate={selectedDate} onSelect={setSelectedDate} />
 
       <RateFilterBar filters={filters} onChange={setFilters} />
 
