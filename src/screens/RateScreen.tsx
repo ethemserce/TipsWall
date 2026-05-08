@@ -28,7 +28,7 @@ interface RateScreenProps {
   primaryMetric: 'winning_percent' | 'earning_percent';
 }
 
-const BOOKMAKER_ID = 1;
+const BOOKMAKER_ID = 2;
 const NOT_STARTED_STATE_ID = 1;
 const DSO_COLOR = '#22c55e';
 const VBET_COLOR = '#f59e0b';

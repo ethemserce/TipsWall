@@ -32,7 +32,7 @@ import { useLiveFixture } from '@/src/hooks/useLiveFixture';
 import { useTheme } from '@/src/lib/useTheme';
 import type { FixtureOddsMarket } from '@/src/types/fixtureOdds';
 
-const ODDS_BOOKMAKER_ID = 1;
+const ODDS_BOOKMAKER_ID = 2;
 const ODDS_MARKET_IDS = [1, 52, 80, 31];
 
 interface FixtureDetailScreenProps {
