@@ -9,6 +9,7 @@ namespace PreOddsApi.ExternalApis.SportMonks.Sync.Writers
     {
         private readonly string? _connectionString;
         private readonly ILogger<SportMonksPrematchOddsWriter> _logger;
+        private readonly HashSet<long> _allowedBookmakerIds;
 
         public SportMonksPrematchOddsWriter(
             IConfiguration configuration,
@@ -17,6 +18,11 @@ namespace PreOddsApi.ExternalApis.SportMonks.Sync.Writers
             _connectionString = Environment.GetEnvironmentVariable("PREODDS_POSTGRES_CONNECTION")
                 ?? configuration.GetConnectionString("PreOddsApiPostgresDb");
             _logger = logger;
+
+            var allowed = configuration
+                .GetSection("SportMonksPrematchOddsSync:AllowedBookmakerIds")
+                .Get<long[]>() ?? Array.Empty<long>();
+            _allowedBookmakerIds = new HashSet<long>(allowed);
         }
 
         public async Task UpsertPrematchOddsAsync(
@@ -50,6 +56,8 @@ namespace PreOddsApi.ExternalApis.SportMonks.Sync.Writers
         {
             var oddList = odds
                 .Where(o => o != null && o.Id > 0 && o.MarketId > 0 && o.BookmakerId > 0)
+                .Where(o => _allowedBookmakerIds.Count == 0
+                            || _allowedBookmakerIds.Contains(o.BookmakerId))
                 .GroupBy(o => (o.BookmakerId, o.MarketId, OutcomeKey(o)))
                 .Select(g => g.Last())
                 .ToList();
