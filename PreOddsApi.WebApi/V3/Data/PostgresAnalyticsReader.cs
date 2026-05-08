@@ -110,6 +110,7 @@ namespace PreOddsApi.WebApi.V3.Data
                        window_code, outcome_key, label, odd_value, total, handicap,
                        win_count, lost_count, sample_count,
                        winning_percent, earning_percent, rank_order, match_state,
+                       bet_winning,
                        count(*) over() as total_count,
                        sum(sample_count) over() as total_samples,
                        avg(winning_percent) over() as avg_winning_percent,
@@ -180,7 +181,8 @@ namespace PreOddsApi.WebApi.V3.Data
                     WinningPercent = ReadNullableDecimal(reader, "winning_percent"),
                     EarningPercent = ReadNullableDecimal(reader, "earning_percent"),
                     RankOrder = reader.GetInt32(reader.GetOrdinal("rank_order")),
-                    MatchState = ReadNullableInt(reader, "match_state")
+                    MatchState = ReadNullableInt(reader, "match_state"),
+                    BetWinning = ReadNullableBool(reader, "bet_winning")
                 });
             }
 
@@ -232,6 +234,12 @@ namespace PreOddsApi.WebApi.V3.Data
         {
             var i = r.GetOrdinal(column);
             return r.IsDBNull(i) ? null : r.GetString(i);
+        }
+
+        private static bool? ReadNullableBool(NpgsqlDataReader r, string column)
+        {
+            var i = r.GetOrdinal(column);
+            return r.IsDBNull(i) ? null : r.GetBoolean(i);
         }
 
         private static DateTime? ReadNullableDate(NpgsqlDataReader r, string column)

@@ -58,5 +58,13 @@ namespace PreOddsApi.WebApi.V3.Dtos
 
         [JsonProperty("match_state")]
         public int? MatchState { get; init; }
+
+        /// <summary>
+        /// Whether this specific outcome won or lost on the matched fixture.
+        /// Null when the bet is not yet settled (match still upcoming or
+        /// odds not yet resolved by SportMonks).
+        /// </summary>
+        [JsonProperty("bet_winning", NullValueHandling = NullValueHandling.Ignore)]
+        public bool? BetWinning { get; init; }
     }
 }
