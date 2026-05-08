@@ -20,7 +20,9 @@ export async function getFixtureOddsRates({
     {
       params: {
         bookmaker_id: bookmakerId,
-        market_ids: marketIds.join(','),
+        // Omit `market_ids` entirely when empty so the server returns every
+        // market with has_winning_calculations = true.
+        market_ids: marketIds.length > 0 ? marketIds.join(',') : undefined,
         window,
       },
     },

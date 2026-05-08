@@ -1,5 +1,3 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -9,10 +7,12 @@ export type WindowCode = '1m' | '3m' | '6m' | '1y' | 'all';
 
 const WINDOWS: WindowCode[] = ['1m', '3m', '6m', '1y', 'all'];
 
+export type RateBound = 'min' | 'max';
+
 export interface RateFilters {
   window: WindowCode;
-  minRate: number | null;
-  notStartedOnly: boolean;
+  rateValue: number | null;
+  rateBound: RateBound;
 }
 
 interface RateFilterBarProps {
@@ -20,150 +20,193 @@ interface RateFilterBarProps {
   onChange: (next: RateFilters) => void;
 }
 
-const MIN_RATES: (number | null)[] = [null, 1.3, 1.5, 1.8, 2.0, 2.5, 3.0];
+const RATE_VALUES: number[] = [1.5, 1.8, 2.5, 4.0, 10.0];
+
+const WINDOW_LABEL: Record<WindowCode, string> = {
+  '1m': '1A',
+  '3m': '3A',
+  '6m': '6A',
+  '1y': '1Y',
+  all: 'Tümü',
+};
 
 export function RateFilterBar({ filters, onChange }: RateFilterBarProps) {
   const c = useTheme();
-  const { t } = useTranslation();
+
+  const toggleBound = () =>
+    onChange({
+      ...filters,
+      rateBound: filters.rateBound === 'min' ? 'max' : 'min',
+    });
 
   return (
-    <View style={[styles.bar, { borderBottomColor: c.border }]}>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.row}>
-        {/* Window picker */}
-        <View style={styles.group}>
-          <ThemedText style={[styles.groupLabel, { color: c.textMuted }]}>
-            {t('rate.filters.period').toUpperCase()}
-          </ThemedText>
-          <View style={[styles.pillGroup, { borderColor: c.border }]}>
-            {WINDOWS.map((key) => {
-              const active = filters.window === key;
-              return (
-                <Pressable
-                  key={key}
-                  onPress={() => onChange({ ...filters, window: key })}
-                  style={[
-                    styles.pill,
-                    active && { backgroundColor: c.brand },
-                  ]}>
-                  <ThemedText
-                    style={[
-                      styles.pillText,
-                      { color: active ? c.textInverse : c.text },
-                    ]}>
-                    {t(`rate.filters.windows.${key}`)}
-                  </ThemedText>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
+    <View
+      style={[
+        styles.bar,
+        { backgroundColor: c.surface, borderBottomColor: c.border },
+      ]}>
+      {/* Period — full-width segmented control */}
+      <View style={[styles.segmented, { backgroundColor: c.bg, borderColor: c.border }]}>
+        {WINDOWS.map((key) => {
+          const active = filters.window === key;
+          return (
+            <Pressable
+              key={key}
+              onPress={() => onChange({ ...filters, window: key })}
+              style={[
+                styles.segment,
+                active && { backgroundColor: c.brand },
+              ]}>
+              <ThemedText
+                style={[
+                  styles.segmentText,
+                  { color: active ? c.textInverse : c.text },
+                ]}>
+                {WINDOW_LABEL[key]}
+              </ThemedText>
+            </Pressable>
+          );
+        })}
+      </View>
 
-        {/* Min odd picker */}
-        <View style={styles.group}>
-          <ThemedText style={[styles.groupLabel, { color: c.textMuted }]}>
-            {t('rate.filters.minOdd').toUpperCase()}
+      {/* Rate row: Min/Max toggle button + scrollable rate pills */}
+      <View style={styles.rateRow}>
+        <Pressable
+          onPress={toggleBound}
+          style={[
+            styles.boundToggle,
+            { backgroundColor: c.brand, borderColor: c.brand },
+          ]}>
+          <ThemedText style={[styles.boundSymbol, { color: c.textInverse }]}>
+            {filters.rateBound === 'min' ? '≥' : '≤'}
           </ThemedText>
-          <View style={[styles.pillGroup, { borderColor: c.border }]}>
-            {MIN_RATES.map((value) => {
-              const active = filters.minRate === value;
-              return (
-                <Pressable
-                  key={value ?? 'any'}
-                  onPress={() => onChange({ ...filters, minRate: value })}
-                  style={[
-                    styles.pill,
-                    active && { backgroundColor: c.brand },
-                  ]}>
-                  <ThemedText
-                    style={[
-                      styles.pillText,
-                      { color: active ? c.textInverse : c.text },
-                    ]}>
-                    {value == null ? t('rate.filters.all') : value.toFixed(2)}
-                  </ThemedText>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
+          <ThemedText style={[styles.boundLabel, { color: c.textInverse }]}>
+            {filters.rateBound === 'min' ? 'MIN' : 'MAX'}
+          </ThemedText>
+        </Pressable>
 
-        {/* Not-started toggle */}
-        <View style={styles.group}>
-          <ThemedText style={[styles.groupLabel, { color: c.textMuted }]}>
-            {t('rate.filters.status').toUpperCase()}
-          </ThemedText>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.ratePillsContent}>
           <Pressable
-            onPress={() =>
-              onChange({ ...filters, notStartedOnly: !filters.notStartedOnly })
-            }
+            onPress={() => onChange({ ...filters, rateValue: null })}
             style={[
-              styles.pillGroup,
-              styles.toggleSingle,
-              {
-                borderColor: c.border,
-                backgroundColor: filters.notStartedOnly ? c.brand : 'transparent',
+              styles.ratePill,
+              { borderColor: c.border },
+              filters.rateValue == null && {
+                backgroundColor: c.brand,
+                borderColor: c.brand,
               },
             ]}>
-            <MaterialCommunityIcons
-              name={filters.notStartedOnly ? 'check-circle' : 'circle-outline'}
-              size={14}
-              color={filters.notStartedOnly ? c.textInverse : c.textMuted}
-            />
             <ThemedText
               style={[
-                styles.pillText,
-                { color: filters.notStartedOnly ? c.textInverse : c.text },
+                styles.ratePillText,
+                {
+                  color:
+                    filters.rateValue == null ? c.textInverse : c.textMuted,
+                },
               ]}>
-              {t('rate.filters.notStartedOnly')}
+              Tümü
             </ThemedText>
           </Pressable>
-        </View>
-      </ScrollView>
+          {RATE_VALUES.map((value) => {
+            const active = filters.rateValue === value;
+            return (
+              <Pressable
+                key={value}
+                onPress={() => onChange({ ...filters, rateValue: value })}
+                style={[
+                  styles.ratePill,
+                  { borderColor: c.border },
+                  active && {
+                    backgroundColor: c.brand,
+                    borderColor: c.brand,
+                  },
+                ]}>
+                <ThemedText
+                  style={[
+                    styles.ratePillText,
+                    { color: active ? c.textInverse : c.text },
+                  ]}>
+                  {value.toFixed(2)}
+                </ThemedText>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   bar: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  row: {
     paddingHorizontal: 12,
     paddingVertical: 10,
-    gap: 16,
+    gap: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  group: {
-    gap: 4,
-  },
-  groupLabel: {
-    fontSize: 9,
-    fontWeight: '700',
-    letterSpacing: 0.4,
-    paddingLeft: 4,
-  },
-  pillGroup: {
+  segmented: {
     flexDirection: 'row',
+    borderRadius: 10,
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 999,
-    padding: 2,
+    padding: 3,
     gap: 2,
   },
-  pill: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 999,
+  segment: {
+    flex: 1,
+    paddingVertical: 7,
+    borderRadius: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  pillText: {
+  segmentText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
-  toggleSingle: {
+  rateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  boundToggle: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    gap: 4,
+  },
+  boundSymbol: {
+    fontSize: 14,
+    fontWeight: '800',
+    lineHeight: 14,
+  },
+  boundLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.6,
+  },
+  ratePillsContent: {
+    paddingRight: 4,
     gap: 6,
+    alignItems: 'center',
+  },
+  ratePill: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    minWidth: 56,
+    alignItems: 'center',
+  },
+  ratePillText: {
+    fontSize: 12,
+    fontWeight: '700',
+    fontVariant: ['tabular-nums'],
+    letterSpacing: 0.3,
   },
 });

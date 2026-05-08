@@ -15,6 +15,8 @@ export interface RateResult {
   sample_count: number;
   winning_percent: number | null;
   earning_percent: number | null;
+  confidence_score?: number | null;
+  iko?: number | null;
   rank_order: number;
   match_state: number | null;
   bet_winning?: boolean | null;

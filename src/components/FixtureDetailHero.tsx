@@ -108,19 +108,17 @@ export function FixtureDetailHero({
             </ThemedText>
           )}
 
-          {firstHalfPart ? (
-            <ThemedText style={[styles.halfScore, { color: c.textMuted }]}>
-              HT {firstHalfPart.home}-{firstHalfPart.away}
-            </ThemedText>
-          ) : null}
-
           {scored ? (
             <ThemedText
               style={[
                 styles.statusText,
                 { color: live ? c.live : c.textMuted },
               ]}>
-              {stateLabel}
+              {live && fixture.live_minute != null
+                ? `${fixture.live_minute}'`
+                : firstHalfPart
+                  ? `İY ${firstHalfPart.home}-${firstHalfPart.away}`
+                  : stateLabel}
             </ThemedText>
           ) : null}
         </View>

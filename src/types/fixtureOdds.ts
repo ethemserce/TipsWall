@@ -10,6 +10,7 @@ export interface FixtureOddOutcome {
   sample_count: number;
   winning_percent: number | null;
   earning_percent: number | null;
+  winning?: boolean | null;
 }
 
 export interface FixtureOddsMarket {

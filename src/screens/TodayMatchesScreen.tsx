@@ -1,8 +1,11 @@
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  Pressable,
   RefreshControl,
   StyleSheet,
   View,
@@ -36,10 +39,24 @@ export function TodayMatchesScreen() {
   const [filter, setFilter] = useState<FixtureFilter>('all');
   const isoDate = format(selectedDate, 'yyyy-MM-dd');
 
+  const queryClient = useQueryClient();
   const { data, isLoading, isFetching, isError, error, refetch } = useFixtures(
     { date: isoDate, perPage: 200 },
-    { refetchIntervalMs: filter === 'live' ? LIVE_REFETCH_MS : undefined },
   );
+  const hasLive = useMemo(
+    () => (data?.items ?? []).some((f) => getStateBucket(f.state_id) === 'live'),
+    [data?.items],
+  );
+  // Poll while any match is in-play so the live minute ticks up even if
+  // SignalR is unavailable (e.g. on the web build where browser CORS can
+  // block the negotiate).
+  useEffect(() => {
+    if (!hasLive) return undefined;
+    const id = setInterval(() => {
+      queryClient.invalidateQueries({ queryKey: ['fixtures'] });
+    }, LIVE_REFETCH_MS);
+    return () => clearInterval(id);
+  }, [hasLive, queryClient]);
 
   // SignalR live-ticker keeps the home list fresh without polling: any
   // fixture upsert in the worker's Live tier marks ['fixtures'] stale,
@@ -106,6 +123,41 @@ export function TodayMatchesScreen() {
     });
   }, [sections, leagueLookup]);
 
+  // Collapsed state per league. Persisted only in component state — fresh
+  // on every screen mount so a busy day starts expanded.
+  const [collapsed, setCollapsed] = useState<Set<number>>(() => new Set());
+  const toggleLeague = useCallback((leagueId: number) => {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(leagueId)) next.delete(leagueId);
+      else next.add(leagueId);
+      return next;
+    });
+  }, []);
+  const allCollapsed =
+    sortedSections.length > 0 &&
+    sortedSections.every((s) => collapsed.has(s.leagueId));
+  const toggleAll = useCallback(() => {
+    setCollapsed((prev) => {
+      if (sortedSections.every((s) => prev.has(s.leagueId))) {
+        return new Set();
+      }
+      return new Set(sortedSections.map((s) => s.leagueId));
+    });
+  }, [sortedSections]);
+
+  // Section headers can show a "live" pip when at least one fixture is in
+  // play. Pre-compute so the renderer doesn't re-scan per row.
+  const sectionLiveSet = useMemo(() => {
+    const out = new Set<number>();
+    for (const s of sortedSections) {
+      if (s.data.some((f) => getStateBucket(f.state_id) === 'live')) {
+        out.add(s.leagueId);
+      }
+    }
+    return out;
+  }, [sortedSections]);
+
   return (
     <SafeAreaView style={[styles.flex, { backgroundColor: c.bg }]} edges={['top']}>
       <View style={styles.headerRow}>
@@ -116,17 +168,51 @@ export function TodayMatchesScreen() {
 
       <StateFilterBar selected={filter} onSelect={setFilter} counts={counts} />
 
+      {sortedSections.length > 0 ? (
+        <View style={styles.metaRow}>
+          <ThemedText style={[styles.metaText, { color: c.textMuted }]}>
+            {sortedSections.length} lig · {filtered.length} maç
+          </ThemedText>
+          <Pressable
+            onPress={toggleAll}
+            hitSlop={6}
+            style={({ pressed }) => [
+              styles.toggleAllBtn,
+              {
+                backgroundColor: pressed ? c.brandSoft : 'transparent',
+                borderColor: c.borderSoft,
+              },
+            ]}>
+            <MaterialCommunityIcons
+              name={allCollapsed ? 'unfold-more-horizontal' : 'unfold-less-horizontal'}
+              size={14}
+              color={c.brand}
+            />
+            <ThemedText style={[styles.toggleAllText, { color: c.brand }]}>
+              {allCollapsed ? 'Hepsini aç' : 'Hepsini kapat'}
+            </ThemedText>
+          </Pressable>
+        </View>
+      ) : null}
+
       {isLoading ? (
         <View style={styles.center}>
           <ActivityIndicator color={c.brand} />
         </View>
       ) : isError ? (
         <View style={styles.center}>
+          <View style={[styles.errorIconCircle, { backgroundColor: c.dangerSoft }]}>
+            <MaterialCommunityIcons
+              name="alert-circle-outline"
+              size={28}
+              color={c.danger}
+            />
+          </View>
           <ThemedText style={[styles.errorTitle, { color: c.text }]}>
-            Couldn&apos;t load fixtures
+            Maçlar yüklenemedi
           </ThemedText>
           <ThemedText style={[styles.errorMessage, { color: c.textMuted }]}>
-            {error instanceof Error ? error.message : 'Unknown error'}
+            {error instanceof Error ? error.message : 'Bilinmeyen hata'}
           </ThemedText>
         </View>
       ) : (
@@ -139,21 +225,41 @@ export function TodayMatchesScreen() {
               league?.country_id != null
                 ? countryLookup.get(league.country_id)
                 : undefined;
+            const isCollapsed = collapsed.has(item.leagueId);
             return (
               <View
                 style={[
                   styles.sectionCard,
-                  { backgroundColor: c.surface, borderColor: c.border },
+                  c.shadowCard,
+                  {
+                    backgroundColor: c.surfaceElevated,
+                    borderColor: c.borderSoft,
+                  },
                 ]}>
                 <LeagueHeader
                   leagueId={item.leagueId}
                   league={league}
                   country={country}
                   fixtureCount={item.data.length}
+                  collapsed={isCollapsed}
+                  hasLive={sectionLiveSet.has(item.leagueId)}
+                  onToggle={() => toggleLeague(item.leagueId)}
                 />
-                {item.data.map((fixture) => (
-                  <FixtureCard key={fixture.id} fixture={fixture} />
-                ))}
+                {!isCollapsed
+                  ? item.data.map((fixture, idx) => (
+                      <View key={fixture.id}>
+                        {idx > 0 ? (
+                          <View
+                            style={[
+                              styles.fixtureSeparator,
+                              { backgroundColor: c.borderSoft },
+                            ]}
+                          />
+                        ) : null}
+                        <FixtureCard fixture={fixture} />
+                      </View>
+                    ))
+                  : null}
               </View>
             );
           }}
@@ -167,8 +273,20 @@ export function TodayMatchesScreen() {
           }
           ListEmptyComponent={
             <View style={styles.center}>
-              <ThemedText style={{ color: c.textMuted }}>
-                No fixtures match this filter.
+              <View
+                style={[styles.errorIconCircle, { backgroundColor: c.brandSoft }]}>
+                <MaterialCommunityIcons
+                  name="calendar-blank-outline"
+                  size={28}
+                  color={c.brand}
+                />
+              </View>
+              <ThemedText style={[styles.errorTitle, { color: c.text }]}>
+                Bu filtreye uygun maç yok
+              </ThemedText>
+              <ThemedText
+                style={[styles.errorMessage, { color: c.textMuted }]}>
+                Farklı bir tarih veya filtre deneyebilirsin.
               </ThemedText>
             </View>
           }
@@ -187,29 +305,72 @@ const styles = StyleSheet.create({
   },
   list: {
     paddingHorizontal: 12,
-    paddingTop: 8,
+    paddingTop: 4,
     paddingBottom: 32,
     gap: 12,
     flexGrow: 1,
   },
   sectionCard: {
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: 'hidden',
+  },
+  // Indented hairline between consecutive matches in a section. The 64px
+  // left inset clears the time column so the line starts under the team
+  // names — feels like a gentle row separator rather than a hard divider.
+  fixtureSeparator: {
+    height: StyleSheet.hairlineWidth,
+    marginLeft: 64,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 6,
+  },
+  metaText: {
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+  },
+  toggleAllBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  toggleAllText: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
   center: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 32,
-    gap: 8,
+    gap: 10,
+  },
+  errorIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
   },
   errorTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   errorMessage: {
     fontSize: 13,
     textAlign: 'center',
+    fontWeight: '500',
   },
 });

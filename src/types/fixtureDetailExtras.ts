@@ -12,6 +12,7 @@ export interface FixtureEvent {
   related_player_name: string | null;
   result: string | null;
   info: string | null;
+  injured?: boolean | null;
 }
 
 export interface FixtureStatistic {

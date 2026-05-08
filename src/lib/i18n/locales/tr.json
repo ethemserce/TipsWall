@@ -16,6 +16,8 @@
   },
   "tabs": {
     "home": "Anasayfa",
+    "analysis": "Analiz",
+    "coupons": "Kuponlarım",
     "winning": "Kazanma",
     "hot": "Sıcak",
     "earning": "Kâr"
@@ -32,7 +34,8 @@
       "odds": "Oranlar",
       "stats": "İstatistikler",
       "lineups": "Kadrolar",
-      "h2h": "Karşılaşmalar"
+      "h2h": "Karşılaşmalar",
+      "standings": "Puan Durumu"
     },
     "events": {
       "firstHalf": "1. Yarı",
@@ -79,6 +82,11 @@
     },
     "odds": {
       "noOdds": "Bu maç için henüz oran yok."
+    },
+    "standings": {
+      "team": "Takım",
+      "notAvailable": "Bu lig için puan durumu mevcut değil.",
+      "legend": "O: Oynanan · G: Galibiyet · B: Beraberlik · M: Mağlubiyet · AV: Averaj · P: Puan"
     }
   },
   "rate": {

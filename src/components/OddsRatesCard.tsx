@@ -1,8 +1,12 @@
 import { useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { CircularGauge } from '@/src/components/CircularGauge';
+import { MarketInfoButton } from '@/src/components/MarketInfoButton';
+import { toggleSelection, useCouponStore } from '@/src/lib/coupons/store';
+import { outcomeLiveStatus, type LiveScore } from '@/src/lib/liveOutcome';
+import { marketShort, shortenOutcome } from '@/src/lib/marketShort';
 import { useTheme } from '@/src/lib/useTheme';
 import type {
   FixtureOddOutcome,
@@ -11,7 +15,23 @@ import type {
 
 interface OddsRatesCardProps {
   market: FixtureOddsMarket;
+  // Coupon context — required so a tap on the odd cell can stash the right
+  // fixture metadata into the basket. The detail screen passes these from
+  // the loaded fixture.
+  fixtureId: number;
+  fixtureName: string;
+  startingAt: string | null;
+  bookmakerId: number;
+  // Once the fixture has any score (live or final), each outcome is
+  // coloured based on whether it would currently settle as a winner.
+  // Null while the match hasn't kicked off.
+  liveScore?: LiveScore | null;
 }
+
+// Softened win/loss tones — easier on the eye than the saturated 500-series
+// greens/reds we were using before.
+const WIN_COLOR = '#4ade80';
+const LOSS_COLOR = '#f87171';
 
 interface DerivedRow {
   outcome: FixtureOddOutcome;
@@ -22,8 +42,46 @@ const VBET_COLOR = '#f59e0b'; // amber
 const DSO_COLOR = '#22c55e'; // green
 const IKO_COLOR = '#3b82f6'; // blue
 
-export function OddsRatesCard({ market }: OddsRatesCardProps) {
+export function OddsRatesCard({
+  market,
+  fixtureId,
+  fixtureName,
+  startingAt,
+  bookmakerId,
+  liveScore,
+}: OddsRatesCardProps) {
   const c = useTheme();
+
+  // Track which outcomes from this market are already in the draft so the
+  // odd cell can render a "selected" state.
+  const draftSelections = useCouponStore((s) => s.draft.selections);
+  const draftKeys = useMemo(() => {
+    return new Set(
+      draftSelections.map((sel) =>
+        [
+          sel.fixtureId,
+          sel.marketId,
+          sel.outcomeLabel.toLowerCase(),
+          sel.total ?? '-',
+          sel.handicap ?? '-',
+          sel.oddValue.toFixed(4),
+        ].join('|'),
+      ),
+    );
+  }, [draftSelections]);
+
+  // True if any selection on this fixture is already in the draft. With the
+  // one-pick-per-fixture rule, that locks out every other outcome on this
+  // fixture until the existing pick is removed.
+  const fixtureTaken = useMemo(
+    () => draftSelections.some((s) => s.fixtureId === fixtureId),
+    [draftSelections, fixtureId],
+  );
+
+  // Coupon picks are only allowed for not-yet-started matches.
+  // liveScore is set by the parent only when match is live OR finished, so
+  // its presence equals "match is no longer upcoming".
+  const couponLocked = liveScore != null;
 
   const rows = useMemo<DerivedRow[]>(() => {
     const totalImplied = market.outcomes.reduce((acc, o) => {
@@ -47,12 +105,26 @@ export function OddsRatesCard({ market }: OddsRatesCardProps) {
         styles.card,
         { backgroundColor: c.surface, borderColor: c.border },
       ]}>
-      <ThemedText style={[styles.title, { color: c.textMuted }]}>
-        {(market.market_name ?? `MARKET #${market.market_id}`).toUpperCase()}
-      </ThemedText>
+      <View style={styles.titleRow}>
+        <ThemedText
+          style={[styles.title, { color: c.textMuted }]}
+          numberOfLines={1}>
+          {(market.market_name ?? `MARKET #${market.market_id}`).toUpperCase()}
+        </ThemedText>
+        <MarketInfoButton
+          marketId={market.market_id}
+          fallbackName={market.market_name}
+        />
+      </View>
 
       <View style={[styles.headerRow, { borderTopColor: c.border }]}>
-        <ThemedText style={[styles.headerCell, styles.cellLabel, { color: c.textMuted }]}>
+        <ThemedText
+          style={[
+            styles.headerCell,
+            styles.cellLabel,
+            styles.headerLabelLeft,
+            { color: c.textMuted },
+          ]}>
           TİP
         </ThemedText>
         <ThemedText style={[styles.headerCell, styles.cellNumber, { color: c.textMuted }]}>
@@ -78,19 +150,123 @@ export function OddsRatesCard({ market }: OddsRatesCardProps) {
       {rows.map(({ outcome, iko }) => {
         const sample = outcome.win_count + outcome.lost_count;
         const hasSample = sample > 0;
+        // Value bet = DSO > İKO, i.e. historical hit rate beats the
+        // bookmaker's no-vig probability. Only meaningful with sample data.
+        const isValueBet =
+          hasSample &&
+          outcome.winning_percent != null &&
+          iko != null &&
+          outcome.winning_percent > iko;
+        // Colours only apply once the match is in-play or finished — gated by
+        // the presence of liveScore. For upcoming fixtures stale `winning`
+        // flags from prematch_odds_current are ignored.
+        const live = liveScore
+          ? outcomeLiveStatus(
+              { market_id: market.market_id, label: outcome.label, total: outcome.total, handicap: outcome.handicap },
+              liveScore,
+            )
+          : null;
+        const settled =
+          liveScore && outcome.winning === true
+            ? 'win'
+            : liveScore && outcome.winning === false
+              ? 'loss'
+              : null;
+        const status = live ?? settled;
+        const liveColor =
+          status === 'win' ? WIN_COLOR : status === 'loss' ? LOSS_COLOR : null;
+        // Coupon membership for this row → odd cell becomes a toggle.
+        const oddKey =
+          outcome.value != null
+            ? [
+                fixtureId,
+                market.market_id,
+                outcome.label.toLowerCase(),
+                outcome.total ?? '-',
+                outcome.handicap ?? '-',
+                outcome.value.toFixed(4),
+              ].join('|')
+            : null;
+        const inCoupon = oddKey != null && draftKeys.has(oddKey);
+        // One pick per fixture — any other outcome here is blocked while a
+        // selection from this fixture is in the draft. Removing the existing
+        // selection re-opens all of them.
+        const tapDisabled = couponLocked || (fixtureTaken && !inCoupon);
+        const handleAddToCoupon = () => {
+          if (outcome.value == null) return;
+          if (tapDisabled) return;
+          const rawLabel = outcome.label || '';
+          toggleSelection({
+            fixtureId,
+            fixtureName,
+            startingAt,
+            bookmakerId,
+            marketId: market.market_id,
+            marketShort: marketShort(market.market_id, market.market_name),
+            outcomeLabel: rawLabel,
+            outcomeDisplay: shortenOutcome(rawLabel, market.market_id),
+            total: outcome.total,
+            handicap: outcome.handicap,
+            oddValue: outcome.value,
+            dso: outcome.winning_percent,
+            vbet: outcome.earning_percent,
+            iko,
+            sampleCount: hasSample ? sample : null,
+          });
+        };
+
         return (
           <View
             key={`${outcome.label}-${outcome.total ?? ''}-${outcome.handicap ?? ''}-${outcome.value ?? ''}`}
-            style={[styles.row, { borderTopColor: c.border }]}>
-            <ThemedText
-              style={[styles.cell, styles.cellLabel, { color: c.text }]}
-              numberOfLines={1}>
-              {formatLabel(outcome)}
-            </ThemedText>
-            <ThemedText
-              style={[styles.cell, styles.cellNumber, styles.numberValue, { color: c.text }]}>
-              {formatOdd(outcome.value)}
-            </ThemedText>
+            style={[
+              styles.row,
+              { borderTopColor: c.border },
+              // Value-bet rows get a left accent bar, faint brand tint, and
+              // a 2px brand bottom border — three signals together so the eye
+              // catches them while scanning the card.
+              isValueBet && {
+                backgroundColor: 'rgba(58, 143, 111, 0.10)',
+                borderBottomWidth: 2,
+                borderBottomColor: c.brand,
+              },
+            ]}>
+            {isValueBet ? (
+              <View style={[styles.valueAccent, { backgroundColor: c.brand }]} />
+            ) : null}
+            <View style={styles.cellLabel}>
+              <ThemedText
+                style={[
+                  styles.cell,
+                  { color: isValueBet ? c.brand : c.text, fontWeight: isValueBet ? '700' : '500' },
+                ]}
+                numberOfLines={1}>
+                {isValueBet ? '★ ' : ''}
+                {formatLabel(outcome)}
+              </ThemedText>
+            </View>
+            <Pressable
+              onPress={handleAddToCoupon}
+              disabled={tapDisabled && !inCoupon}
+              style={[
+                styles.cellNumber,
+                styles.oddCell,
+                inCoupon
+                  ? { backgroundColor: c.brand, borderColor: c.brand }
+                  : { borderColor: c.border },
+                tapDisabled && !inCoupon && { opacity: 0.4 },
+              ]}>
+              <ThemedText
+                style={[
+                  styles.cell,
+                  styles.numberValue,
+                  {
+                    color: inCoupon ? c.textInverse : liveColor ?? c.text,
+                    fontWeight: inCoupon || liveColor ? '700' : '600',
+                  },
+                ]}>
+                {formatOdd(outcome.value)}
+              </ThemedText>
+            </Pressable>
             <View style={styles.cellGauge}>
               <CircularGauge
                 value={hasSample ? outcome.earning_percent : null}
@@ -126,6 +302,7 @@ function formatLabel(o: FixtureOddOutcome): string {
   return suffix ? `${o.label} ${suffix}` : o.label;
 }
 
+
 function formatOdd(value: number | null | undefined): string {
   if (value == null) return '-';
   return value.toFixed(2);
@@ -139,13 +316,19 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingTop: 8,
+    paddingBottom: 6,
+  },
   title: {
+    flexShrink: 1,
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 0.5,
-    paddingHorizontal: 14,
-    paddingTop: 12,
-    paddingBottom: 8,
   },
   headerRow: {
     flexDirection: 'row',
@@ -159,6 +342,9 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.4,
     textAlign: 'center',
+  },
+  headerLabelLeft: {
+    textAlign: 'left',
   },
   row: {
     flexDirection: 'row',
@@ -179,6 +365,21 @@ const styles = StyleSheet.create({
   cellNumber: {
     flex: 0.7,
     textAlign: 'center',
+  },
+  oddCell: {
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: StyleSheet.hairlineWidth,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 2,
+  },
+  valueAccent: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 4,
   },
   cellGauge: {
     flex: 1,

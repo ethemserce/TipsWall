@@ -4,7 +4,7 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/src/lib/useTheme';
 
-export type DetailTab = 'details' | 'odds' | 'stats' | 'lineups' | 'h2h';
+export type DetailTab = 'details' | 'odds' | 'stats' | 'lineups' | 'h2h' | 'standings';
 
 interface DetailTabBarProps {
   selected: DetailTab;
@@ -17,6 +17,7 @@ const ORDER: { key: DetailTab; i18nKey: string }[] = [
   { key: 'stats', i18nKey: 'fixture.tabs.stats' },
   { key: 'lineups', i18nKey: 'fixture.tabs.lineups' },
   { key: 'h2h', i18nKey: 'fixture.tabs.h2h' },
+  { key: 'standings', i18nKey: 'fixture.tabs.standings' },
 ];
 
 export function DetailTabBar({ selected, onSelect }: DetailTabBarProps) {

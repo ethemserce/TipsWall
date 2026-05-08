@@ -26,4 +26,11 @@ export interface FixtureSummary {
   away_team_short_code?: string | null;
   away_team_image_path?: string | null;
   away_score?: number | null;
+
+  live_minute?: number | null;
+
+  home_red_cards?: number | null;
+  away_red_cards?: number | null;
+  home_var_active?: boolean | null;
+  away_var_active?: boolean | null;
 }

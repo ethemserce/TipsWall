@@ -40,11 +40,8 @@ export function H2HTab({
         styles.card,
         { backgroundColor: c.surface, borderColor: c.border },
       ]}>
-      <ThemedText style={[styles.title, { color: c.textMuted }]}>
-        {t('fixture.h2h.title', { count: fixtures.length }).toUpperCase()}
-      </ThemedText>
       {summary ? (
-        <View style={[styles.summaryRow, { borderTopColor: c.border }]}>
+        <View style={styles.summaryRow}>
           <SummaryCell
             label={t('fixture.h2h.homeWins')}
             value={summary.homeWins}
@@ -203,19 +200,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
   },
-  title: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-    paddingHorizontal: 14,
-    paddingTop: 12,
-    paddingBottom: 6,
-  },
   summaryRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 12,
-    borderTopWidth: StyleSheet.hairlineWidth,
   },
   summaryCell: {
     flex: 1,

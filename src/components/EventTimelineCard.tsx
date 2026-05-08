@@ -1,9 +1,15 @@
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/src/lib/useTheme';
 import type { FixtureEvent } from '@/src/types/fixtureDetailExtras';
+
+const SUB_IN_COLOR = '#22c55e';
+const SUB_OUT_COLOR = '#ef4444';
+const INJURY_IN_COLOR = '#3b82f6';
+const INJURY_OUT_COLOR = '#ef4444';
 
 interface EventTimelineCardProps {
   events: FixtureEvent[];
@@ -81,46 +87,128 @@ function EventRow({ event }: { event: FixtureEvent }) {
   const c = useTheme();
   const isHome = event.participant_location === 'home';
   const minuteLabel = formatMinute(event);
-  const icon = iconFor(event.type_code);
+  const code = (event.type_code ?? '').toUpperCase();
+  const isSubstitution = code === 'SUBSTITUTION';
+  const icon = isSubstitution ? null : iconFor(event.type_code);
   const title = primaryLabel(event);
   const subtitle = secondaryLabel(event);
 
+  // Substitutions render as "{in} {out}" inline with a swap-icon in
+  // between (matching the legacy fixture-card style). Other events keep
+  // their text-block layout with the type icon flush to the touchline.
+  const renderSide = () => {
+    if (isSubstitution) {
+      return (
+        <SubstitutionRow
+          incoming={event.player_name}
+          outgoing={event.related_player_name}
+          injured={event.injured === true}
+          align={isHome ? 'right' : 'left'}
+          textColor={c.text}
+          mutedColor={c.textMuted}
+        />
+      );
+    }
+    const block = (
+      <View style={isHome ? styles.textBlockHome : styles.textBlockAway}>
+        <ThemedText
+          style={[styles.player, { color: c.text }]}
+          numberOfLines={1}>
+          {title}
+        </ThemedText>
+        {subtitle ? (
+          <ThemedText
+            style={[styles.subtitle, { color: c.textMuted }]}
+            numberOfLines={1}>
+            {subtitle}
+          </ThemedText>
+        ) : null}
+      </View>
+    );
+    return isHome ? (
+      <View style={styles.homeContent}>
+        <ThemedText style={styles.icon}>{icon}</ThemedText>
+        {block}
+      </View>
+    ) : (
+      <View style={styles.awayContent}>
+        {block}
+        <ThemedText style={styles.icon}>{icon}</ThemedText>
+      </View>
+    );
+  };
+
   return (
     <View style={[styles.row, { borderTopColor: c.border }]}>
+      <View style={styles.homeColumn}>{isHome ? renderSide() : null}</View>
       <ThemedText style={[styles.minute, { color: c.textMuted }]}>
         {minuteLabel}
       </ThemedText>
-      {isHome ? (
-        <View style={styles.sideHome}>
-          <View style={styles.textBlockHome}>
-            <ThemedText style={[styles.player, { color: c.text }]} numberOfLines={1}>
-              {title}
-            </ThemedText>
-            {subtitle ? (
-              <ThemedText style={[styles.subtitle, { color: c.textMuted }]} numberOfLines={1}>
-                {subtitle}
-              </ThemedText>
-            ) : null}
-          </View>
-          <ThemedText style={styles.icon}>{icon}</ThemedText>
-        </View>
-      ) : (
-        <View style={styles.sideAway}>
-          <ThemedText style={styles.icon}>{icon}</ThemedText>
-          <View style={styles.textBlockAway}>
-            <ThemedText style={[styles.player, { color: c.text }]} numberOfLines={1}>
-              {title}
-            </ThemedText>
-            {subtitle ? (
-              <ThemedText style={[styles.subtitle, { color: c.textMuted }]} numberOfLines={1}>
-                {subtitle}
-              </ThemedText>
-            ) : null}
-          </View>
-        </View>
-      )}
+      <View style={styles.awayColumn}>{!isHome ? renderSide() : null}</View>
     </View>
   );
+}
+
+function SubstitutionRow({
+  incoming,
+  outgoing,
+  injured,
+  align,
+  textColor,
+  mutedColor,
+}: {
+  incoming: string | null;
+  outgoing: string | null;
+  injured: boolean;
+  align: 'left' | 'right';
+  textColor: string;
+  mutedColor: string;
+}) {
+  // The SportMonks payload puts the player coming ON in player_name and the
+  // outgoing one in related_player_name. Render them inline with a small
+  // paired-arrow swap icon between, coloured differently for injuries so
+  // the eye picks them out without needing a label.
+  const inColor = injured ? INJURY_IN_COLOR : SUB_IN_COLOR;
+  const outColor = injured ? INJURY_OUT_COLOR : SUB_OUT_COLOR;
+  const inText = (
+    <ThemedText style={[styles.subInText, { color: textColor }]} numberOfLines={1}>
+      {abbreviateName(incoming)}
+    </ThemedText>
+  );
+  const outText = (
+    <ThemedText style={[styles.subOutText, { color: mutedColor }]} numberOfLines={1}>
+      {abbreviateName(outgoing)}
+    </ThemedText>
+  );
+  const swap = (
+    <View style={styles.swapIcon}>
+      <MaterialCommunityIcons name="arrow-up-bold" size={11} color={inColor} />
+      <MaterialCommunityIcons
+        name="arrow-down-bold"
+        size={11}
+        color={outColor}
+        style={styles.swapDown}
+      />
+    </View>
+  );
+
+  return (
+    <View style={align === 'right' ? styles.subRowRight : styles.subRowLeft}>
+      {inText}
+      {outText}
+      {swap}
+    </View>
+  );
+}
+
+function abbreviateName(name: string | null | undefined): string {
+  if (!name) return '—';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0];
+  // "Andreas Cornelius" → "A. Cornelius"
+  const first = parts[0];
+  const last = parts[parts.length - 1];
+  return `${first.charAt(0).toUpperCase()}. ${last}`;
 }
 
 function isUserFacing(e: FixtureEvent): boolean {
@@ -171,20 +259,29 @@ function iconFor(code: string | null | undefined): string {
 }
 
 function primaryLabel(e: FixtureEvent): string {
-  if (e.type_code?.toUpperCase() === 'SUBSTITUTION') {
-    return e.related_player_name ?? e.player_name ?? '—';
+  // SportMonks substitution payload: player_name = player coming ON,
+  // related_player_name = player coming OFF. Show the new player as the
+  // primary line and the outgoing player below.
+  const code = (e.type_code ?? '').toUpperCase();
+  if (code === 'SUBSTITUTION') {
+    return e.player_name ?? e.related_player_name ?? '—';
   }
-  return e.player_name ?? e.type_name ?? '—';
+  // Goals: keep the running score on the same line as the scorer so we
+  // don't burn a second row just to show "0-1".
+  const name = e.player_name ?? e.type_name ?? '—';
+  if ((code === 'GOAL' || code === 'OWNGOAL' || code === 'PENALTY') && e.result) {
+    return `${name} ${e.result}`;
+  }
+  return name;
 }
 
 function secondaryLabel(e: FixtureEvent): string | null {
   const code = (e.type_code ?? '').toUpperCase();
-  if (code === 'SUBSTITUTION' && e.player_name) {
-    return `for ${e.player_name}`;
+  if (code === 'SUBSTITUTION' && e.related_player_name) {
+    return `↓ ${e.related_player_name}`;
   }
-  if (code === 'GOAL' || code === 'OWNGOAL' || code === 'PENALTY') {
-    return e.result ?? null;
-  }
+  // Goal score is now inline with the name (see primaryLabel).
+  if (code === 'GOAL' || code === 'OWNGOAL' || code === 'PENALTY') return null;
   return e.info ?? null;
 }
 
@@ -218,32 +315,38 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
   },
   minute: {
-    width: 40,
+    width: 44,
     fontSize: 12,
     fontWeight: '600',
     fontVariant: ['tabular-nums'],
     textAlign: 'center',
   },
-  sideHome: {
+  homeColumn: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: 8,
+    alignItems: 'flex-start',
   },
-  sideAway: {
+  awayColumn: {
     flex: 1,
+    alignItems: 'flex-end',
+  },
+  homeContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-start',
     gap: 8,
+    maxWidth: '100%',
+  },
+  awayContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    maxWidth: '100%',
   },
   textBlockHome: {
-    alignItems: 'flex-end',
+    alignItems: 'flex-start',
     flexShrink: 1,
   },
   textBlockAway: {
-    alignItems: 'flex-start',
+    alignItems: 'flex-end',
     flexShrink: 1,
   },
   player: {
@@ -256,5 +359,37 @@ const styles = StyleSheet.create({
   },
   icon: {
     fontSize: 14,
+  },
+  subRowLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexShrink: 1,
+  },
+  subRowRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexShrink: 1,
+    justifyContent: 'flex-end',
+  },
+  subInText: {
+    fontSize: 13,
+    fontWeight: '600',
+    flexShrink: 1,
+  },
+  subOutText: {
+    fontSize: 13,
+    fontWeight: '500',
+    flexShrink: 1,
+  },
+  swapIcon: {
+    width: 18,
+    height: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  swapDown: {
+    marginLeft: -4,
   },
 });

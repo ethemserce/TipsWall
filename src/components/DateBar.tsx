@@ -90,10 +90,6 @@ function CalendarModal({
           <View style={[styles.handleBar, { backgroundColor: c.border }]} />
         </View>
 
-        <Pressable onPress={onClose} style={styles.closeBtn}>
-          <MaterialCommunityIcons name="close" size={22} color={c.text} />
-        </Pressable>
-
         <View style={styles.monthRow}>
           <Pressable
             onPress={() =>

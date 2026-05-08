@@ -11,10 +11,11 @@ export function useFixtureOddsRates(params: FixtureOddsRatesParams) {
       'fixture-odds-rates',
       params.fixtureId,
       params.bookmakerId,
-      params.marketIds.join(','),
+      params.marketIds.join(',') || 'all-calc',
       params.window ?? 'all',
     ],
     queryFn: () => getFixtureOddsRates(params),
-    enabled: params.fixtureId > 0 && params.bookmakerId > 0 && params.marketIds.length > 0,
+    // marketIds may be empty — the API then returns every has_winning_calculations market.
+    enabled: params.fixtureId > 0 && params.bookmakerId > 0,
   });
 }

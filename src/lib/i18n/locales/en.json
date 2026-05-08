@@ -16,6 +16,8 @@
   },
   "tabs": {
     "home": "Home",
+    "analysis": "Analysis",
+    "coupons": "Coupons",
     "winning": "Winning",
     "hot": "Hot",
     "earning": "Earning"
@@ -32,7 +34,8 @@
       "odds": "Odds",
       "stats": "Stats",
       "lineups": "Lineups",
-      "h2h": "H2H"
+      "h2h": "H2H",
+      "standings": "Standings"
     },
     "events": {
       "firstHalf": "1st Half",
@@ -79,6 +82,11 @@
     },
     "odds": {
       "noOdds": "No odds available for this match yet."
+    },
+    "standings": {
+      "team": "Team",
+      "notAvailable": "League table not available for this competition.",
+      "legend": "P: Played · W: Won · D: Drawn · L: Lost · GD: Goal diff · Pts: Points"
     }
   },
   "rate": {

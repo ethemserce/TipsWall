@@ -26,9 +26,17 @@ export function useLiveTicker(enabled = true) {
 
     const handler = (envelope: FixtureUpdatedPayload) => {
       if (!envelope) return;
-      // Refresh anything keyed by 'fixtures' (list endpoints) — the per-id
-      // detail caches are handled separately by useLiveFixture.
+      // Refresh anything keyed by 'fixtures' (list endpoints).
       queryClient.invalidateQueries({ queryKey: ['fixtures'] });
+      // Also nudge the per-fixture detail cache so any list view that reads
+      // fixture-level state (live score / kickoff state) — e.g. CouponsScreen
+      // — picks up the change. Invalidate is cheap when the query isn't
+      // mounted; React Query only refetches active observers.
+      if (envelope.fixture_id) {
+        queryClient.invalidateQueries({
+          queryKey: ['fixture', envelope.fixture_id],
+        });
+      }
     };
 
     (async () => {

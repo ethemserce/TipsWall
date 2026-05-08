@@ -8,6 +8,7 @@ export interface RateQueryParams {
   window?: string;
   matchState?: number;
   minRate?: number;
+  maxRate?: number;
   minWinningPercent?: number;
   minEarningPercent?: number;
   minSampleCount?: number;
@@ -28,6 +29,7 @@ function paramsToQuery(p: RateQueryParams) {
     window: p.window,
     match_state: p.matchState,
     min_rate: p.minRate,
+    max_rate: p.maxRate,
     min_winning_percent: p.minWinningPercent,
     min_earning_percent: p.minEarningPercent,
     min_sample_count: p.minSampleCount,

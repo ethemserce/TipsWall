@@ -53,7 +53,7 @@ export function MatchInfoCard({ fixture, league, country }: MatchInfoCardProps) 
 
   if (rows.length === 0) return null;
 
-  return <InfoCard title={t('fixture.info.title')} rows={rows} />;
+  return <InfoCard rows={rows} />;
 }
 
 function humanize(value: string): string {
@@ -61,11 +61,10 @@ function humanize(value: string): string {
 }
 
 interface InfoCardProps {
-  title: string;
   rows: { label: string; value: string }[];
 }
 
-function InfoCard({ title, rows }: InfoCardProps) {
+function InfoCard({ rows }: InfoCardProps) {
   const c = useTheme();
   return (
     <View
@@ -73,9 +72,6 @@ function InfoCard({ title, rows }: InfoCardProps) {
         styles.card,
         { backgroundColor: c.surface, borderColor: c.border },
       ]}>
-      <ThemedText style={[styles.title, { color: c.textMuted }]}>
-        {title.toUpperCase()}
-      </ThemedText>
       {rows.map((r, i) => (
         <View
           key={r.label}
@@ -104,14 +100,6 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 12,
     overflow: 'hidden',
-  },
-  title: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-    paddingHorizontal: 14,
-    paddingTop: 12,
-    paddingBottom: 6,
   },
   row: {
     flexDirection: 'row',

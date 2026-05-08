@@ -13,9 +13,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { AppBrand } from '@/src/components/AppBrand';
 import { DateBar } from '@/src/components/DateBar';
+import { MarketLegendButton } from '@/src/components/MarketLegendButton';
 import { RateFilterBar, type RateFilters } from '@/src/components/RateFilterBar';
 import { RateMatchCard } from '@/src/components/RateMatchCard';
-import { RateSummaryCard } from '@/src/components/RateSummaryCard';
 import { useFixtureLookup } from '@/src/hooks/useFixtureLookup';
 import { useMarkets } from '@/src/hooks/useMarkets';
 import { useRate, type RateKind } from '@/src/hooks/useRates';
@@ -24,12 +24,13 @@ import type { RateResult } from '@/src/types/rateResult';
 
 interface RateScreenProps {
   kind: RateKind;
+  // Title is kept on the prop for the error message but no longer rendered
+  // as a header — the bottom-tab label already names the screen.
   title: string;
   primaryMetric: 'winning_percent' | 'earning_percent';
 }
 
 const BOOKMAKER_ID = 2;
-const NOT_STARTED_STATE_ID = 1;
 const DSO_COLOR = '#22c55e';
 const VBET_COLOR = '#f59e0b';
 
@@ -44,16 +45,22 @@ export function RateScreen({ kind, title, primaryMetric }: RateScreenProps) {
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [filters, setFilters] = useState<RateFilters>({
     window: 'all',
-    minRate: null,
-    notStartedOnly: false,
+    rateValue: null,
+    rateBound: 'min',
   });
 
   const { data, isLoading, isFetching, isError, error, refetch } = useRate(kind, {
     bookmakerId: BOOKMAKER_ID,
     fixtureDate: format(selectedDate, 'yyyy-MM-dd'),
     window: filters.window,
-    minRate: filters.minRate ?? undefined,
-    matchState: filters.notStartedOnly ? NOT_STARTED_STATE_ID : undefined,
+    minRate:
+      filters.rateValue != null && filters.rateBound === 'min'
+        ? filters.rateValue
+        : undefined,
+    maxRate:
+      filters.rateValue != null && filters.rateBound === 'max'
+        ? filters.rateValue
+        : undefined,
     perPage: 100,
   });
 
@@ -94,9 +101,9 @@ export function RateScreen({ kind, title, primaryMetric }: RateScreenProps) {
     <SafeAreaView style={[styles.flex, { backgroundColor: c.bg }]} edges={['top']}>
       <View style={styles.headerRow}>
         <AppBrand />
-      </View>
-      <View style={[styles.titleRow, { borderBottomColor: c.border }]}>
-        <ThemedText style={[styles.title, { color: c.text }]}>{title}</ThemedText>
+        <View style={styles.headerRight}>
+          <MarketLegendButton />
+        </View>
       </View>
 
       <DateBar selectedDate={selectedDate} onSelect={setSelectedDate} />
@@ -118,14 +125,6 @@ export function RateScreen({ kind, title, primaryMetric }: RateScreenProps) {
         </View>
       ) : (
         <FlatList
-          ListHeaderComponent={
-            data ? (
-              <RateSummaryCard
-                summary={data.data.summary}
-                asOfDate={data.data.as_of_date}
-              />
-            ) : null
-          }
           data={sortedGroups}
           keyExtractor={(g) => String(g.fixtureId)}
           renderItem={({ item }) => (
@@ -165,16 +164,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 4,
+    justifyContent: 'center',
   },
-  titleRow: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '700',
+  headerRight: {
+    position: 'absolute',
+    right: 12,
+    top: 8,
   },
   list: {
     paddingTop: 4,

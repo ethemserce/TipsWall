@@ -19,6 +19,8 @@ interface PitchViewProps {
 interface PlayerMarkers {
   goals: number;
   assists: number;
+  // 'yellow' = single yellow only, 'red' = straight red, 'yellow_red' = 2nd yellow → red.
+  card: 'yellow' | 'red' | 'yellow_red' | null;
 }
 
 const GOAL_TYPE_CODES = new Set([
@@ -36,18 +38,30 @@ interface ScorerKey {
 function buildPlayerMarkers(events: FixtureEvent[] | undefined) {
   const goalEvents: ScorerKey[] = [];
   const assistEvents: ScorerKey[] = [];
+  const yellowEvents: ScorerKey[] = [];
+  const redEvents: ScorerKey[] = [];
+  const yellowRedEvents: ScorerKey[] = [];
   if (events) {
     for (const e of events) {
-      if (!GOAL_TYPE_CODES.has((e.type_code ?? '').toUpperCase())) continue;
-      goalEvents.push({
+      const code = (e.type_code ?? '').toUpperCase();
+      const key: ScorerKey = {
         id: e.player_id,
         name: e.player_name?.trim().toLowerCase() ?? null,
-      });
-      if (e.related_player_name) {
-        assistEvents.push({
-          id: null,
-          name: e.related_player_name.trim().toLowerCase(),
-        });
+      };
+      if (GOAL_TYPE_CODES.has(code)) {
+        goalEvents.push(key);
+        if (e.related_player_name) {
+          assistEvents.push({
+            id: null,
+            name: e.related_player_name.trim().toLowerCase(),
+          });
+        }
+      } else if (code === 'YELLOWCARD') {
+        yellowEvents.push(key);
+      } else if (code === 'REDCARD') {
+        redEvents.push(key);
+      } else if (code === 'YELLOWREDCARD') {
+        yellowRedEvents.push(key);
       }
     }
   }
@@ -57,9 +71,21 @@ function buildPlayerMarkers(events: FixtureEvent[] | undefined) {
     const matches = (k: ScorerKey) =>
       (k.id != null && pId != null && k.id === pId) ||
       (k.name != null && pName != null && k.name === pName);
+    // Priority: yellow→red (2nd yellow) > straight red > yellow.
+    const hasYellowRed = yellowRedEvents.some(matches);
+    const hasRed = redEvents.some(matches);
+    const hasYellow = yellowEvents.some(matches);
+    const card = hasYellowRed
+      ? 'yellow_red'
+      : hasRed
+        ? 'red'
+        : hasYellow
+          ? 'yellow'
+          : null;
     return {
       goals: goalEvents.filter(matches).length,
       assists: assistEvents.filter(matches).length,
+      card,
     };
   };
 }
@@ -188,7 +214,7 @@ function PlayerToken({
           {player.jersey_number ?? '–'}
         </ThemedText>
       </View>
-      {markers.goals > 0 || markers.assists > 0 ? (
+      {markers.goals > 0 || markers.assists > 0 || markers.card ? (
         <View style={styles.badgeStack}>
           {markers.goals > 0 ? (
             <View style={[styles.badge, { backgroundColor: c.text }]}>
@@ -210,6 +236,7 @@ function PlayerToken({
               ) : null}
             </View>
           ) : null}
+          {markers.card ? <CardMarker kind={markers.card} /> : null}
         </View>
       ) : null}
     </View>
@@ -236,6 +263,26 @@ function PlayerToken({
       {isAway ? name : jersey}
       {isAway ? jersey : name}
     </View>
+  );
+}
+
+function CardMarker({ kind }: { kind: 'yellow' | 'red' | 'yellow_red' }) {
+  // Two stacked rectangles for a 2nd-yellow card; otherwise a single rect.
+  if (kind === 'yellow_red') {
+    return (
+      <View style={styles.cardPair}>
+        <View style={[styles.cardRect, styles.cardYellow]} />
+        <View style={[styles.cardRect, styles.cardRed, styles.cardOverlay]} />
+      </View>
+    );
+  }
+  return (
+    <View
+      style={[
+        styles.cardRect,
+        kind === 'yellow' ? styles.cardYellow : styles.cardRed,
+      ]}
+    />
   );
 }
 
@@ -370,6 +417,27 @@ const styles = StyleSheet.create({
     lineHeight: 11,
     fontWeight: '800',
     fontVariant: ['tabular-nums'],
+  },
+  cardRect: {
+    width: 8,
+    height: 11,
+    borderRadius: 1,
+  },
+  cardYellow: {
+    backgroundColor: '#FBBF24',
+  },
+  cardRed: {
+    backgroundColor: '#E53935',
+  },
+  cardPair: {
+    width: 11,
+    height: 11,
+    position: 'relative',
+  },
+  cardOverlay: {
+    position: 'absolute',
+    left: 3,
+    top: 0,
   },
   jerseyNumber: {
     fontSize: 12,
