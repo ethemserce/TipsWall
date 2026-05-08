@@ -13,12 +13,33 @@ using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json.Serialization;
 using PreOddsApi.BusinessLayer.DependencyInjection;
 using PreOddsApi.WebApi;
+using PreOddsApi.WebApi.V3.Helpers;
+using Serilog;
 using System;
 using System.Globalization;
 using System.Text;
 using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Serilog bootstrap logger — captures the very early bootstrap exceptions
+// before the host is built. The "real" logger is configured below from
+// appsettings via ReadFrom.Configuration.
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    .WriteTo.Console()
+    .CreateBootstrapLogger();
+
+// MachineName / EnvironmentName enrichers live in Serilog.Enrichers.Environment,
+// which we're not adding right now — keep deps lean. FromLogContext is enough
+// for correlation id propagation, which is the load-bearing piece.
+builder.Host.UseSerilog((ctx, services, cfg) => cfg
+    .ReadFrom.Configuration(ctx.Configuration)
+    .ReadFrom.Services(services)
+    .Enrich.FromLogContext()
+    .WriteTo.Console(
+        outputTemplate:
+            "[{Timestamp:HH:mm:ss} {Level:u3}] {CorrelationId} {SourceContext} {Message:lj}{NewLine}{Exception}"));
 
 IWebHostEnvironment environment = builder.Environment;
 
@@ -51,6 +72,7 @@ builder.Services.AddHealthChecks()
 
 builder.Services.AddRateLimiter(options =>
 {
+    // "auth" — login / refresh / signup are highest-abuse targets. 10/min/IP.
     options.AddFixedWindowLimiter("auth", limiterOptions =>
     {
         limiterOptions.Window = TimeSpan.FromMinutes(1);
@@ -58,6 +80,42 @@ builder.Services.AddRateLimiter(options =>
         limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
         limiterOptions.QueueLimit = 0;
     });
+
+    // "read-heavy" — analytics signals, prematch odds, fixture detail. The
+    // SQL behind these is expensive (multi-CTE + window functions). Cap to
+    // 60 req/min/user, queue burst of 20.
+    options.AddFixedWindowLimiter("read-heavy", limiterOptions =>
+    {
+        limiterOptions.Window = TimeSpan.FromMinutes(1);
+        limiterOptions.PermitLimit = 60;
+        limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        limiterOptions.QueueLimit = 20;
+    });
+
+    // "write" — coupons, favorites, devices, preferences. Modest cap to stop
+    // a buggy client from flooding writes.
+    options.AddFixedWindowLimiter("write", limiterOptions =>
+    {
+        limiterOptions.Window = TimeSpan.FromMinutes(1);
+        limiterOptions.PermitLimit = 30;
+        limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        limiterOptions.QueueLimit = 10;
+    });
+
+    // Global IP fallback for un-policied endpoints — stops a single IP from
+    // exhausting the server while we tag the rest of the controllers.
+    options.GlobalLimiter = System.Threading.RateLimiting.PartitionedRateLimiter.Create<
+        Microsoft.AspNetCore.Http.HttpContext, string>(httpContext =>
+        System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+            httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+            {
+                Window = TimeSpan.FromMinutes(1),
+                PermitLimit = 200,
+                QueueLimit = 50,
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            }));
+
     options.RejectionStatusCode = 429;
 });
 
@@ -113,18 +171,18 @@ builder.Services.Configure<RequestLocalizationOptions>(options => {
     options.SupportedUICultures = supportedCultures;
 });
 
-var jwtSecret = Environment.GetEnvironmentVariable("PREODDS_JWT_SECRET")
-                ?? builder.Configuration["Authentication:JwtSecret"]
-                ?? "CHANGE_ME_PREODDS_JWT_SECRET_32_CHARS_MINIMUM";
-var jwtIssuer = builder.Configuration["Authentication:Issuer"] ?? "http://localhost:28332";
-var jwtAudience = builder.Configuration["Authentication:Audience"] ?? "http://localhost:28332";
+// AuthOptions is the single source of truth for JWT issuer/audience/secret/
+// lifetimes. AuthController and JwtBearer both read from the same singleton
+// so they can never drift.
+var authOptions = PreOddsApi.WebApi.V3.Auth.AuthOptions.Load(builder.Configuration);
 
-if (!builder.Environment.IsDevelopment() &&
-    (jwtSecret.StartsWith("CHANGE_ME", StringComparison.OrdinalIgnoreCase) || jwtSecret.Length < 32))
+if (!builder.Environment.IsDevelopment() && authOptions.IsDefaultSecret)
 {
     throw new InvalidOperationException(
         "A strong PREODDS_JWT_SECRET or Authentication:JwtSecret value is required outside Development.");
 }
+
+builder.Services.AddSingleton(authOptions);
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(JwtBearerOptions =>
 {
@@ -134,9 +192,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
         ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        ValidIssuer = jwtIssuer,
-        ValidAudience = jwtAudience,
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret))
+        ValidIssuer = authOptions.Issuer,
+        ValidAudience = authOptions.Audience,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(authOptions.JwtSecret))
     };
 });
 
@@ -184,18 +242,24 @@ builder.Services.AddSingleton<PreOddsApi.WebApi.V3.Hubs.ILiveBroadcaster,
 var app = builder.Build();
 IConfiguration configuration = app.Configuration;
 
-var logger = app.Services.GetRequiredService<ILogger<Program>>();
-app.Use(async (context, next) =>
+// Stamp every request with a correlation id BEFORE Serilog request logging
+// so the id is in scope when UseSerilogRequestLogging emits the access log.
+app.UseMiddleware<CorrelationIdMiddleware>();
+
+// Structured access log: one line per request with method/path/status/elapsed.
+// Replaces the bare try/catch we had — uncaught exceptions are still logged
+// because UseSerilogRequestLogging marks the request "Error" and Serilog
+// captures the exception.
+app.UseSerilogRequestLogging(options =>
 {
-    try
+    options.MessageTemplate =
+        "HTTP {RequestMethod} {RequestPath} → {StatusCode} in {Elapsed:0.0}ms";
+    options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
     {
-        await next();
-    }
-    catch (Exception ex)
-    {
-        logger.LogError(ex, "An error occurred.");
-        throw;
-    }
+        if (httpContext.Items.TryGetValue("CorrelationId", out var corr) && corr is string id)
+            diagnosticContext.Set("CorrelationId", id);
+        diagnosticContext.Set("UserAgent", httpContext.Request.Headers.UserAgent.ToString());
+    };
 });
 
 // Configure the HTTP request pipeline.

@@ -83,6 +83,105 @@ namespace PreOddsApi.WebApi.V3.Data
             return (items, total);
         }
 
+        public async Task<IReadOnlyList<LeagueTableRowDto>> GetLeagueTableAsync(
+            long? leagueId,
+            long? seasonId,
+            long? stageId,
+            CancellationToken ct = default)
+        {
+            // SportMonks splits a season into multiple "stages" (regular,
+            // championship round, relegation round). The mobile detail screen
+            // wants ONE table — the full league table — so when no stage_id
+            // is given we pick the (stage_id, group_id, round_id) tuple with
+            // the most teams; that's the regular-season league standing.
+            var clauses = new List<string>();
+            var parameters = new List<NpgsqlParameter>();
+
+            if (leagueId.HasValue)
+            {
+                clauses.Add("s.league_id = @league_id");
+                parameters.Add(new NpgsqlParameter("league_id", leagueId.Value));
+            }
+            if (seasonId.HasValue)
+            {
+                clauses.Add("s.season_id = @season_id");
+                parameters.Add(new NpgsqlParameter("season_id", seasonId.Value));
+            }
+            if (stageId.HasValue)
+            {
+                clauses.Add("s.stage_id = @stage_id");
+                parameters.Add(new NpgsqlParameter("stage_id", stageId.Value));
+            }
+
+            var where = clauses.Count > 0 ? "where " + string.Join(" and ", clauses) : string.Empty;
+
+            // Pivot standing_details on developer_name so each team's row is
+            // one logical record. Pick the largest grouping so we always
+            // return the full league table even if the fixture sits inside
+            // a smaller championship/relegation round.
+            var sql = $"""
+                with target as (
+                    select stage_id, group_id, round_id, count(*) as team_count
+                    from competition.standings s
+                    {where}
+                    group by stage_id, group_id, round_id
+                    order by team_count desc, max(s.last_synced_at) desc
+                    limit 1
+                ),
+                rows as (
+                    select s.id, s.participant_id, s.position, s.points,
+                           t.name as team_name, t.image_path as team_image_path
+                    from competition.standings s
+                    join target on coalesce(s.stage_id, -1) = coalesce(target.stage_id, -1)
+                               and coalesce(s.group_id, -1) = coalesce(target.group_id, -1)
+                               and coalesce(s.round_id, -1) = coalesce(target.round_id, -1)
+                    left join football.teams t on t.id = s.participant_id
+                    {(where.Length > 0 ? where : string.Empty)}
+                )
+                select r.participant_id as team_id, r.team_name, r.team_image_path,
+                       r.position, r.points,
+                       coalesce(max(d.value) filter (where ty.developer_name = 'OVERALL_MATCHES'), 0) as played,
+                       coalesce(max(d.value) filter (where ty.developer_name = 'OVERALL_WINS'), 0) as wins,
+                       coalesce(max(d.value) filter (where ty.developer_name = 'OVERALL_DRAWS'), 0) as draws,
+                       coalesce(max(d.value) filter (where ty.developer_name = 'OVERALL_LOST'), 0) as losses,
+                       coalesce(max(d.value) filter (where ty.developer_name = 'OVERALL_SCORED'), 0) as goals_for,
+                       coalesce(max(d.value) filter (where ty.developer_name = 'OVERALL_CONCEDED'), 0) as goals_against,
+                       coalesce(max(d.value) filter (where ty.developer_name = 'OVERALL_GOAL_DIFFERENCE'), 0) as goal_difference
+                from rows r
+                left join competition.standing_details d on d.standing_id = r.id
+                left join catalog.types ty on ty.id = d.type_id
+                group by r.participant_id, r.team_name, r.team_image_path, r.position, r.points
+                order by r.position nulls last, r.points desc nulls last;
+                """;
+
+            await using var connection = await OpenAsync(ct);
+            await using var command = new NpgsqlCommand(sql, connection);
+            command.Parameters.AddRange(parameters.ToArray());
+
+            var items = new List<LeagueTableRowDto>();
+            await using var reader = await command.ExecuteReaderAsync(ct);
+            while (await reader.ReadAsync(ct))
+            {
+                items.Add(new LeagueTableRowDto
+                {
+                    TeamId = ReadNullableLong(reader, "team_id"),
+                    TeamName = ReadNullableString(reader, "team_name"),
+                    TeamImagePath = ReadNullableString(reader, "team_image_path"),
+                    Position = ReadNullableInt(reader, "position"),
+                    Points = ReadNullableInt(reader, "points") ?? 0,
+                    Played = reader.GetInt32(reader.GetOrdinal("played")),
+                    Wins = reader.GetInt32(reader.GetOrdinal("wins")),
+                    Draws = reader.GetInt32(reader.GetOrdinal("draws")),
+                    Losses = reader.GetInt32(reader.GetOrdinal("losses")),
+                    GoalsFor = reader.GetInt32(reader.GetOrdinal("goals_for")),
+                    GoalsAgainst = reader.GetInt32(reader.GetOrdinal("goals_against")),
+                    GoalDifference = reader.GetInt32(reader.GetOrdinal("goal_difference")),
+                });
+            }
+
+            return items;
+        }
+
         public async Task<(IReadOnlyList<NewsSummaryDto> Items, int Total)> GetNewsAsync(
             long? fixtureId,
             long? leagueId,

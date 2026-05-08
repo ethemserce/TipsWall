@@ -131,7 +131,9 @@ namespace PreOddsApi.ExternalApis.Analytics
                             as outcome_key
                     from odds.prematch_odds_current o
                     inner join football.fixtures f on f.id = o.fixture_id
+                    inner join odds.markets m on m.id = o.market_id
                     where o.winning is not null
+                      and coalesce(m.has_winning_calculations, false) = true
                 ),
                 windowed as (
                     select b.*, w.code as window_code
@@ -174,6 +176,13 @@ namespace PreOddsApi.ExternalApis.Analytics
 
         public async Task<int> RunFixtureSignalsAsync(CancellationToken cancellationToken = default)
         {
+            // Single row per (fixture, market, outcome, window). Replaces the
+            // earlier UNION-of-3 (hot/winning/earning) layout — sort and filter
+            // are now runtime concerns on top of one normalised dataset.
+            //
+            // confidence_score = Wilson lower bound at z=1.96 (95% one-sided),
+            // computed on (win_count, sample_count). Penalises small samples
+            // automatically: 10/10 ≈ 0.72, 100/100 ≈ 0.96, 3/3 ≈ 0.44.
             const string sql = """
                 delete from analytics.fixture_signals where as_of_date = current_date;
 
@@ -200,12 +209,11 @@ namespace PreOddsApi.ExternalApis.Analytics
                            c.bookmaker_id, c.market_id, s.window_code, c.outcome_key,
                            c.label, c.odd_value, c.total, c.handicap, c.participants, c.match_state,
                            s.win_count, s.lost_count, s.winning_percent, s.earning_percent,
-                           round(case
-                               when (s.win_count + s.lost_count) < 3 then 0
-                               else s.winning_percent
-                                    * (1 - 1.0 / sqrt((s.win_count + s.lost_count)::numeric))
-                                    + greatest(s.earning_percent, 0) * 0.5
-                           end, 4) as confidence_score
+                           (s.win_count + s.lost_count)::numeric as n_obs,
+                           case
+                               when (s.win_count + s.lost_count) = 0 then null
+                               else s.win_count::numeric / (s.win_count + s.lost_count)
+                           end as p_hat
                     from current_odds c
                     inner join analytics.odd_analysis_snapshots s
                         on s.bookmaker_id = c.bookmaker_id
@@ -214,24 +222,29 @@ namespace PreOddsApi.ExternalApis.Analytics
                        and s.feed_type   = c.feed_type
                        and s.as_of_date  = current_date
                 ),
-                signals as (
-                    select 'hot_rate' as signal_type, * from joined
-                    union all
-                    select 'winning_rate', * from joined
-                    union all
-                    select 'earning_rate', * from joined
+                scored as (
+                    select j.*,
+                           case
+                               when j.n_obs = 0 or j.p_hat is null then 0
+                               else round(
+                                   100.0 * (
+                                       (j.p_hat + 1.9208 / j.n_obs
+                                        - 1.96 * sqrt(j.p_hat * (1.0 - j.p_hat) / j.n_obs
+                                                      + 0.9604 / (j.n_obs * j.n_obs)))
+                                       / (1.0 + 3.8416 / j.n_obs)
+                                   ),
+                                   4
+                               )
+                           end as confidence_score
+                    from joined j
                 ),
                 ranked as (
                     select *,
                         row_number() over (
-                            partition by signal_type, bookmaker_id, market_id, window_code
-                            order by case signal_type
-                                       when 'hot_rate'     then confidence_score
-                                       when 'winning_rate' then winning_percent
-                                       when 'earning_rate' then earning_percent
-                                     end desc nulls last,
+                            partition by bookmaker_id, market_id, window_code
+                            order by confidence_score desc nulls last,
                                      (win_count + lost_count) desc) as rank_order
-                    from signals
+                    from scored
                 )
                 insert into analytics.fixture_signals (
                     as_of_date, fixture_id, odds_current_id, feed_type,
@@ -240,7 +253,7 @@ namespace PreOddsApi.ExternalApis.Analytics
                     win_count, lost_count, winning_percent, earning_percent,
                     confidence_score, rank_order, filters, metrics)
                 select current_date, fixture_id, odds_current_id, feed_type,
-                       signal_type, bookmaker_id, market_id, window_code, outcome_key,
+                       'custom', bookmaker_id, market_id, window_code, outcome_key,
                        label, odd_value, total, handicap, participants,
                        win_count, lost_count, winning_percent, earning_percent,
                        confidence_score, rank_order,
@@ -264,75 +277,13 @@ namespace PreOddsApi.ExternalApis.Analytics
 
         public async Task<int> RunRateResultsAsync(CancellationToken cancellationToken = default)
         {
+            // No-op: legacy three-tier rate tables are no longer consumed.
+            // /signals reads fixture_signals directly. We still truncate here
+            // to keep the tables empty until the next deploy drops them.
             const string sql = """
                 delete from analytics.hot_rate_results;
                 delete from analytics.winning_rate_results;
                 delete from analytics.earning_rate_results;
-
-                insert into analytics.hot_rate_results (
-                    as_of_date, fixture_id, fixture_signal_id, odds_current_id, feed_type,
-                    bookmaker_id, market_id, window_code, outcome_key, label,
-                    odd_value, total, handicap, participants,
-                    win_count, lost_count, winning_percent, earning_percent,
-                    min_winning_percent, min_earning_percent, min_odd_value,
-                    match_state, rank_order)
-                select s.as_of_date, s.fixture_id, s.id, s.odds_current_id, s.feed_type,
-                       s.bookmaker_id, s.market_id, s.window_code, s.outcome_key, s.label,
-                       s.odd_value, s.total, s.handicap, s.participants,
-                       s.win_count, s.lost_count, s.winning_percent, s.earning_percent,
-                       50.0, 0.0, 1.50, f.state_id,
-                       row_number() over (
-                           partition by s.bookmaker_id, s.market_id, s.window_code
-                           order by s.confidence_score desc nulls last, s.sample_count desc)
-                from analytics.fixture_signals s
-                join football.fixtures f on f.id = s.fixture_id
-                where s.signal_type = 'hot_rate'
-                  and s.sample_count >= 3
-                  and s.winning_percent >= 50
-                  and s.earning_percent > 0
-                  and s.odd_value >= 1.50;
-
-                insert into analytics.winning_rate_results (
-                    as_of_date, fixture_id, fixture_signal_id, odds_current_id, feed_type,
-                    bookmaker_id, market_id, window_code, outcome_key, label,
-                    odd_value, total, handicap, participants,
-                    win_count, lost_count, winning_percent, earning_percent,
-                    min_winning_percent, min_odd_value, match_state, rank_order)
-                select s.as_of_date, s.fixture_id, s.id, s.odds_current_id, s.feed_type,
-                       s.bookmaker_id, s.market_id, s.window_code, s.outcome_key, s.label,
-                       s.odd_value, s.total, s.handicap, s.participants,
-                       s.win_count, s.lost_count, s.winning_percent, s.earning_percent,
-                       60.0, 1.30, f.state_id,
-                       row_number() over (
-                           partition by s.bookmaker_id, s.market_id, s.window_code
-                           order by s.winning_percent desc nulls last, s.sample_count desc)
-                from analytics.fixture_signals s
-                join football.fixtures f on f.id = s.fixture_id
-                where s.signal_type = 'winning_rate'
-                  and s.sample_count >= 3
-                  and s.winning_percent >= 60
-                  and s.odd_value >= 1.30;
-
-                insert into analytics.earning_rate_results (
-                    as_of_date, fixture_id, fixture_signal_id, odds_current_id, feed_type,
-                    bookmaker_id, market_id, window_code, outcome_key, label,
-                    odd_value, total, handicap, participants,
-                    win_count, lost_count, winning_percent, earning_percent,
-                    min_earning_percent, min_odd_value, match_state, rank_order)
-                select s.as_of_date, s.fixture_id, s.id, s.odds_current_id, s.feed_type,
-                       s.bookmaker_id, s.market_id, s.window_code, s.outcome_key, s.label,
-                       s.odd_value, s.total, s.handicap, s.participants,
-                       s.win_count, s.lost_count, s.winning_percent, s.earning_percent,
-                       10.0, 1.50, f.state_id,
-                       row_number() over (
-                           partition by s.bookmaker_id, s.market_id, s.window_code
-                           order by s.earning_percent desc nulls last, s.sample_count desc)
-                from analytics.fixture_signals s
-                join football.fixtures f on f.id = s.fixture_id
-                where s.signal_type = 'earning_rate'
-                  and s.sample_count >= 3
-                  and s.earning_percent >= 10
-                  and s.odd_value >= 1.50;
                 """;
 
             await using var connection = await OpenAsync(cancellationToken);

@@ -5,12 +5,14 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using PreOddsApi.WebApi.V3.Contracts;
 using PreOddsApi.WebApi.V3.Data;
 
 namespace PreOddsApi.WebApi.V3.Controllers
 {
     [AllowAnonymous]
+    [EnableRateLimiting("read-heavy")]
     public sealed class FixturesController : ApiControllerBase
     {
         private readonly IFixtureReader _reader;
@@ -62,9 +64,10 @@ namespace PreOddsApi.WebApi.V3.Controllers
             if (!bookmakerId.HasValue || bookmakerId.Value <= 0)
                 return BadRequestResponse("bookmaker_id is required.");
 
+            // When market_ids isn't provided, the reader falls back to every
+            // market with has_winning_calculations = true (matches the
+            // analytics pipeline's filter).
             var ids = ParseMarketIds(marketIds);
-            if (ids.Count == 0)
-                return BadRequestResponse("market_ids is required (comma-separated, e.g. 1,52,80,31).");
 
             var window = string.IsNullOrWhiteSpace(windowCode) ? "all" : windowCode.Trim();
 

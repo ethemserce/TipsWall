@@ -7,8 +7,8 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
-using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
+using PreOddsApi.WebApi.V3.Auth;
 using PreOddsApi.WebApi.V3.Contracts;
 using PreOddsApi.WebApi.V3.Data;
 using PreOddsApi.WebApi.V3.Dtos;
@@ -18,26 +18,18 @@ namespace PreOddsApi.WebApi.V3.Controllers
     [EnableRateLimiting("auth")]
     public sealed class AuthController : ApiControllerBase
     {
-        private const int AccessTokenLifetimeSeconds = 86400;
-
         private readonly IUserIdentityService _identity;
         private readonly IRefreshTokenService _refreshTokens;
-        private readonly string _jwtSecret;
-        private readonly string _jwtIssuer;
-        private readonly string _jwtAudience;
+        private readonly AuthOptions _authOptions;
 
         public AuthController(
             IUserIdentityService identity,
             IRefreshTokenService refreshTokens,
-            IConfiguration configuration)
+            AuthOptions authOptions)
         {
             _identity = identity;
             _refreshTokens = refreshTokens;
-            _jwtSecret = Environment.GetEnvironmentVariable("PREODDS_JWT_SECRET")
-                ?? configuration["Authentication:JwtSecret"]
-                ?? "CHANGE_ME_PREODDS_JWT_SECRET_32_CHARS_MINIMUM";
-            _jwtIssuer = configuration["Authentication:Issuer"] ?? "http://localhost:28332";
-            _jwtAudience = configuration["Authentication:Audience"] ?? "http://localhost:28332";
+            _authOptions = authOptions;
         }
 
         [AllowAnonymous]
@@ -62,7 +54,7 @@ namespace PreOddsApi.WebApi.V3.Controllers
                 AccessToken = GenerateAccessToken(user),
                 RefreshToken = refresh.RawToken,
                 TokenType = "Bearer",
-                ExpiresIn = AccessTokenLifetimeSeconds
+                ExpiresIn = _authOptions.AccessTokenLifetimeSeconds
             });
         }
 
@@ -96,7 +88,7 @@ namespace PreOddsApi.WebApi.V3.Controllers
                 AccessToken = GenerateAccessToken(user),
                 RefreshToken = refresh.RawToken,
                 TokenType = "Bearer",
-                ExpiresIn = AccessTokenLifetimeSeconds
+                ExpiresIn = _authOptions.AccessTokenLifetimeSeconds
             }));
         }
 
@@ -125,16 +117,20 @@ namespace PreOddsApi.WebApi.V3.Controllers
                 AccessToken = GenerateAccessToken(user),
                 RefreshToken = result.NewToken.RawToken,
                 TokenType = "Bearer",
-                ExpiresIn = AccessTokenLifetimeSeconds
+                ExpiresIn = _authOptions.AccessTokenLifetimeSeconds
             });
         }
 
-        [AllowAnonymous]
+        [Authorize]
         [HttpPost("logout")]
         public async Task<IActionResult> LogoutAsync(
             [FromBody] RefreshTokenRequest request,
             CancellationToken ct)
         {
+            // Both an access token (Authorize) AND the refresh token are
+            // required — the access token proves identity, the refresh token
+            // is the session being revoked. This stops a leaked refresh token
+            // alone from being weaponised against a logged-in session.
             if (string.IsNullOrWhiteSpace(request.RefreshToken))
                 return BadRequestResponse("refresh_token is required.");
 
@@ -160,7 +156,7 @@ namespace PreOddsApi.WebApi.V3.Controllers
 
         private string GenerateAccessToken(UserDto user)
         {
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSecret));
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_authOptions.JwtSecret));
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var claims = new System.Collections.Generic.List<Claim>
@@ -174,10 +170,10 @@ namespace PreOddsApi.WebApi.V3.Controllers
                 claims.Add(new Claim(JwtRegisteredClaimNames.Email, user.Email));
 
             var token = new JwtSecurityToken(
-                issuer: _jwtIssuer,
-                audience: _jwtAudience,
+                issuer: _authOptions.Issuer,
+                audience: _authOptions.Audience,
                 claims: claims,
-                expires: DateTime.UtcNow.AddSeconds(AccessTokenLifetimeSeconds),
+                expires: DateTime.UtcNow.AddSeconds(_authOptions.AccessTokenLifetimeSeconds),
                 signingCredentials: credentials);
 
             return new JwtSecurityTokenHandler().WriteToken(token);

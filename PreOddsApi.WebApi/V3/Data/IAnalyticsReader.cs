@@ -6,17 +6,35 @@ using PreOddsApi.WebApi.V3.Dtos;
 
 namespace PreOddsApi.WebApi.V3.Data
 {
-    public sealed class RateQuery
+    public enum SignalSort
+    {
+        Confidence = 0,
+        Winning = 1,
+        Earning = 2,
+        Odd = 3,
+        Edge = 4,
+    }
+
+    public sealed class SignalQuery
     {
         public long? BookmakerId { get; init; }
         public long? MarketId { get; init; }
+        public long? LeagueId { get; init; }
         public string? WindowCode { get; init; }
         public int? MatchState { get; init; }
         public decimal? MinRate { get; init; }
+        public decimal? MaxRate { get; init; }
         public decimal? MinWinningPercent { get; init; }
         public decimal? MinEarningPercent { get; init; }
         public int? MinSampleCount { get; init; }
         public DateTime? FixtureDate { get; init; }
+        // True = keep only outcomes where DSO > İKO ("value bet" definition).
+        public bool ValueOnly { get; init; }
+        // Cap each fixture to its top-N rows by the active sort. Null = no cap.
+        public int? TopPerFixture { get; init; }
+        public SignalSort Sort { get; init; } = SignalSort.Confidence;
+        // false = descending (default, "best first"), true = ascending.
+        public bool SortAscending { get; init; }
         public int Page { get; init; } = 1;
         public int PerPage { get; init; } = 50;
     }
@@ -31,8 +49,6 @@ namespace PreOddsApi.WebApi.V3.Data
 
     public interface IAnalyticsReader
     {
-        Task<RateQueryResult> GetHotRateAsync(RateQuery query, CancellationToken ct = default);
-        Task<RateQueryResult> GetWinningRateAsync(RateQuery query, CancellationToken ct = default);
-        Task<RateQueryResult> GetEarningRateAsync(RateQuery query, CancellationToken ct = default);
+        Task<RateQueryResult> GetSignalsAsync(SignalQuery query, CancellationToken ct = default);
     }
 }

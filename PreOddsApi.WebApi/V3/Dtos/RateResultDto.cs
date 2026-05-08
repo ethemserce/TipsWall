@@ -53,6 +53,17 @@ namespace PreOddsApi.WebApi.V3.Dtos
         [JsonProperty("earning_percent")]
         public decimal? EarningPercent { get; init; }
 
+        [JsonProperty("confidence_score", NullValueHandling = NullValueHandling.Ignore)]
+        public decimal? ConfidenceScore { get; init; }
+
+        /// <summary>
+        /// No-vig implied probability for this outcome within its market —
+        /// equivalent to the İKO gauge shown on the mobile cards. Computed
+        /// server-side via window function so it can drive the value-only filter.
+        /// </summary>
+        [JsonProperty("iko", NullValueHandling = NullValueHandling.Ignore)]
+        public decimal? Iko { get; init; }
+
         [JsonProperty("rank_order")]
         public int RankOrder { get; init; }
 

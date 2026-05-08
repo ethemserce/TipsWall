@@ -17,6 +17,12 @@ namespace PreOddsApi.WebApi.V3.Data
             int perPage,
             CancellationToken ct = default);
 
+        Task<IReadOnlyList<LeagueTableRowDto>> GetLeagueTableAsync(
+            long? leagueId,
+            long? seasonId,
+            long? stageId,
+            CancellationToken ct = default);
+
         Task<(IReadOnlyList<NewsSummaryDto> Items, int Total)> GetNewsAsync(
             long? fixtureId,
             long? leagueId,

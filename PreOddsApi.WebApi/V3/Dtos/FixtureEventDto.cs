@@ -42,5 +42,8 @@ namespace PreOddsApi.WebApi.V3.Dtos
 
         [JsonProperty("info")]
         public string? Info { get; init; }
+
+        [JsonProperty("injured", NullValueHandling = NullValueHandling.Ignore)]
+        public bool? Injured { get; init; }
     }
 }

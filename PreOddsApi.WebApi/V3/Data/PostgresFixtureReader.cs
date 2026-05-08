@@ -94,6 +94,11 @@ namespace PreOddsApi.WebApi.V3.Data
                        away_t.short_code as away_team_short_code,
                        away_t.image_path as away_team_image_path,
                        away_score.goals as away_score,
+                       live_period.minutes as live_minute,
+                       coalesce(home_cards.cnt, 0) as home_red_cards,
+                       coalesce(away_cards.cnt, 0) as away_red_cards,
+                       coalesce(home_var.active, false) as home_var_active,
+                       coalesce(away_var.active, false) as away_var_active,
                        count(*) over() as total_count
                 from football.fixtures f
                 {teamJoin}
@@ -119,6 +124,42 @@ namespace PreOddsApi.WebApi.V3.Data
                     order by id desc
                     limit 1
                 ) away_score on true
+                left join lateral (
+                    select minutes from football.fixture_periods
+                    where fixture_id = f.id and ticking = true
+                    order by sort_order desc nulls last, id desc
+                    limit 1
+                ) live_period on true
+                left join lateral (
+                    select count(*)::int as cnt from football.fixture_events
+                    where fixture_id = f.id
+                      and participant_id = home_p.team_id
+                      and type_id in (20, 21)
+                ) home_cards on true
+                left join lateral (
+                    select count(*)::int as cnt from football.fixture_events
+                    where fixture_id = f.id
+                      and participant_id = away_p.team_id
+                      and type_id in (20, 21)
+                ) away_cards on true
+                left join lateral (
+                    select exists(
+                        select 1 from football.fixture_events
+                        where fixture_id = f.id
+                          and participant_id = home_p.team_id
+                          and type_id in (10, 1697)
+                          and last_synced_at > now() - interval '60 seconds'
+                    ) as active
+                ) home_var on true
+                left join lateral (
+                    select exists(
+                        select 1 from football.fixture_events
+                        where fixture_id = f.id
+                          and participant_id = away_p.team_id
+                          and type_id in (10, 1697)
+                          and last_synced_at > now() - interval '60 seconds'
+                    ) as active
+                ) away_var on true
                 {where}
                 order by f.starting_at desc nulls last, f.id desc
                 limit @limit offset @offset;
@@ -165,7 +206,12 @@ namespace PreOddsApi.WebApi.V3.Data
                        away_t.name as away_team_name,
                        away_t.short_code as away_team_short_code,
                        away_t.image_path as away_team_image_path,
-                       away_score.goals as away_score
+                       away_score.goals as away_score,
+                       live_period.minutes as live_minute,
+                       coalesce(home_cards.cnt, 0) as home_red_cards,
+                       coalesce(away_cards.cnt, 0) as away_red_cards,
+                       coalesce(home_var.active, false) as home_var_active,
+                       coalesce(away_var.active, false) as away_var_active
                 from football.fixtures f
                 left join football.fixture_participants home_p
                     on home_p.fixture_id = f.id and home_p.location = 'home'
@@ -189,6 +235,42 @@ namespace PreOddsApi.WebApi.V3.Data
                     order by id desc
                     limit 1
                 ) away_score on true
+                left join lateral (
+                    select minutes from football.fixture_periods
+                    where fixture_id = f.id and ticking = true
+                    order by sort_order desc nulls last, id desc
+                    limit 1
+                ) live_period on true
+                left join lateral (
+                    select count(*)::int as cnt from football.fixture_events
+                    where fixture_id = f.id
+                      and participant_id = home_p.team_id
+                      and type_id in (20, 21)
+                ) home_cards on true
+                left join lateral (
+                    select count(*)::int as cnt from football.fixture_events
+                    where fixture_id = f.id
+                      and participant_id = away_p.team_id
+                      and type_id in (20, 21)
+                ) away_cards on true
+                left join lateral (
+                    select exists(
+                        select 1 from football.fixture_events
+                        where fixture_id = f.id
+                          and participant_id = home_p.team_id
+                          and type_id in (10, 1697)
+                          and last_synced_at > now() - interval '60 seconds'
+                    ) as active
+                ) home_var on true
+                left join lateral (
+                    select exists(
+                        select 1 from football.fixture_events
+                        where fixture_id = f.id
+                          and participant_id = away_p.team_id
+                          and type_id in (10, 1697)
+                          and last_synced_at > now() - interval '60 seconds'
+                    ) as active
+                ) away_var on true
                 where f.id = @id
                 limit 1;
                 """, connection))
@@ -269,7 +351,15 @@ namespace PreOddsApi.WebApi.V3.Data
             // convention "label:total:handicap:value(4dp)", whereas
             // odds.prematch_odds_current.outcome_key is just the bare label.
             // Reconstruct the rich key inline so the JOIN matches.
-            const string sql = """
+            //
+            // When `marketIds` is empty we fall back to "every market that
+            // has_winning_calculations" — same filter the analytics pipeline
+            // uses, so we never return rows we have no signal for.
+            var marketFilter = marketIds.Count > 0
+                ? "and poc.market_id    = any(@market_ids)"
+                : "and coalesce(m.has_winning_calculations, false) = true";
+
+            var sql = $"""
                 select m.id as market_id,
                        m.name as market_name,
                        poc.label,
@@ -278,6 +368,7 @@ namespace PreOddsApi.WebApi.V3.Data
                        poc.handicap,
                        poc.participants,
                        poc.sort_order,
+                       poc.winning,
                        fs.win_count,
                        fs.lost_count,
                        fs.sample_count,
@@ -294,10 +385,10 @@ namespace PreOddsApi.WebApi.V3.Data
                                           || ':' || coalesce(nullif(poc.handicap, ''), '-')
                                           || ':' || to_char(poc.value::numeric, 'FM99999990.0000')
                    and fs.window_code   = @window_code
-                   and fs.signal_type   = 'winning_rate'
+                   and fs.signal_type   = 'custom'
                 where poc.fixture_id   = @fixture_id
                   and poc.bookmaker_id = @bookmaker_id
-                  and poc.market_id    = any(@market_ids)
+                  {marketFilter}
                 order by poc.market_id, poc.sort_order nulls last, poc.label;
                 """;
 
@@ -306,10 +397,14 @@ namespace PreOddsApi.WebApi.V3.Data
             command.Parameters.Add(new NpgsqlParameter("fixture_id", fixtureId));
             command.Parameters.Add(new NpgsqlParameter("bookmaker_id", bookmakerId));
             command.Parameters.Add(new NpgsqlParameter("window_code", windowCode));
-            command.Parameters.Add(
-                new NpgsqlParameter("market_ids", marketIds.ToArray()));
+            if (marketIds.Count > 0)
+            {
+                command.Parameters.Add(
+                    new NpgsqlParameter("market_ids", marketIds.ToArray()));
+            }
 
             var grouped = new Dictionary<long, (string? Name, List<FixtureOddOutcomeDto> Outcomes)>();
+            var orderSeen = new List<long>();
             await using var reader = await command.ExecuteReaderAsync(ct);
             while (await reader.ReadAsync(ct))
             {
@@ -318,6 +413,7 @@ namespace PreOddsApi.WebApi.V3.Data
                 {
                     bucket = (ReadNullableString(reader, "market_name"), new List<FixtureOddOutcomeDto>());
                     grouped[marketId] = bucket;
+                    orderSeen.Add(marketId);
                 }
 
                 var winCount = ReadNullableInt(reader, "win_count") ?? 0;
@@ -331,6 +427,7 @@ namespace PreOddsApi.WebApi.V3.Data
                     Handicap = ReadNullableString(reader, "handicap"),
                     Participants = ReadNullableString(reader, "participants"),
                     SortOrder = ReadNullableInt(reader, "sort_order"),
+                    Winning = ReadNullableBool(reader, "winning"),
                     WinCount = winCount,
                     LostCount = lostCount,
                     SampleCount = ReadNullableInt(reader, "sample_count") ?? (winCount + lostCount),
@@ -339,7 +436,11 @@ namespace PreOddsApi.WebApi.V3.Data
                 });
             }
 
-            var orderedIds = marketIds.Where(grouped.ContainsKey).ToList();
+            // Honour the caller's market order when they passed one; otherwise
+            // fall back to the order rows arrived (already sorted by market_id).
+            var orderedIds = marketIds.Count > 0
+                ? marketIds.Where(grouped.ContainsKey).ToList()
+                : orderSeen;
             return orderedIds
                 .Select(id =>
                 {
@@ -367,7 +468,7 @@ namespace PreOddsApi.WebApi.V3.Data
                            when fp_away.team_id = e.participant_id then 'away'
                        end as participant_location,
                        e.player_id, e.player_name, e.related_player_name,
-                       e.result, e.info
+                       e.result, e.info, e.injured
                 from football.fixture_events e
                 left join catalog.types t on t.id = e.type_id
                 left join football.fixture_participants fp_home
@@ -400,7 +501,8 @@ namespace PreOddsApi.WebApi.V3.Data
                     PlayerName = ReadNullableString(reader, "player_name"),
                     RelatedPlayerName = ReadNullableString(reader, "related_player_name"),
                     Result = ReadNullableString(reader, "result"),
-                    Info = ReadNullableString(reader, "info")
+                    Info = ReadNullableString(reader, "info"),
+                    Injured = ReadNullableBool(reader, "injured")
                 });
             }
             return items;
@@ -597,7 +699,12 @@ namespace PreOddsApi.WebApi.V3.Data
                        away_t.name as away_team_name,
                        away_t.short_code as away_team_short_code,
                        away_t.image_path as away_team_image_path,
-                       away_score.goals as away_score
+                       away_score.goals as away_score,
+                       live_period.minutes as live_minute,
+                       coalesce(home_cards.cnt, 0) as home_red_cards,
+                       coalesce(away_cards.cnt, 0) as away_red_cards,
+                       coalesce(home_var.active, false) as home_var_active,
+                       coalesce(away_var.active, false) as away_var_active
                 from football.fixtures f
                 join shared s on s.fixture_id = f.id
                 cross join pair
@@ -623,6 +730,42 @@ namespace PreOddsApi.WebApi.V3.Data
                     order by id desc
                     limit 1
                 ) away_score on true
+                left join lateral (
+                    select minutes from football.fixture_periods
+                    where fixture_id = f.id and ticking = true
+                    order by sort_order desc nulls last, id desc
+                    limit 1
+                ) live_period on true
+                left join lateral (
+                    select count(*)::int as cnt from football.fixture_events
+                    where fixture_id = f.id
+                      and participant_id = home_p.team_id
+                      and type_id in (20, 21)
+                ) home_cards on true
+                left join lateral (
+                    select count(*)::int as cnt from football.fixture_events
+                    where fixture_id = f.id
+                      and participant_id = away_p.team_id
+                      and type_id in (20, 21)
+                ) away_cards on true
+                left join lateral (
+                    select exists(
+                        select 1 from football.fixture_events
+                        where fixture_id = f.id
+                          and participant_id = home_p.team_id
+                          and type_id in (10, 1697)
+                          and last_synced_at > now() - interval '60 seconds'
+                    ) as active
+                ) home_var on true
+                left join lateral (
+                    select exists(
+                        select 1 from football.fixture_events
+                        where fixture_id = f.id
+                          and participant_id = away_p.team_id
+                          and type_id in (10, 1697)
+                          and last_synced_at > now() - interval '60 seconds'
+                    ) as active
+                ) away_var on true
                 where f.id <> @fixture_id
                   and f.starting_at <= coalesce(pair.ref_starting_at, now())
                 order by f.starting_at desc nulls last
@@ -673,7 +816,12 @@ namespace PreOddsApi.WebApi.V3.Data
             AwayTeamName = ReadNullableString(r, "away_team_name"),
             AwayTeamShortCode = ReadNullableString(r, "away_team_short_code"),
             AwayTeamImagePath = ReadNullableString(r, "away_team_image_path"),
-            AwayScore = ReadNullableInt(r, "away_score")
+            AwayScore = ReadNullableInt(r, "away_score"),
+            LiveMinute = ReadNullableInt(r, "live_minute"),
+            HomeRedCards = ReadNullableInt(r, "home_red_cards"),
+            AwayRedCards = ReadNullableInt(r, "away_red_cards"),
+            HomeVarActive = ReadNullableBool(r, "home_var_active"),
+            AwayVarActive = ReadNullableBool(r, "away_var_active")
         };
 
         private async Task<NpgsqlConnection> OpenAsync(CancellationToken ct)

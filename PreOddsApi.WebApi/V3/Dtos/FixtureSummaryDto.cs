@@ -79,5 +79,24 @@ namespace PreOddsApi.WebApi.V3.Dtos
 
         [JsonProperty("away_score", NullValueHandling = NullValueHandling.Ignore)]
         public int? AwayScore { get; init; }
+
+        [JsonProperty("live_minute", NullValueHandling = NullValueHandling.Ignore)]
+        public int? LiveMinute { get; init; }
+
+        [JsonProperty("home_red_cards", NullValueHandling = NullValueHandling.Ignore)]
+        public int? HomeRedCards { get; init; }
+
+        [JsonProperty("away_red_cards", NullValueHandling = NullValueHandling.Ignore)]
+        public int? AwayRedCards { get; init; }
+
+        /// <summary>
+        /// True when a VAR event was synced for the home team in the last
+        /// 60 seconds — used to flash a "VAR" badge while a review is fresh.
+        /// </summary>
+        [JsonProperty("home_var_active", NullValueHandling = NullValueHandling.Ignore)]
+        public bool? HomeVarActive { get; init; }
+
+        [JsonProperty("away_var_active", NullValueHandling = NullValueHandling.Ignore)]
+        public bool? AwayVarActive { get; init; }
     }
 }

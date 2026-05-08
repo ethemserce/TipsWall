@@ -18,99 +18,206 @@ namespace PreOddsApi.WebApi.V3.Data
                 ?? configuration.GetConnectionString("PreOddsApiPostgresDb");
         }
 
-        public Task<RateQueryResult> GetHotRateAsync(RateQuery query, CancellationToken ct = default)
-            => QueryAsync("analytics.hot_rate_results", query, ct);
-
-        public Task<RateQueryResult> GetWinningRateAsync(RateQuery query, CancellationToken ct = default)
-            => QueryAsync("analytics.winning_rate_results", query, ct);
-
-        public Task<RateQueryResult> GetEarningRateAsync(RateQuery query, CancellationToken ct = default)
-            => QueryAsync("analytics.earning_rate_results", query, ct);
-
-        private async Task<RateQueryResult> QueryAsync(
-            string tableName,
-            RateQuery query,
-            CancellationToken ct)
+        public async Task<RateQueryResult> GetSignalsAsync(SignalQuery query, CancellationToken ct = default)
         {
-            var clauses = new List<string>();
+            // Filters split into two stages so İKO (the no-vig implied
+            // probability) can be normalised across the FULL market context.
+            //
+            // Stage 1 (baseFilters) — applied before İKO normalisation:
+            //   bookmaker_id, market_id, league_id, fixture_id, window_code,
+            //   match_state, fixture_date, signal_type
+            //
+            // Stage 2 (rowFilters) — applied AFTER İKO is computed, otherwise
+            // a min_rate / min_winning_percent threshold would strip outcomes
+            // from a market and inflate Σ(1/odd) for the survivors.
+            //   min_rate, max_rate, min_winning_percent, min_earning_percent,
+            //   min_sample_count, value_only (DSO > İKO)
+            var baseClauses = new List<string> { "fs.signal_type = 'custom'" };
+            var rowClauses = new List<string>();
             var parameters = new List<NpgsqlParameter>();
 
             if (query.BookmakerId.HasValue)
             {
-                clauses.Add("rr.bookmaker_id = @bookmaker_id");
+                baseClauses.Add("fs.bookmaker_id = @bookmaker_id");
                 parameters.Add(new NpgsqlParameter("bookmaker_id", query.BookmakerId.Value));
             }
             if (query.MarketId.HasValue)
             {
-                clauses.Add("rr.market_id = @market_id");
+                baseClauses.Add("fs.market_id = @market_id");
                 parameters.Add(new NpgsqlParameter("market_id", query.MarketId.Value));
             }
             if (!string.IsNullOrWhiteSpace(query.WindowCode))
             {
-                clauses.Add("rr.window_code = @window_code");
+                baseClauses.Add("fs.window_code = @window_code");
                 parameters.Add(new NpgsqlParameter("window_code", query.WindowCode.Trim()));
             }
             if (query.MatchState.HasValue)
             {
-                clauses.Add("rr.match_state = @match_state");
+                baseClauses.Add("f.state_id = @match_state");
                 parameters.Add(new NpgsqlParameter("match_state", query.MatchState.Value));
             }
+            if (query.LeagueId.HasValue)
+            {
+                baseClauses.Add("f.league_id = @league_id");
+                parameters.Add(new NpgsqlParameter("league_id", query.LeagueId.Value));
+            }
+            if (query.FixtureDate.HasValue)
+            {
+                baseClauses.Add("f.starting_at::date = @fixture_date");
+                parameters.Add(new NpgsqlParameter("fixture_date", query.FixtureDate.Value.Date));
+            }
+
             if (query.MinRate.HasValue)
             {
-                clauses.Add("rr.odd_value >= @min_rate");
+                rowClauses.Add("odd_value >= @min_rate");
                 parameters.Add(new NpgsqlParameter("min_rate", query.MinRate.Value));
+            }
+            if (query.MaxRate.HasValue)
+            {
+                rowClauses.Add("odd_value <= @max_rate");
+                parameters.Add(new NpgsqlParameter("max_rate", query.MaxRate.Value));
             }
             if (query.MinWinningPercent.HasValue)
             {
-                clauses.Add("rr.winning_percent >= @min_winning_percent");
+                rowClauses.Add("winning_percent >= @min_winning_percent");
                 parameters.Add(new NpgsqlParameter("min_winning_percent", query.MinWinningPercent.Value));
             }
             if (query.MinEarningPercent.HasValue)
             {
-                clauses.Add("rr.earning_percent >= @min_earning_percent");
+                rowClauses.Add("earning_percent >= @min_earning_percent");
                 parameters.Add(new NpgsqlParameter("min_earning_percent", query.MinEarningPercent.Value));
             }
             if (query.MinSampleCount.HasValue)
             {
-                // Sample threshold guards every kind — the legacy app dropped this
-                // for HotRate, but a 0-sample row is unknown, not hot.
-                clauses.Add("(rr.win_count + rr.lost_count) >= @min_sample_count");
+                rowClauses.Add("sample_count >= @min_sample_count");
                 parameters.Add(new NpgsqlParameter("min_sample_count", query.MinSampleCount.Value));
             }
-            if (query.FixtureDate.HasValue)
+            if (query.ValueOnly)
             {
-                clauses.Add("f.starting_at::date = @fixture_date");
-                parameters.Add(new NpgsqlParameter("fixture_date", query.FixtureDate.Value.Date));
+                // DSO > İKO — historical hit rate beats the bookmaker's
+                // (no-vig) implied probability. Textbook value bet.
+                rowClauses.Add("winning_percent > iko");
             }
 
-            var where = clauses.Count > 0 ? "where " + string.Join(" and ", clauses) : string.Empty;
+            // SQL safety invariant — KEEP THIS:
+            // `orderBy` is the only place we interpolate into SQL string-wise.
+            // Both `dir` (bool→literal) and `query.Sort` (closed enum→literal)
+            // produce values that are NEVER taken from user input directly.
+            // If you add a new sort dimension, extend the SignalSort enum and
+            // the switch below — DO NOT pass query.Sort.ToString() or any
+            // free-form string into this builder. Every other dynamic value
+            // (window_code, dates, ids) flows through @-bound NpgsqlParameter.
+            var dir = query.SortAscending ? "asc" : "desc";
+            var orderBy = query.Sort switch
+            {
+                SignalSort.Winning => $"winning_percent {dir} nulls last, sample_count desc",
+                SignalSort.Earning => $"earning_percent {dir} nulls last, sample_count desc",
+                SignalSort.Odd => $"odd_value {dir} nulls last, confidence_score desc nulls last",
+                // Edge / value: p̂ × odd − 1.
+                SignalSort.Edge => $"(winning_percent / 100.0 * odd_value - 1.0) {dir} nulls last, sample_count desc",
+                _ => $"confidence_score {dir} nulls last, sample_count desc",
+            };
 
-            // Build the rich outcome_key inline so we can JOIN settled odds the
-            // same way /odds-rates does, then expose summary aggregates as
-            // window functions on the filtered set.
+            var baseWhere = "where " + string.Join(" and ", baseClauses);
+            var rowWhere = rowClauses.Count > 0
+                ? "where " + string.Join(" and ", rowClauses)
+                : string.Empty;
+
+            // Wrap in a per-fixture rank when the caller asked for top-N.
+            // Computed AFTER row filters so VBET/DSO/etc. shape the candidates
+            // before each fixture's headline rows are picked.
+            var fixtureCapClause = string.Empty;
+            string fixtureRankSelect;
+            if (query.TopPerFixture.HasValue && query.TopPerFixture.Value > 0)
+            {
+                fixtureRankSelect =
+                    $"row_number() over (partition by fixture_id order by {orderBy}) as fixture_rank";
+                fixtureCapClause = "where fixture_rank <= @top_per_fixture";
+                parameters.Add(new NpgsqlParameter("top_per_fixture", query.TopPerFixture.Value));
+            }
+            else
+            {
+                fixtureRankSelect = "1 as fixture_rank";
+            }
+
             var sql = $"""
-                with filtered as (
-                    select rr.*,
-                           f.state_id as fixture_state_id,
+                with base as (
+                    select fs.id, fs.fixture_id,
+                           fs.id as fixture_signal_id,
+                           fs.bookmaker_id, fs.market_id, fs.window_code,
+                           fs.outcome_key, fs.label, fs.odd_value, fs.total, fs.handicap,
+                           fs.win_count, fs.lost_count, fs.sample_count,
+                           fs.winning_percent, fs.earning_percent,
+                           fs.confidence_score,
+                           fs.rank_order, fs.as_of_date,
+                           f.state_id as match_state,
                            f.starting_at as fixture_starting_at,
                            poc.winning as bet_winning
-                    from {tableName} rr
-                    inner join football.fixtures f on f.id = rr.fixture_id
+                    from analytics.fixture_signals fs
+                    inner join football.fixtures f on f.id = fs.fixture_id
                     left join odds.prematch_odds_current poc
-                        on poc.fixture_id    = rr.fixture_id
-                       and poc.bookmaker_id  = rr.bookmaker_id
-                       and poc.market_id     = rr.market_id
-                       and poc.outcome_key   = lower(coalesce(rr.label, ''))
-                                               || ':' || coalesce(nullif(rr.total, ''), '-')
-                                               || ':' || coalesce(nullif(rr.handicap, ''), '-')
-                                               || ':' || to_char(rr.odd_value::numeric, 'FM99999990.0000')
-                    {where}
+                        on poc.fixture_id    = fs.fixture_id
+                       and poc.bookmaker_id  = fs.bookmaker_id
+                       and poc.market_id     = fs.market_id
+                       and lower(coalesce(poc.label, '')) = lower(coalesce(fs.label, ''))
+                       and coalesce(nullif(poc.total, ''), '-') = coalesce(nullif(fs.total, ''), '-')
+                       and coalesce(nullif(poc.handicap, ''), '-') = coalesce(nullif(fs.handicap, ''), '-')
+                       and poc.value::numeric(12,4) = fs.odd_value::numeric(12,4)
+                    {baseWhere}
+                ),
+                market_inv_sum as (
+                    -- Σ(1/oran) per (fixture, bookmaker, market, total, handicap)
+                    -- computed from prematch_odds_current — fixture_signals
+                    -- only has outcomes that produced settled history, so
+                    -- partitioning over it can leave a single-outcome group
+                    -- and inflate İKO to 100%. The (total, handicap) part
+                    -- keeps separate betting lines apart: Over/Under 2.5 is a
+                    -- different market than Over/Under 3.5 even though they
+                    -- share market_id 80.
+                    select poc.fixture_id, poc.bookmaker_id, poc.market_id,
+                           coalesce(nullif(poc.total, ''), '-') as total_key,
+                           coalesce(nullif(poc.handicap, ''), '-') as handicap_key,
+                           sum(1.0 / poc.value::numeric) as inv_sum
+                    from odds.prematch_odds_current poc
+                    where (poc.fixture_id, poc.bookmaker_id, poc.market_id) in (
+                        select distinct b.fixture_id, b.bookmaker_id, b.market_id
+                        from base b
+                    )
+                    and poc.value::numeric > 0
+                    group by poc.fixture_id, poc.bookmaker_id, poc.market_id,
+                             coalesce(nullif(poc.total, ''), '-'),
+                             coalesce(nullif(poc.handicap, ''), '-')
+                ),
+                with_iko as (
+                    -- İKO = (1/oran) / Σ(1/oran), expressed as a percentage.
+                    -- Equivalent to the bookmaker's implied probability after
+                    -- stripping the vig.
+                    select b.*,
+                           round(
+                               100.0 * (1.0 / b.odd_value) /
+                               nullif(mi.inv_sum, 0),
+                               4
+                           ) as iko
+                    from base b
+                    left join market_inv_sum mi
+                       on mi.fixture_id   = b.fixture_id
+                      and mi.bookmaker_id = b.bookmaker_id
+                      and mi.market_id    = b.market_id
+                      and mi.total_key    = coalesce(nullif(b.total, ''), '-')
+                      and mi.handicap_key = coalesce(nullif(b.handicap, ''), '-')
+                )
+                ,
+                row_filtered as (
+                    select with_iko.*,
+                           {fixtureRankSelect}
+                    from with_iko
+                    {rowWhere}
                 )
                 select id, fixture_id, fixture_signal_id, bookmaker_id, market_id,
                        window_code, outcome_key, label, odd_value, total, handicap,
                        win_count, lost_count, sample_count,
-                       winning_percent, earning_percent, rank_order, match_state,
-                       bet_winning,
+                       winning_percent, earning_percent, confidence_score, iko,
+                       rank_order, match_state, bet_winning,
                        count(*) over() as total_count,
                        sum(sample_count) over() as total_samples,
                        avg(winning_percent) over() as avg_winning_percent,
@@ -120,8 +227,9 @@ namespace PreOddsApi.WebApi.V3.Data
                        count(*) filter (where bet_winning is false) over() as fail_count,
                        coalesce(sum(odd_value) filter (where bet_winning is true) over(), 0) as earning_total,
                        max(as_of_date) over() as as_of_date_max
-                from filtered
-                order by bookmaker_id, market_id, window_code, rank_order
+                from row_filtered
+                {fixtureCapClause}
+                order by {orderBy}
                 limit @limit offset @offset;
                 """;
 
@@ -180,7 +288,9 @@ namespace PreOddsApi.WebApi.V3.Data
                     SampleCount = reader.GetInt32(reader.GetOrdinal("sample_count")),
                     WinningPercent = ReadNullableDecimal(reader, "winning_percent"),
                     EarningPercent = ReadNullableDecimal(reader, "earning_percent"),
-                    RankOrder = reader.GetInt32(reader.GetOrdinal("rank_order")),
+                    ConfidenceScore = ReadNullableDecimal(reader, "confidence_score"),
+                    Iko = ReadNullableDecimal(reader, "iko"),
+                    RankOrder = ReadNullableInt(reader, "rank_order") ?? 0,
                     MatchState = ReadNullableInt(reader, "match_state"),
                     BetWinning = ReadNullableBool(reader, "bet_winning")
                 });

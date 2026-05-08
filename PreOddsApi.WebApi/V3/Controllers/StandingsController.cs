@@ -32,5 +32,16 @@ namespace PreOddsApi.WebApi.V3.Controllers
                 paging.NormalizedPage, paging.NormalizedPerPage, ct);
             return OkPagedResponse(items, paging.NormalizedPage, paging.NormalizedPerPage, total);
         }
+
+        [HttpGet("table")]
+        public async Task<IActionResult> GetTableAsync(
+            [FromQuery(Name = "league_id")] long? leagueId,
+            [FromQuery(Name = "season_id")] long? seasonId,
+            [FromQuery(Name = "stage_id")] long? stageId,
+            CancellationToken ct)
+        {
+            var rows = await _reader.GetLeagueTableAsync(leagueId, seasonId, stageId, ct);
+            return OkResponse(rows);
+        }
     }
 }

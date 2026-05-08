@@ -50,5 +50,14 @@ namespace PreOddsApi.WebApi.V3.Dtos
 
         [JsonProperty("earning_percent")]
         public decimal? EarningPercent { get; init; }
+
+        /// <summary>
+        /// Whether SportMonks has settled this outcome as winning. Null when
+        /// the match isn't finished or the market isn't auto-graded — the
+        /// mobile UI uses this as a fallback when score-based grading can't
+        /// resolve the outcome (e.g. half-only markets).
+        /// </summary>
+        [JsonProperty("winning", NullValueHandling = NullValueHandling.Ignore)]
+        public bool? Winning { get; init; }
     }
 }

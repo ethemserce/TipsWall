@@ -2,6 +2,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using PreOddsApi.WebApi.V3.Contracts;
 using PreOddsApi.WebApi.V3.Data;
 
@@ -9,6 +10,7 @@ namespace PreOddsApi.WebApi.V3.Controllers
 {
     [Route("api/v3/prematch-odds")]
     [AllowAnonymous]
+    [EnableRateLimiting("read-heavy")]
     public sealed class PrematchOddsController : ApiControllerBase
     {
         private readonly IOddsReader _reader;
