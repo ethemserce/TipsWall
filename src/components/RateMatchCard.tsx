@@ -6,10 +6,14 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { CircularGauge } from '@/src/components/CircularGauge';
+import { getStateBucket } from '@/src/lib/fixtureState';
 import { useTheme } from '@/src/lib/useTheme';
 import type { FixtureDetail } from '@/src/types/fixtureDetail';
 import type { Market } from '@/src/types/market';
 import type { RateResult } from '@/src/types/rateResult';
+
+const WIN_COLOR = '#22c55e';
+const LOSS_COLOR = '#ef4444';
 
 interface RateMatchCardProps {
   fixtureId: number;
@@ -43,6 +47,11 @@ export function RateMatchCard({
   const startingAt = fixture?.fixture.starting_at ?? null;
   const dateLine = startingAt ? format(parseISO(startingAt), 'dd.MM.yyyy') : null;
   const timeLine = startingAt ? format(parseISO(startingAt), 'HH:mm') : null;
+  const bucket = getStateBucket(fixture?.fixture.state_id ?? null);
+  const finished = bucket === 'finished';
+  const homeScore = fixture?.fixture.home_score ?? null;
+  const awayScore = fixture?.fixture.away_score ?? null;
+  const showScore = finished && homeScore != null && awayScore != null;
 
   const stars = computeStars(signals, primaryMetric);
 
@@ -99,7 +108,22 @@ export function RateMatchCard({
 
         <View style={styles.teamsRow}>
           <TeamColumn name={homeName} imagePath={homeImg} />
-          <ThemedText style={[styles.vs, { color: c.text }]}>VS</ThemedText>
+          {showScore ? (
+            <View style={styles.scoreBlock}>
+              <ThemedText style={[styles.scoreText, { color: c.text }]}>
+                {homeScore}
+                <ThemedText style={[styles.scoreSep, { color: c.textMuted }]}>
+                  {' - '}
+                </ThemedText>
+                {awayScore}
+              </ThemedText>
+              <ThemedText style={[styles.scoreFt, { color: c.textMuted }]}>
+                FT
+              </ThemedText>
+            </View>
+          ) : (
+            <ThemedText style={[styles.vs, { color: c.text }]}>VS</ThemedText>
+          )}
           <TeamColumn name={awayName} imagePath={awayImg} />
         </View>
       </View>
@@ -135,19 +159,25 @@ export function RateMatchCard({
         const iko = ikoByMarket.get(s.market_id)?.get(s.id) ?? null;
         const sample = s.win_count + s.lost_count;
         const hasSample = sample > 0;
+        // bet_winning indicates whether this specific outcome won/lost on the
+        // matched fixture: true = green tip+odd, false = red, null = neutral.
+        const won = s.bet_winning === true;
+        const lost = s.bet_winning === false;
+        const tipColor = won ? WIN_COLOR : lost ? LOSS_COLOR : c.text;
+        const oddColor = won ? WIN_COLOR : lost ? LOSS_COLOR : c.textMuted;
         return (
           <View
             key={s.id}
             style={[styles.signalRow, { borderTopColor: c.border }]}>
             <View style={styles.cellLabel}>
               <ThemedText
-                style={[styles.label, { color: c.text }]}
+                style={[styles.label, { color: tipColor, fontWeight: won || lost ? '700' : '600' }]}
                 numberOfLines={1}>
                 {formatLabel(s, market)}
               </ThemedText>
             </View>
             <ThemedText
-              style={[styles.cell, styles.cellNumber, styles.numberValue, { color: c.textMuted }]}>
+              style={[styles.cell, styles.cellNumber, styles.numberValue, { color: oddColor }]}>
               {s.odd_value != null ? s.odd_value.toFixed(2) : '-'}
             </ThemedText>
             <View style={styles.cellGauge}>
@@ -366,6 +396,25 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 1,
     paddingHorizontal: 8,
+  },
+  scoreBlock: {
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    gap: 2,
+  },
+  scoreText: {
+    fontSize: 24,
+    fontWeight: '800',
+    fontVariant: ['tabular-nums'],
+  },
+  scoreSep: {
+    fontSize: 20,
+    fontWeight: '500',
+  },
+  scoreFt: {
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   headerRow: {
     flexDirection: 'row',

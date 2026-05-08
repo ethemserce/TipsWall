@@ -17,6 +17,7 @@ export interface RateResult {
   earning_percent: number | null;
   rank_order: number;
   match_state: number | null;
+  bet_winning?: boolean | null;
 }
 
 export interface RateSummary {
