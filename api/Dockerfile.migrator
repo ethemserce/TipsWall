@@ -1,0 +1,29 @@
+# PreOddsApi.Migrator production image.
+# Build with: docker build -f Dockerfile.migrator -t preoddsapi-migrator .
+
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+
+# csproj-only restore layer. The migrator has very few transitive
+# dependencies (Npgsql + .NET runtime) but we keep the same pattern as
+# the other images so a single shared `dotnet restore` cache works
+# across all five Dockerfiles in CI.
+COPY *.sln ./
+COPY PreOddsApi.Migrator/*.csproj PreOddsApi.Migrator/
+RUN dotnet restore PreOddsApi.Migrator/PreOddsApi.Migrator.csproj
+
+COPY PreOddsApi.Migrator/ PreOddsApi.Migrator/
+RUN dotnet publish PreOddsApi.Migrator/PreOddsApi.Migrator.csproj \
+    -c Release -o /app/publish --no-restore
+
+FROM mcr.microsoft.com/dotnet/runtime:8.0 AS runtime
+WORKDIR /app
+COPY --from=build /app/publish .
+# Migrations are file-based — we ship the SQL bundle alongside the
+# binary so a single image runs the right schema for the deploy.
+COPY database /app/database
+
+USER $APP_UID
+
+ENTRYPOINT ["dotnet", "PreOddsApi.Migrator.dll"]
+CMD ["/app/database/postgres"]

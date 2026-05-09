@@ -1,0 +1,100 @@
+# Production docker-compose for PreOddsApi.
+#
+# Usage:
+#   1. Copy .env.production.example to .env and fill in secrets.
+#   2. docker compose -f docker-compose.production.yml --env-file .env up -d --build
+#
+# Services:
+#   postgres   - PostgreSQL 16 with persistent volume.
+#   migrator   - Runs once on each up; applies SQL files from database/postgres/.
+#   webapi     - Read API on port 8080.
+#   worker-*   - SportMonks sync workers (disabled by default per appsettings).
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-preodds}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?required}
+      POSTGRES_DB: ${POSTGRES_DB:-preodds}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-preodds} -d ${POSTGRES_DB:-preodds}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  migrator:
+    build:
+      context: .
+      dockerfile: Dockerfile.migrator
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PREODDS_POSTGRES_CONNECTION: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-preodds};Username=${POSTGRES_USER:-preodds};Password=${POSTGRES_PASSWORD}"
+
+  webapi:
+    build:
+      context: .
+      dockerfile: Dockerfile.webapi
+    restart: unless-stopped
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+    ports:
+      - "${WEBAPI_PORT:-8080}:8080"
+    environment:
+      PREODDS_POSTGRES_CONNECTION: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-preodds};Username=${POSTGRES_USER:-preodds};Password=${POSTGRES_PASSWORD}"
+      PREODDS_JWT_SECRET: ${PREODDS_JWT_SECRET:?required}
+      PREODDS_INTERNAL_API_KEY: ${PREODDS_INTERNAL_API_KEY:-}
+      Authentication__Issuer: ${AUTH_ISSUER:-http://localhost:8080}
+      Authentication__Audience: ${AUTH_AUDIENCE:-http://localhost:8080}
+      Cors__AllowedOrigins__0: ${CORS_ORIGIN_0:?required}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health/live"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  worker-football:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker.football
+    restart: unless-stopped
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+    environment:
+      PREODDS_POSTGRES_CONNECTION: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-preodds};Username=${POSTGRES_USER:-preodds};Password=${POSTGRES_PASSWORD}"
+      SportMonks__ApiToken: ${SPORTMONKS_API_TOKEN:-}
+
+  worker-core:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker.core
+    restart: unless-stopped
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+    environment:
+      PREODDS_POSTGRES_CONNECTION: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-preodds};Username=${POSTGRES_USER:-preodds};Password=${POSTGRES_PASSWORD}"
+      SportMonks__ApiToken: ${SPORTMONKS_API_TOKEN:-}
+
+  worker-odds:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker.odds
+    restart: unless-stopped
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+    environment:
+      PREODDS_POSTGRES_CONNECTION: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-preodds};Username=${POSTGRES_USER:-preodds};Password=${POSTGRES_PASSWORD}"
+      SportMonks__ApiToken: ${SPORTMONKS_API_TOKEN:-}
+
+volumes:
+  postgres-data:

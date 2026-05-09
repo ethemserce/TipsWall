@@ -1,0 +1,27 @@
+# SportMonks.Core.Worker production image.
+#
+# Worker images use a single COPY for the build context — workers have a
+# deep transitive graph (ExternalApis → Entities → Core.Data + Core) and
+# explicit per-csproj copies don't pay off in CI cycles per second the
+# way they do for the webapi. If you find yourself rebuilding workers
+# tens of times a day, switch to the per-csproj layered pattern used in
+# Dockerfile.webapi.
+
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+COPY . .
+RUN dotnet restore PreOddsApi.Worker/SportMonks/SportMonks.Core/SportMonks.Core.Worker.csproj
+RUN dotnet publish PreOddsApi.Worker/SportMonks/SportMonks.Core/SportMonks.Core.Worker.csproj \
+    -c Release -o /app/publish --no-restore
+
+FROM mcr.microsoft.com/dotnet/runtime:8.0 AS runtime
+WORKDIR /app
+COPY --from=build /app/publish .
+
+# Drop privileges. $APP_UID is set by the .NET 8 base image to a
+# pre-created unprivileged uid; works on both `runtime` and `aspnet`
+# bases without us having to RUN useradd.
+USER $APP_UID
+
+ENV DOTNET_RUNNING_IN_CONTAINER=true
+ENTRYPOINT ["dotnet", "SportMonks.Core.Worker.dll"]

@@ -1,0 +1,158 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: backend-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Cache NuGet packages
+        # Restore-from-cache cuts ~30s off most builds. Key on the lock-y
+        # file set (csproj + Directory.*.props) so a new package forces a
+        # fresh restore.
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/Directory.*.props') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
+      - name: Restore
+        run: dotnet restore PreOddsApi.sln
+
+      # Whitespace gate (soft). The legacy projects haven't been
+      # formatted; a hard `--verify-no-changes` would block every PR
+      # until we baseline. Soft-fail surfaces drift in the CI output
+      # without blocking. Flip continue-on-error to false once we run
+      # `dotnet format whitespace` once and commit the baseline.
+      - name: Format check (whitespace, soft)
+        continue-on-error: true
+        run: |
+          dotnet format whitespace PreOddsApi.WebApi/PreOddsApi.WebApi.csproj \
+            --verify-no-changes \
+            --include "PreOddsApi.WebApi/V3/**" \
+                      "PreOddsApi.WebApi/Program.cs" \
+            || echo "::warning::dotnet format whitespace would rewrite files; run locally and commit."
+
+      - name: Build
+        run: dotnet build PreOddsApi.sln --configuration Release --no-restore
+
+      # Unit tests run without Docker — fast feedback loop.
+      - name: Unit tests
+        run: |
+          dotnet test PreOddsApi.WebApi.Tests/PreOddsApi.WebApi.Tests.csproj \
+            --configuration Release --no-build \
+            --filter "FullyQualifiedName!~Integration" \
+            --logger "trx;LogFileName=unit.trx" \
+            --results-directory TestResults
+
+      # Migrations smoke test: run the migrator end-to-end against an
+      # ephemeral Postgres so a malformed SQL file or a checksum drift
+      # is caught in CI rather than at deploy time. We run it twice —
+      # the second run must be a clean no-op (idempotency check).
+      - name: Start ephemeral Postgres for migrator smoke
+        run: |
+          docker run -d --name pg-migrator-smoke \
+            -e POSTGRES_USER=preodds \
+            -e POSTGRES_PASSWORD=preodds_ci \
+            -e POSTGRES_DB=preodds \
+            -p 15433:5432 \
+            postgres:16-alpine
+          # Wait for the server to accept connections.
+          for i in {1..30}; do
+            docker exec pg-migrator-smoke pg_isready -U preodds && break
+            sleep 1
+          done
+
+      - name: Run migrator
+        env:
+          PREODDS_POSTGRES_CONNECTION: "Host=localhost;Port=15433;Database=preodds;Username=preodds;Password=preodds_ci"
+        run: |
+          dotnet run --project PreOddsApi.Migrator/PreOddsApi.Migrator.csproj \
+            --configuration Release --no-build -- database/postgres
+
+      - name: Re-run migrator (idempotency)
+        env:
+          PREODDS_POSTGRES_CONNECTION: "Host=localhost;Port=15433;Database=preodds;Username=preodds;Password=preodds_ci"
+        run: |
+          # If anything in this run says `[apply]`, a migration was not
+          # tracked properly. The "Done: 0 new file(s)" line is what we
+          # want. grep -v inverts so the step fails on any [apply] line.
+          dotnet run --project PreOddsApi.Migrator/PreOddsApi.Migrator.csproj \
+            --configuration Release --no-build -- database/postgres \
+            | tee migrator-second-run.log
+          ! grep -q "\[apply\]" migrator-second-run.log
+
+      - name: Tear down ephemeral Postgres
+        if: always()
+        run: docker rm -f pg-migrator-smoke || true
+
+      # Integration tests use Testcontainers which spins up a real Postgres
+      # container on the runner. Slower but exercises the full host +
+      # migrations + health checks end-to-end.
+      - name: Integration tests
+        run: |
+          dotnet test PreOddsApi.WebApi.Tests/PreOddsApi.WebApi.Tests.csproj \
+            --configuration Release --no-build \
+            --filter "FullyQualifiedName~Integration" \
+            --logger "trx;LogFileName=integration.trx" \
+            --results-directory TestResults
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: TestResults/*.trx
+          retention-days: 14
+
+  docker-build:
+    # Verifying every Dockerfile builds catches drift between csproj
+    # changes and the multi-stage COPY paths. Doesn't push anything —
+    # this job is just a smoke test.
+    runs-on: ubuntu-latest
+    needs: build-test
+
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - { name: webapi, dockerfile: Dockerfile.webapi }
+          - { name: migrator, dockerfile: Dockerfile.migrator }
+          - { name: worker-core, dockerfile: Dockerfile.worker.core }
+          - { name: worker-football, dockerfile: Dockerfile.worker.football }
+          - { name: worker-odds, dockerfile: Dockerfile.worker.odds }
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build ${{ matrix.image.name }}
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.image.dockerfile }}
+          push: false
+          tags: preodds-${{ matrix.image.name }}:ci
+          cache-from: type=gha,scope=${{ matrix.image.name }}
+          cache-to: type=gha,scope=${{ matrix.image.name }},mode=max

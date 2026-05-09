@@ -1,0 +1,18 @@
+# SportMonks.Odds worker production image.
+# See Dockerfile.worker.core for the rationale behind the single COPY.
+
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+COPY . .
+RUN dotnet restore PreOddsApi.Worker/SportMonks/SportMonks.Odds/SportMonks.Odds.csproj
+RUN dotnet publish PreOddsApi.Worker/SportMonks/SportMonks.Odds/SportMonks.Odds.csproj \
+    -c Release -o /app/publish --no-restore
+
+FROM mcr.microsoft.com/dotnet/runtime:8.0 AS runtime
+WORKDIR /app
+COPY --from=build /app/publish .
+
+USER $APP_UID
+
+ENV DOTNET_RUNNING_IN_CONTAINER=true
+ENTRYPOINT ["dotnet", "SportMonks.Odds.dll"]

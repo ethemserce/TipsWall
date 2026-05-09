@@ -1,0 +1,46 @@
+# Build outputs
+**/bin/
+**/obj/
+TestResults/
+
+# Visual Studio / Rider / user-local files
+.vs/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.rsuser
+
+# Logs and runtime artifacts
+**/Logs/
+*.log
+*.tmp
+*.temp
+
+# Local secrets and environment-specific configuration
+**/appsettings.json
+**/appsettings.*.json
+!**/appsettings.example.json
+!**/appsettings.*.example.json
+secrets.json
+.env
+.env.*
+
+# NuGet / tooling caches
+packages/
+*.nupkg
+*.snupkg
+project.lock.json
+artifacts/
+
+# OS noise
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Claude Code workspace
+.claude/
+
+# VS Code workspace
+.vscode/
