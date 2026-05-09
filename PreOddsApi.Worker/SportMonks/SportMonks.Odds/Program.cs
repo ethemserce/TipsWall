@@ -1,35 +1,15 @@
-using Serilog;
-using SportMonks.Football.FixtureWorker.Services;
 using PreOddsApi.ExternalApis.DependencyInjection;
+using PreOddsApi.Worker;
+using SportMonks.Football.FixtureWorker.Services;
 
-IHost host = Host.CreateDefaultBuilder(args)
-    .ConfigureServices((configuration, services) =>
-    {
-        services.AddSportMonksApiClient(configuration.Configuration);
-        services.AddHostedService<OddsWorkerService>();
-    })
-    //.ConfigureAppConfiguration((hostContext, configBuilder) =>
-    //{
-    //    configBuilder
-    //           .SetBasePath(Directory.GetCurrentDirectory())
-    //           .AddJsonFile("appsettings.json")
-    //           .AddJsonFile($"appsettings.{hostContext.HostingEnvironment.EnvironmentName}.json", optional: true, reloadOnChange: true);
+var builder = Host.CreateDefaultBuilder(args);
 
-    //})
-    .UseSerilog()
-    .Build();
+WorkerObservability.Configure(builder, "PreOddsApi.Worker.Odds");
 
-var configSetting = new ConfigurationBuilder()
-    .AddJsonFile("appsettings.json")
-    .Build();
-var logPath = configSetting["Logging:Logpath"] ?? "Logs/Api_logs.txt";
+builder.ConfigureServices((context, services) =>
+{
+    services.AddSportMonksApiClient(context.Configuration);
+    services.AddHostedService<OddsWorkerService>();
+});
 
-Log.Logger = new LoggerConfiguration()
-    .MinimumLevel.Debug()
-    .MinimumLevel.Override("microsoft", Serilog.Events.LogEventLevel.Warning)
-    .Enrich.FromLogContext()
-    .WriteTo.File(logPath)
-    .CreateLogger();
-
-
-host.Run();
+await builder.Build().RunAsync();

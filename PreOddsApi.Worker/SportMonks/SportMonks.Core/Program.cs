@@ -1,26 +1,18 @@
 using PreOddsApi.ExternalApis.DependencyInjection;
-using Serilog;
+using PreOddsApi.Worker;
 using SportMonks.Core.Worker.WorkerServices;
 
-IHost host = Host.CreateDefaultBuilder(args)
-    .ConfigureServices((configuration, services) =>
-    {
-        services.AddSportMonksApiClient(configuration.Configuration);
-        services.AddHostedService<CoreWorkerService>();
-    })
-    .UseSerilog()
-    .Build();
+var builder = Host.CreateDefaultBuilder(args);
 
-var configSetting = new ConfigurationBuilder()
-    .AddJsonFile("appsettings.json")
-    .Build();
-var logPath = configSetting["Logging:Logpath"] ?? "Logs/Api_logs.txt";
+// Wires Serilog (FromLogContext + console + file via configuration) and
+// OpenTelemetry metrics + traces. Configuration overrides live in
+// appsettings.json under the Serilog section.
+WorkerObservability.Configure(builder, "PreOddsApi.Worker.Core");
 
-Log.Logger = new LoggerConfiguration()
-    .MinimumLevel.Debug()
-    .MinimumLevel.Override("microsoft", Serilog.Events.LogEventLevel.Warning)
-    .Enrich.FromLogContext()
-    .WriteTo.File(logPath)
-    .CreateLogger();
+builder.ConfigureServices((context, services) =>
+{
+    services.AddSportMonksApiClient(context.Configuration);
+    services.AddHostedService<CoreWorkerService>();
+});
 
-host.Run();
+await builder.Build().RunAsync();

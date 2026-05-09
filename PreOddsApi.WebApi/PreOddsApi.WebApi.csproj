@@ -38,6 +38,4 @@
     <ProjectReference Include="..\PreOddsApi.Entities\PreOddsApi.Entities.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-
 </Project>
