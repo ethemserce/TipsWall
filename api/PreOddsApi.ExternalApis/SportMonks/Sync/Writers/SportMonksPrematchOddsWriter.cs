@@ -148,6 +148,26 @@ namespace PreOddsApi.ExternalApis.SportMonks.Sync.Writers
             int? american,
             CancellationToken cancellationToken)
         {
+            await using (var purgeCmd = connection.CreateCommand())
+            {
+                purgeCmd.Transaction = transaction;
+                purgeCmd.CommandText = """
+                    delete from odds.prematch_odds_current
+                    where id = @id
+                      and (feed_type <> 'standard'
+                        or fixture_id <> @fixture_id
+                        or bookmaker_id <> @bookmaker_id
+                        or market_id <> @market_id
+                        or outcome_key <> @outcome_key);
+                    """;
+                purgeCmd.Parameters.Add(Parameter("id", odd.Id));
+                purgeCmd.Parameters.Add(Parameter("fixture_id", fixtureId));
+                purgeCmd.Parameters.Add(Parameter("bookmaker_id", odd.BookmakerId));
+                purgeCmd.Parameters.Add(Parameter("market_id", odd.MarketId));
+                purgeCmd.Parameters.Add(Parameter("outcome_key", outcomeKey));
+                await purgeCmd.ExecuteNonQueryAsync(cancellationToken);
+            }
+
             await using var command = connection.CreateCommand();
             command.Transaction = transaction;
             command.CommandText = """

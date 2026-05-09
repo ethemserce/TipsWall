@@ -222,6 +222,22 @@ export function AnalysisScreen() {
       return next;
     });
   }, []);
+  const allCollapsed =
+    leagueGroups.length > 0 &&
+    leagueGroups.every((g) => collapsed.has(g.leagueId));
+  const toggleAll = useCallback(() => {
+    setCollapsed((prev) => {
+      if (leagueGroups.every((g) => prev.has(g.leagueId))) {
+        return new Set();
+      }
+      return new Set(leagueGroups.map((g) => g.leagueId));
+    });
+  }, [leagueGroups]);
+
+  const visibleFixtureCount = useMemo(
+    () => leagueGroups.reduce((acc, g) => acc + g.fixtures.length, 0),
+    [leagueGroups],
+  );
 
   // Live pip per league (any fixture currently in play).
   const sectionLiveSet = useMemo(() => {
@@ -337,6 +353,36 @@ export function AnalysisScreen() {
         <View style={styles.spacer} />
         <MarketLegendButton />
       </View>
+
+      {leagueGroups.length > 0 ? (
+        <View style={styles.metaRow}>
+          <ThemedText style={[styles.metaText, { color: c.textMuted }]}>
+            {t('home.meta.summary', {
+              leagues: leagueGroups.length,
+              matches: visibleFixtureCount,
+            })}
+          </ThemedText>
+          <Pressable
+            onPress={toggleAll}
+            hitSlop={6}
+            style={({ pressed }) => [
+              styles.toggleAllBtn,
+              {
+                backgroundColor: pressed ? c.brandSoft : 'transparent',
+                borderColor: c.borderSoft,
+              },
+            ]}>
+            <MaterialCommunityIcons
+              name={allCollapsed ? 'unfold-more-horizontal' : 'unfold-less-horizontal'}
+              size={14}
+              color={c.brand}
+            />
+            <ThemedText style={[styles.toggleAllText, { color: c.brand }]}>
+              {allCollapsed ? t('home.toggleAll.expand') : t('home.toggleAll.collapse')}
+            </ThemedText>
+          </Pressable>
+        </View>
+      ) : null}
 
       {isLoading ? (
         <ScrollView contentContainerStyle={styles.list}>
@@ -536,6 +582,33 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '800',
     fontVariant: ['tabular-nums'],
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 6,
+  },
+  metaText: {
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+  },
+  toggleAllBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  toggleAllText: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
   list: {
     paddingHorizontal: 12,
