@@ -10,6 +10,7 @@ import { CouponStatsCard } from '@/src/components/CouponStatsCard';
 import { MarketLegendButton } from '@/src/components/MarketLegendButton';
 import { useFixtureLookup } from '@/src/hooks/useFixtureLookup';
 import { useLiveTicker } from '@/src/hooks/useLiveTicker';
+import { computeParlayMath } from '@/src/lib/coupons/stats';
 import {
   couponOutcome,
   deleteSavedCoupon,
@@ -194,6 +195,63 @@ function DeleteConfirmModal({
   );
 }
 
+/**
+ * Compact "fair odd vs your odd" pill below the coupon header. Communicates
+ * the bookmaker's vig at the parlay level so the user can see whether
+ * stacking legs is amplifying their edge or just compounding the book's
+ * margin. Hidden when any leg is missing iko (older coupons).
+ */
+function ParlayMathRow({ coupon }: { coupon: Coupon }) {
+  const c = useTheme();
+  const math = useMemo(() => computeParlayMath(coupon), [coupon]);
+  if (!math) return null;
+
+  const edgePositive = math.edgePercent >= 0;
+  const edgeColor = edgePositive ? c.success : c.danger;
+  const edgeBg = edgePositive ? c.successSoft : c.dangerSoft;
+
+  return (
+    <View
+      style={[
+        parlayStyles.row,
+        { backgroundColor: c.bg, borderTopColor: c.borderSoft },
+      ]}>
+      <View style={parlayStyles.cell}>
+        <ThemedText style={[parlayStyles.label, { color: c.textMuted }]}>
+          FAIR ORAN
+        </ThemedText>
+        <ThemedText style={[parlayStyles.value, { color: c.text }]}>
+          {math.fairOdd.toFixed(2)}
+        </ThemedText>
+      </View>
+      <View style={[parlayStyles.cellDivider, { backgroundColor: c.borderSoft }]} />
+      <View style={parlayStyles.cell}>
+        <ThemedText style={[parlayStyles.label, { color: c.textMuted }]}>
+          BAHIS VIG
+        </ThemedText>
+        <ThemedText style={[parlayStyles.value, { color: c.text }]}>
+          %{math.vigPercent.toFixed(1)}
+        </ThemedText>
+      </View>
+      <View style={[parlayStyles.cellDivider, { backgroundColor: c.borderSoft }]} />
+      <View
+        style={[
+          parlayStyles.cell,
+          parlayStyles.edgeCell,
+          { backgroundColor: edgeBg },
+        ]}>
+        <ThemedText style={[parlayStyles.label, { color: edgeColor }]}>
+          BEKL. GETİRİ
+        </ThemedText>
+        <ThemedText style={[parlayStyles.value, { color: edgeColor }]}>
+          {edgePositive ? '+' : ''}
+          {math.edgePercent.toFixed(1)}%
+        </ThemedText>
+      </View>
+    </View>
+  );
+}
+
 function EmptyHint({
   icon,
   label,
@@ -342,6 +400,7 @@ function CouponCard({
           </Pressable>
         ) : null}
       </View>
+      <ParlayMathRow coupon={coupon} />
       <View style={styles.divider} />
       {coupon.selections.map((s) => {
         // Don't show win/loss until the fixture has actually started,
@@ -703,5 +762,40 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
     letterSpacing: 0.6,
+  },
+});
+
+const parlayStyles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  cell: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 4,
+    gap: 2,
+  },
+  edgeCell: {
+    borderRadius: 6,
+    marginHorizontal: 2,
+  },
+  cellDivider: {
+    width: StyleSheet.hairlineWidth,
+    marginVertical: 2,
+  },
+  label: {
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+  },
+  value: {
+    fontSize: 13,
+    fontWeight: '800',
+    fontVariant: ['tabular-nums'],
   },
 });

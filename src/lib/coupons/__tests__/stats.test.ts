@@ -3,6 +3,7 @@ import {
   computeCalibrationTimeline,
   computeCouponStats,
   computeMarketBreakdown,
+  computeParlayMath,
 } from '@/src/lib/coupons/stats';
 import type { Coupon, CouponSelection } from '@/src/lib/coupons/types';
 
@@ -117,6 +118,51 @@ describe('computeCalibration', () => {
     expect(cal.systemAvgPercent).toBeCloseTo(70, 5);
     expect(cal.userActualPercent).toBeCloseTo(50, 5);
     expect(cal.deltaPoints).toBeCloseTo(-20, 5);
+  });
+});
+
+describe('computeParlayMath', () => {
+  test('null when any leg lacks iko', () => {
+    const c = coupon([selection({ iko: null, oddValue: 2.0 })]);
+    expect(computeParlayMath(c)).toBeNull();
+  });
+
+  test('positive edge when leg odds beat the no-vig fair odd', () => {
+    // Two legs, each priced fair-and-then-some: iko=50% (fair odd 2.0)
+    // but bookmaker offers 2.10 (mispriced in user's favour).
+    const c = coupon([
+      selection({ id: 'a', iko: 50, oddValue: 2.10 }),
+      selection({ id: 'b', iko: 50, oddValue: 2.10 }),
+    ]);
+    const m = computeParlayMath(c)!;
+    expect(m.legCount).toBe(2);
+    expect(m.combinedProbPercent).toBeCloseTo(25, 5); // 0.5 × 0.5
+    expect(m.fairOdd).toBeCloseTo(4, 5); // 1/0.25
+    expect(m.parlayOdd).toBeCloseTo(4.41, 5); // 2.10 × 2.10
+    // edge = 0.25 × 4.41 − 1 = 0.1025 → 10.25%
+    expect(m.edgePercent).toBeCloseTo(10.25, 4);
+    // vig is negative when the parlay is in the user's favour (4.41 > 4)
+    expect(m.vigPercent).toBeLessThan(0);
+  });
+
+  test('typical bookmaker vig drops parlay below fair odd', () => {
+    // Two legs with 5% vig: each leg iko 50% (no-vig) but odd is 1.91
+    // (≈ 4.5% under fair). Combined parlay should show vig.
+    const c = coupon([
+      selection({ id: 'a', iko: 50, oddValue: 1.91 }),
+      selection({ id: 'b', iko: 50, oddValue: 1.91 }),
+    ]);
+    const m = computeParlayMath(c)!;
+    expect(m.fairOdd).toBeCloseTo(4, 5);
+    expect(m.parlayOdd).toBeCloseTo(3.6481, 4);
+    // vig = (4 − 3.6481) / 4 = 8.8% — vigs compound across legs.
+    expect(m.vigPercent).toBeGreaterThan(8);
+    expect(m.vigPercent).toBeLessThan(10);
+    expect(m.edgePercent).toBeLessThan(0);
+  });
+
+  test('returns null on empty coupon', () => {
+    expect(computeParlayMath(coupon([]))).toBeNull();
   });
 });
 

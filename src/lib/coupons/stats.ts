@@ -43,6 +43,31 @@ export interface CalibrationPoint {
 }
 
 /**
+ * Math summary of a single parlay coupon. Derives from the no-vig implied
+ * probabilities (İKO) we snapshot at pick time, so the same numbers are
+ * stable as time passes (a leg's iko on disk doesn't move just because the
+ * bookmaker re-prices later).
+ *
+ *   combinedProbPercent  — product of leg iko's (treated as independent)
+ *   fairOdd              — 1 / combinedProb. The "no-vig" combined odd.
+ *   parlayOdd            — actual product of leg odds (what the user gets)
+ *   vigPercent           — how much the parlay odd is below fair (overround)
+ *   edgePercent          — combinedProb × parlayOdd − 1, expressed as %
+ *
+ * Returns null when any leg lacks an iko (e.g. very old coupons before we
+ * snapshot it) — the math is meaningless without a complete set.
+ */
+export interface ParlayMath {
+  legCount: number;
+  combinedProbPercent: number;
+  fairOdd: number;
+  parlayOdd: number;
+  vigPercent: number;
+  edgePercent: number;
+}
+
+
+/**
  * Coupon-level summary across every saved coupon (settled or not).
  * Counts a coupon as "won" only if every selection hit (matches store
  * couponOutcome semantics).
@@ -136,6 +161,44 @@ export function computeCalibration(saved: Coupon[]): Calibration | null {
     systemAvgPercent: systemAvg,
     userActualPercent: actual,
     deltaPoints: actual - systemAvg,
+  };
+}
+
+/**
+ * Per-coupon parlay math. Treats legs as independent (the textbook
+ * assumption — correlated outcomes will drift but for the user's pre-game
+ * pick context that's the closest we get).
+ *
+ * Returns null when any leg is missing iko — without the no-vig prob we
+ * can't compute fair odds. Older coupons created before iko was snapshot
+ * fall into this case naturally; the UI hides the section when null.
+ */
+export function computeParlayMath(coupon: Coupon): ParlayMath | null {
+  if (coupon.selections.length === 0) return null;
+
+  let combinedProb = 1.0;
+  let parlayOdd = 1.0;
+  for (const s of coupon.selections) {
+    if (s.iko == null || s.iko <= 0) return null;
+    if (s.oddValue <= 0) return null;
+    combinedProb *= s.iko / 100; // iko is stored as a percent
+    parlayOdd *= s.oddValue;
+  }
+
+  const fairOdd = combinedProb > 0 ? 1 / combinedProb : Number.POSITIVE_INFINITY;
+  // vig = how much overround the bookmaker bakes into the combined odd.
+  // (fairOdd − parlayOdd) / fairOdd. Always non-negative in a fair book;
+  // negative would mean the parlay is mispriced in the user's favour.
+  const vigPercent = fairOdd > 0 ? ((fairOdd - parlayOdd) / fairOdd) * 100 : 0;
+  const edgePercent = (combinedProb * parlayOdd - 1) * 100;
+
+  return {
+    legCount: coupon.selections.length,
+    combinedProbPercent: combinedProb * 100,
+    fairOdd,
+    parlayOdd,
+    vigPercent,
+    edgePercent,
   };
 }
 
