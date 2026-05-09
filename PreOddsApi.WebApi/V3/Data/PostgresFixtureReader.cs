@@ -150,12 +150,18 @@ namespace PreOddsApi.WebApi.V3.Data
                       and type_id in (20, 21)
                 ) away_cards on true
                 left join lateral (
+                    -- VAR is "active" only while a freshly-inserted event row
+                    -- is within its 90s window AND the fixture is currently
+                    -- live. last_synced_at would lie here: every full sync
+                    -- bumps it for historical rows too, leaving the badge
+                    -- stuck on the home list for the rest of the match.
                     select exists(
                         select 1 from football.fixture_events
                         where fixture_id = f.id
                           and participant_id = home_p.team_id
                           and type_id in (10, 1697)
-                          and last_synced_at > now() - interval '60 seconds'
+                          and created_at > now() - interval '90 seconds'
+                          and f.state_id in (2, 3, 4, 6, 19, 20, 22, 25, 26)
                     ) as active
                 ) home_var on true
                 left join lateral (
@@ -164,7 +170,8 @@ namespace PreOddsApi.WebApi.V3.Data
                         where fixture_id = f.id
                           and participant_id = away_p.team_id
                           and type_id in (10, 1697)
-                          and last_synced_at > now() - interval '60 seconds'
+                          and created_at > now() - interval '90 seconds'
+                          and f.state_id in (2, 3, 4, 6, 19, 20, 22, 25, 26)
                     ) as active
                 ) away_var on true
                 {where}
@@ -261,12 +268,15 @@ namespace PreOddsApi.WebApi.V3.Data
                       and type_id in (20, 21)
                 ) away_cards on true
                 left join lateral (
+                    -- See the listing query above for why this is created_at,
+                    -- not last_synced_at.
                     select exists(
                         select 1 from football.fixture_events
                         where fixture_id = f.id
                           and participant_id = home_p.team_id
                           and type_id in (10, 1697)
-                          and last_synced_at > now() - interval '60 seconds'
+                          and created_at > now() - interval '90 seconds'
+                          and f.state_id in (2, 3, 4, 6, 19, 20, 22, 25, 26)
                     ) as active
                 ) home_var on true
                 left join lateral (
@@ -275,7 +285,8 @@ namespace PreOddsApi.WebApi.V3.Data
                         where fixture_id = f.id
                           and participant_id = away_p.team_id
                           and type_id in (10, 1697)
-                          and last_synced_at > now() - interval '60 seconds'
+                          and created_at > now() - interval '90 seconds'
+                          and f.state_id in (2, 3, 4, 6, 19, 20, 22, 25, 26)
                     ) as active
                 ) away_var on true
                 where f.id = @id
