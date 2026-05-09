@@ -13,6 +13,7 @@
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.9.0" />
     <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.9.0" />
     <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" Version="1.9.0" />
+    <PackageReference Include="Sentry.Serilog" Version="4.13.0" />
     <PackageReference Include="Serilog.AspNetCore" Version="8.0.1" />
     <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
     <PackageReference Include="Serilog.Sinks.File" Version="5.0.0" />
@@ -23,6 +24,7 @@
          csproj because there's no PreOddsApi.Worker.Common library yet
          and three workers don't justify spinning one up. -->
     <Compile Include="..\..\WorkerObservability.cs" Link="WorkerObservability.cs" />
+    <Compile Include="..\..\WorkerHealthEndpoint.cs" Link="WorkerHealthEndpoint.cs" />
   </ItemGroup>
 
   <ItemGroup>

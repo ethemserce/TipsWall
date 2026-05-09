@@ -35,13 +35,51 @@ Log.Logger = new LoggerConfiguration()
 // MachineName / EnvironmentName enrichers live in Serilog.Enrichers.Environment,
 // which we're not adding right now — keep deps lean. FromLogContext is enough
 // for correlation id propagation, which is the load-bearing piece.
-builder.Host.UseSerilog((ctx, services, cfg) => cfg
-    .ReadFrom.Configuration(ctx.Configuration)
-    .ReadFrom.Services(services)
-    .Enrich.FromLogContext()
-    .WriteTo.Console(
-        outputTemplate:
-            "[{Timestamp:HH:mm:ss} {Level:u3}] {CorrelationId} {SourceContext} {Message:lj}{NewLine}{Exception}"));
+//
+// Sentry sink: Warning+ events get shipped to Sentry alongside Console.
+// DSN comes from SENTRY_DSN env var. When unset (dev / CI), the Sentry
+// SDK no-ops — Console output stays unchanged.
+var sentryDsn = Environment.GetEnvironmentVariable("SENTRY_DSN");
+
+builder.Host.UseSerilog((ctx, services, cfg) =>
+{
+    cfg.ReadFrom.Configuration(ctx.Configuration)
+        .ReadFrom.Services(services)
+        .Enrich.FromLogContext()
+        .WriteTo.Console(
+            outputTemplate:
+                "[{Timestamp:HH:mm:ss} {Level:u3}] {CorrelationId} {SourceContext} {Message:lj}{NewLine}{Exception}");
+
+    if (!string.IsNullOrWhiteSpace(sentryDsn))
+    {
+        cfg.WriteTo.Sentry(o =>
+        {
+            o.Dsn = sentryDsn;
+            o.MinimumEventLevel = Serilog.Events.LogEventLevel.Warning;
+            o.MinimumBreadcrumbLevel = Serilog.Events.LogEventLevel.Information;
+            o.Environment = ctx.HostingEnvironment.EnvironmentName;
+        });
+    }
+});
+
+// AspNetCore-side Sentry middleware: captures unhandled exceptions on the
+// request pipeline (the Serilog.Sentry sink only catches what's logged),
+// stamps each event with the request's TraceIdentifier so it lines up
+// with our Serilog correlation id.
+if (!string.IsNullOrWhiteSpace(sentryDsn))
+{
+    builder.WebHost.UseSentry(o =>
+    {
+        o.Dsn = sentryDsn;
+        o.Environment = builder.Environment.EnvironmentName;
+        // Trace 10% of requests in prod; nothing in development.
+        o.TracesSampleRate = builder.Environment.IsDevelopment() ? 0.0 : 0.1;
+        o.AttachStacktrace = true;
+        // PII off by default — we don't want auth headers / cookies in
+        // breadcrumbs. Flip to true only with deliberate consent flow.
+        o.SendDefaultPii = false;
+    });
+}
 
 IWebHostEnvironment environment = builder.Environment;
 
