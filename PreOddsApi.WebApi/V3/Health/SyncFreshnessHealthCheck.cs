@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Npgsql;
 
@@ -24,25 +23,20 @@ namespace PreOddsApi.WebApi.V3.Health
         // SportMonks itself rate-limits us.
         private static readonly TimeSpan FreshnessWindow = TimeSpan.FromHours(2);
 
-        private readonly string? _connectionString;
+        private readonly NpgsqlDataSource _dataSource;
 
-        public SyncFreshnessHealthCheck(IConfiguration configuration)
+        public SyncFreshnessHealthCheck(NpgsqlDataSource dataSource)
         {
-            _connectionString = Environment.GetEnvironmentVariable("PREODDS_POSTGRES_CONNECTION")
-                ?? configuration.GetConnectionString("PreOddsApiPostgresDb");
+            _dataSource = dataSource;
         }
 
         public async Task<HealthCheckResult> CheckHealthAsync(
             HealthCheckContext context,
             CancellationToken cancellationToken = default)
         {
-            if (string.IsNullOrWhiteSpace(_connectionString))
-                return HealthCheckResult.Unhealthy("Connection string not configured.");
-
             try
             {
-                await using var connection = new NpgsqlConnection(_connectionString);
-                await connection.OpenAsync(cancellationToken);
+                await using var connection = await _dataSource.OpenConnectionAsync(cancellationToken);
 
                 // The diagnostics table might not exist yet during very first
                 // boot — return Healthy in that case so /ready isn't blocked

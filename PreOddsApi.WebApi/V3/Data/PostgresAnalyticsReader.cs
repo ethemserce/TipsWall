@@ -10,12 +10,11 @@ namespace PreOddsApi.WebApi.V3.Data
 {
     public sealed class PostgresAnalyticsReader : IAnalyticsReader
     {
-        private readonly string? _connectionString;
+        private readonly NpgsqlDataSource _dataSource;
 
-        public PostgresAnalyticsReader(IConfiguration configuration)
+        public PostgresAnalyticsReader(NpgsqlDataSource dataSource)
         {
-            _connectionString = Environment.GetEnvironmentVariable("PREODDS_POSTGRES_CONNECTION")
-                ?? configuration.GetConnectionString("PreOddsApiPostgresDb");
+            _dataSource = dataSource;
         }
 
         public async Task<RateQueryResult> GetSignalsAsync(SignalQuery query, CancellationToken ct = default)
@@ -305,16 +304,8 @@ namespace PreOddsApi.WebApi.V3.Data
             };
         }
 
-        private async Task<NpgsqlConnection> OpenAsync(CancellationToken ct)
-        {
-            if (string.IsNullOrWhiteSpace(_connectionString))
-                throw new InvalidOperationException(
-                    "PostgreSQL connection string 'PreOddsApiPostgresDb' is required.");
-
-            var connection = new NpgsqlConnection(_connectionString);
-            await connection.OpenAsync(ct);
-            return connection;
-        }
+        private Task<NpgsqlConnection> OpenAsync(CancellationToken ct)
+            => _dataSource.OpenConnectionAsync(ct).AsTask();
 
         private static Guid? ReadNullableGuid(NpgsqlDataReader r, string column)
         {

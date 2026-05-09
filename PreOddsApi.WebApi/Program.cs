@@ -48,6 +48,24 @@ IWebHostEnvironment environment = builder.Environment;
 
 
 DependencyService.SetDependencyTypes(builder.Services, builder.Configuration);
+
+// One Npgsql connection pool for the whole process. Every V3 reader/service
+// pulls connections out of this pool instead of constructing a fresh
+// NpgsqlConnection per request. Multiplexing is enabled so concurrent
+// queries share physical connections — meaningful win on the analytics
+// endpoints that fan out per fixture.
+var pgConnectionString = Environment.GetEnvironmentVariable("PREODDS_POSTGRES_CONNECTION")
+    ?? builder.Configuration.GetConnectionString("PreOddsApiPostgresDb")
+    ?? throw new InvalidOperationException(
+        "PostgreSQL connection string 'PreOddsApiPostgresDb' is required.");
+{
+    var dataSourceBuilder = new Npgsql.NpgsqlDataSourceBuilder(pgConnectionString);
+    // Multiplexing: concurrent commands share a single physical connection
+    // when possible. Safe for read-heavy workloads; writers also benefit.
+    dataSourceBuilder.ConnectionStringBuilder.Multiplexing = true;
+    builder.Services.AddSingleton(dataSourceBuilder.Build());
+}
+
 builder.Services.AddSingleton<PreOddsApi.WebApi.V3.Data.IOddsReader,
     PreOddsApi.WebApi.V3.Data.PostgresOddsReader>();
 builder.Services.AddSingleton<PreOddsApi.WebApi.V3.Data.IAppSchemaService,

@@ -18,17 +18,16 @@ namespace PreOddsApi.WebApi.V3.Data
         private static readonly Regex EmailPattern =
             new("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$", RegexOptions.Compiled);
 
-        private readonly string? _connectionString;
+        private readonly NpgsqlDataSource _dataSource;
         private readonly IPrdUserService _legacyUserService;
         private readonly ILogger<PostgresUserIdentityService> _logger;
 
         public PostgresUserIdentityService(
-            IConfiguration configuration,
+            NpgsqlDataSource dataSource,
             IPrdUserService legacyUserService,
             ILogger<PostgresUserIdentityService> logger)
         {
-            _connectionString = Environment.GetEnvironmentVariable("PREODDS_POSTGRES_CONNECTION")
-                ?? configuration.GetConnectionString("PreOddsApiPostgresDb");
+            _dataSource = dataSource;
             _legacyUserService = legacyUserService;
             _logger = logger;
         }
@@ -250,16 +249,8 @@ namespace PreOddsApi.WebApi.V3.Data
                 "Failed to bridge legacy user to app.users.");
         }
 
-        private async Task<NpgsqlConnection> OpenAsync(CancellationToken ct)
-        {
-            if (string.IsNullOrWhiteSpace(_connectionString))
-                throw new InvalidOperationException(
-                    "PostgreSQL connection string 'PreOddsApiPostgresDb' is required.");
-
-            var connection = new NpgsqlConnection(_connectionString);
-            await connection.OpenAsync(ct);
-            return connection;
-        }
+        private Task<NpgsqlConnection> OpenAsync(CancellationToken ct)
+            => _dataSource.OpenConnectionAsync(ct).AsTask();
 
         private static string? ReadNullableString(NpgsqlDataReader r, string column)
         {

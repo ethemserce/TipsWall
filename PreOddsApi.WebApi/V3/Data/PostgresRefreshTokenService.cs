@@ -11,12 +11,11 @@ namespace PreOddsApi.WebApi.V3.Data
     {
         public static readonly TimeSpan TokenLifetime = TimeSpan.FromDays(30);
 
-        private readonly string? _connectionString;
+        private readonly NpgsqlDataSource _dataSource;
 
-        public PostgresRefreshTokenService(IConfiguration configuration)
+        public PostgresRefreshTokenService(NpgsqlDataSource dataSource)
         {
-            _connectionString = Environment.GetEnvironmentVariable("PREODDS_POSTGRES_CONNECTION")
-                ?? configuration.GetConnectionString("PreOddsApiPostgresDb");
+            _dataSource = dataSource;
         }
 
         public async Task<IssuedRefreshToken> IssueAsync(
@@ -154,15 +153,7 @@ namespace PreOddsApi.WebApi.V3.Data
             returning id;
             """;
 
-        private async Task<NpgsqlConnection> OpenAsync(CancellationToken ct)
-        {
-            if (string.IsNullOrWhiteSpace(_connectionString))
-                throw new InvalidOperationException(
-                    "PostgreSQL connection string 'PreOddsApiPostgresDb' is required.");
-
-            var connection = new NpgsqlConnection(_connectionString);
-            await connection.OpenAsync(ct);
-            return connection;
-        }
+        private Task<NpgsqlConnection> OpenAsync(CancellationToken ct)
+            => _dataSource.OpenConnectionAsync(ct).AsTask();
     }
 }

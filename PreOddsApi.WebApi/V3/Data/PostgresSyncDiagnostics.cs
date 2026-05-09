@@ -10,12 +10,11 @@ namespace PreOddsApi.WebApi.V3.Data
 {
     public sealed class PostgresSyncDiagnostics : ISyncDiagnostics
     {
-        private readonly string? _connectionString;
+        private readonly NpgsqlDataSource _dataSource;
 
-        public PostgresSyncDiagnostics(IConfiguration configuration)
+        public PostgresSyncDiagnostics(NpgsqlDataSource dataSource)
         {
-            _connectionString = Environment.GetEnvironmentVariable("PREODDS_POSTGRES_CONNECTION")
-                ?? configuration.GetConnectionString("PreOddsApiPostgresDb");
+            _dataSource = dataSource;
         }
 
         public async Task<IReadOnlyList<SyncJobCursorDto>> GetSyncStatusAsync(CancellationToken ct = default)
@@ -91,16 +90,8 @@ namespace PreOddsApi.WebApi.V3.Data
             return items;
         }
 
-        private async Task<NpgsqlConnection> OpenAsync(CancellationToken ct)
-        {
-            if (string.IsNullOrWhiteSpace(_connectionString))
-                throw new InvalidOperationException(
-                    "PostgreSQL connection string 'PreOddsApiPostgresDb' is required.");
-
-            var connection = new NpgsqlConnection(_connectionString);
-            await connection.OpenAsync(ct);
-            return connection;
-        }
+        private Task<NpgsqlConnection> OpenAsync(CancellationToken ct)
+            => _dataSource.OpenConnectionAsync(ct).AsTask();
 
         private static string? ReadNullableString(NpgsqlDataReader r, string column)
         {

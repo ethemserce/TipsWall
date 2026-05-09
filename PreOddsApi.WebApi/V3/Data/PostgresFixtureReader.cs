@@ -12,12 +12,11 @@ namespace PreOddsApi.WebApi.V3.Data
 {
     public sealed class PostgresFixtureReader : IFixtureReader
     {
-        private readonly string? _connectionString;
+        private readonly NpgsqlDataSource _dataSource;
 
-        public PostgresFixtureReader(IConfiguration configuration)
+        public PostgresFixtureReader(NpgsqlDataSource dataSource)
         {
-            _connectionString = Environment.GetEnvironmentVariable("PREODDS_POSTGRES_CONNECTION")
-                ?? configuration.GetConnectionString("PreOddsApiPostgresDb");
+            _dataSource = dataSource;
         }
 
         public async Task<(IReadOnlyList<FixtureSummaryDto> Items, int Total)> GetFixturesAsync(
@@ -824,16 +823,8 @@ namespace PreOddsApi.WebApi.V3.Data
             AwayVarActive = ReadNullableBool(r, "away_var_active")
         };
 
-        private async Task<NpgsqlConnection> OpenAsync(CancellationToken ct)
-        {
-            if (string.IsNullOrWhiteSpace(_connectionString))
-                throw new InvalidOperationException(
-                    "PostgreSQL connection string 'PreOddsApiPostgresDb' is required.");
-
-            var connection = new NpgsqlConnection(_connectionString);
-            await connection.OpenAsync(ct);
-            return connection;
-        }
+        private Task<NpgsqlConnection> OpenAsync(CancellationToken ct)
+            => _dataSource.OpenConnectionAsync(ct).AsTask();
 
         private static long? ReadNullableLong(NpgsqlDataReader r, string column)
         {
