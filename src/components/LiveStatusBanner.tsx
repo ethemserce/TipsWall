@@ -1,5 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Animated, Easing, StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -24,6 +25,7 @@ interface BannerState {
  */
 export function LiveStatusBanner() {
   const c = useTheme();
+  const { t } = useTranslation();
   const liveStatus = useLiveStatus();
   const netStatus = useNetStatus();
 
@@ -31,19 +33,19 @@ export function LiveStatusBanner() {
   if (netStatus === 'offline') {
     state = {
       icon: 'wifi-strength-1-alert',
-      message: 'İnternet bağlantısı yok. Yeniden bağlanılınca güncellenecek.',
+      message: t('common.offline'),
       tone: 'danger',
     };
   } else if (liveStatus === 'connecting') {
     state = {
       icon: 'sync',
-      message: 'Canlı veriye yeniden bağlanılıyor…',
+      message: t('common.liveReconnecting'),
       tone: 'warning',
     };
   } else if (liveStatus === 'disconnected') {
     state = {
       icon: 'wifi-off',
-      message: 'Canlı veri bağlantısı yok. Skorlar gecikebilir.',
+      message: t('common.liveDisconnected'),
       tone: 'danger',
     };
   }

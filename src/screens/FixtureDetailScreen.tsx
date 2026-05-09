@@ -35,6 +35,7 @@ import {
   useFixtureStatistics,
 } from '@/src/hooks/useFixtureExtras';
 import { useFixtureOddsRates } from '@/src/hooks/useFixtureOddsRates';
+import { shareFixture } from '@/src/lib/share';
 import { useLeagueLookup } from '@/src/hooks/useLeagueLookup';
 import { useLeagueTable } from '@/src/hooks/useLeagueTable';
 import { useLiveFixture } from '@/src/hooks/useLiveFixture';
@@ -154,7 +155,28 @@ export function FixtureDetailScreen({ fixtureId }: FixtureDetailScreenProps) {
             {league?.name ?? ''}
           </ThemedText>
         </View>
-        <View style={styles.headerBack}>
+        <View style={styles.headerActions}>
+          <Pressable
+            onPress={() => {
+              const fxName =
+                data.fixture.home_team_name && data.fixture.away_team_name
+                  ? `${data.fixture.home_team_name} - ${data.fixture.away_team_name}`
+                  : `Maç #${fixtureId}`;
+              shareFixture(fixtureId, fxName);
+            }}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Maçı paylaş"
+            style={({ pressed }) => [
+              styles.headerIconBtn,
+              pressed && { backgroundColor: c.brandSoft },
+            ]}>
+            <MaterialCommunityIcons
+              name="share-variant"
+              size={20}
+              color={c.textMuted}
+            />
+          </Pressable>
           <MarketLegendButton />
         </View>
       </View>
@@ -341,6 +363,18 @@ const styles = StyleSheet.create({
   headerBack: {
     width: 36,
     height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  headerIconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
   },

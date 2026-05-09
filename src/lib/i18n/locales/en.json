@@ -9,10 +9,53 @@
     "finished": "Finished",
     "match": "Match",
     "back": "Back",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "share": "Share",
     "couldNotLoad": "Couldn't load",
     "somethingWentWrong": "Something went wrong.",
     "noResults": "No results.",
-    "comingSoon": "{{name}} coming soon."
+    "comingSoon": "{{name}} coming soon.",
+    "offline": "No internet connection. Will refresh when reconnected.",
+    "liveReconnecting": "Reconnecting to live data…",
+    "liveDisconnected": "Live connection unavailable. Scores may lag."
+  },
+  "coupons": {
+    "empty": {
+      "title": "No coupons yet",
+      "body": "Tap an odd to drop it into your basket. Save the basket here once you've filled it.",
+      "hintAnalysisLabel": "Analysis",
+      "hintAnalysisText": "DSO/VBET-ranked odds",
+      "hintDetailLabel": "Detail",
+      "hintDetailText": "Picks on the match page"
+    },
+    "status": {
+      "won": "WON",
+      "lost": "LOST",
+      "pending": "PENDING"
+    },
+    "totalLabel": "TOTAL",
+    "parlay": {
+      "fairOdd": "FAIR ODD",
+      "vig": "BOOK VIG",
+      "expectedReturn": "EXP. RETURN"
+    },
+    "delete": {
+      "title": "Delete coupon",
+      "body": "Delete \"{{name}}\"? This can't be undone.",
+      "cancel": "CANCEL",
+      "confirm": "DELETE"
+    },
+    "summary": {
+      "selectionsSettled": "{{count}} picks · {{settled}}/{{count}} settled"
+    },
+    "a11y": {
+      "deleteCoupon": "Delete coupon {{name}}",
+      "deleteCouponHint": "Opens a confirmation dialog",
+      "shareCoupon": "Share coupon {{name}}",
+      "confirmCancel": "Cancel",
+      "confirmDelete": "Confirm delete"
+    }
   },
   "tabs": {
     "home": "Home",

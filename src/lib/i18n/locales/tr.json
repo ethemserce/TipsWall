@@ -9,10 +9,53 @@
     "finished": "Bitti",
     "match": "Maç",
     "back": "Geri",
+    "cancel": "İptal",
+    "delete": "Sil",
+    "share": "Paylaş",
     "couldNotLoad": "Yüklenemedi",
     "somethingWentWrong": "Bir şeyler ters gitti.",
     "noResults": "Sonuç bulunamadı.",
-    "comingSoon": "{{name}} yakında."
+    "comingSoon": "{{name}} yakında.",
+    "offline": "İnternet bağlantısı yok. Yeniden bağlanılınca güncellenecek.",
+    "liveReconnecting": "Canlı veriye yeniden bağlanılıyor…",
+    "liveDisconnected": "Canlı veri bağlantısı yok. Skorlar gecikebilir."
+  },
+  "coupons": {
+    "empty": {
+      "title": "Henüz kupon yok",
+      "body": "Bir oranın üstüne dokunarak sepete ekle. Sepet dolunca buradan kaydedip takip edebilirsin.",
+      "hintAnalysisLabel": "Analiz",
+      "hintAnalysisText": "DSO/VBET sıralı oranlar",
+      "hintDetailLabel": "Detay",
+      "hintDetailText": "Maç sayfasında öneriler"
+    },
+    "status": {
+      "won": "KAZANDI",
+      "lost": "KAYBETTİ",
+      "pending": "BEKLEMEDE"
+    },
+    "totalLabel": "TOPLAM",
+    "parlay": {
+      "fairOdd": "FAIR ORAN",
+      "vig": "BAHİS VİG",
+      "expectedReturn": "BEKL. GETİRİ"
+    },
+    "delete": {
+      "title": "Kuponu sil",
+      "body": "\"{{name}}\" silinsin mi? Bu işlem geri alınamaz.",
+      "cancel": "İPTAL",
+      "confirm": "SİL"
+    },
+    "summary": {
+      "selectionsSettled": "{{count}} seçim · {{settled}}/{{count}} sonuçlandı"
+    },
+    "a11y": {
+      "deleteCoupon": "{{name}} kuponunu sil",
+      "deleteCouponHint": "Onay penceresi açar",
+      "shareCoupon": "{{name}} kuponunu paylaş",
+      "confirmCancel": "İptal",
+      "confirmDelete": "Sil ve onayla"
+    }
   },
   "tabs": {
     "home": "Anasayfa",

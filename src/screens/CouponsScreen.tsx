@@ -1,6 +1,7 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { format, parseISO } from 'date-fns';
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FlatList, Modal, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -11,6 +12,7 @@ import { MarketLegendButton } from '@/src/components/MarketLegendButton';
 import { useFixtureLookup } from '@/src/hooks/useFixtureLookup';
 import { useLiveTicker } from '@/src/hooks/useLiveTicker';
 import { computeParlayMath } from '@/src/lib/coupons/stats';
+import { shareCoupon } from '@/src/lib/share';
 import {
   couponOutcome,
   deleteSavedCoupon,
@@ -27,6 +29,7 @@ import type { FixtureDetail } from '@/src/types/fixtureDetail';
 
 export function CouponsScreen() {
   const c = useTheme();
+  const { t } = useTranslation();
   const saved = useCouponStore((s) => s.saved);
   const hydrated = useCouponStore((s) => s.hydrated);
   // Settlement runs at the tab-shell level (app/(tabs)/_layout.tsx) so it's
@@ -87,22 +90,21 @@ export function CouponsScreen() {
             />
           </View>
           <ThemedText style={[styles.emptyTitle, { color: c.text }]}>
-            Henüz kupon yok
+            {t('coupons.empty.title')}
           </ThemedText>
           <ThemedText style={[styles.emptyText, { color: c.textMuted }]}>
-            Bir oranın üstüne dokunarak sepete ekle. Sepet dolunca buradan
-            kaydedip takip edebilirsin.
+            {t('coupons.empty.body')}
           </ThemedText>
           <View style={styles.emptyHints}>
             <EmptyHint
               icon="chart-line"
-              label="Analiz"
-              text="DSO/VBET sıralı oranlar"
+              label={t('coupons.empty.hintAnalysisLabel')}
+              text={t('coupons.empty.hintAnalysisText')}
             />
             <EmptyHint
               icon="basket-plus-outline"
-              label="Detay"
-              text="Maç sayfasında öneriler"
+              label={t('coupons.empty.hintDetailLabel')}
+              text={t('coupons.empty.hintDetailText')}
             />
           </View>
         </View>
@@ -145,6 +147,7 @@ function DeleteConfirmModal({
   onConfirm: () => void;
 }) {
   const c = useTheme();
+  const { t } = useTranslation();
   return (
     <Modal
       visible={coupon != null}
@@ -159,33 +162,31 @@ function DeleteConfirmModal({
             { backgroundColor: c.surface, borderColor: c.border },
           ]}>
           <ThemedText style={[styles.modalTitle, { color: c.text }]}>
-            Kuponu sil
+            {t('coupons.delete.title')}
           </ThemedText>
           <ThemedText style={[styles.modalBody, { color: c.textMuted }]}>
-            {coupon
-              ? `"${coupon.name}" silinsin mi? Bu işlem geri alınamaz.`
-              : ''}
+            {coupon ? t('coupons.delete.body', { name: coupon.name }) : ''}
           </ThemedText>
           <View style={styles.modalActions}>
             <Pressable
               onPress={onCancel}
               accessibilityRole="button"
-              accessibilityLabel="İptal"
+              accessibilityLabel={t('coupons.a11y.confirmCancel')}
               style={[styles.modalBtn, { borderColor: c.border }]}>
               <ThemedText style={[styles.modalBtnText, { color: c.text }]}>
-                İPTAL
+                {t('coupons.delete.cancel')}
               </ThemedText>
             </Pressable>
             <Pressable
               onPress={onConfirm}
               accessibilityRole="button"
-              accessibilityLabel="Sil ve onayla"
+              accessibilityLabel={t('coupons.a11y.confirmDelete')}
               style={[
                 styles.modalBtn,
                 { backgroundColor: c.danger, borderColor: c.danger },
               ]}>
               <ThemedText style={[styles.modalBtnText, { color: '#fff' }]}>
-                SİL
+                {t('coupons.delete.confirm')}
               </ThemedText>
             </Pressable>
           </View>
@@ -203,6 +204,7 @@ function DeleteConfirmModal({
  */
 function ParlayMathRow({ coupon }: { coupon: Coupon }) {
   const c = useTheme();
+  const { t } = useTranslation();
   const math = useMemo(() => computeParlayMath(coupon), [coupon]);
   if (!math) return null;
 
@@ -218,7 +220,7 @@ function ParlayMathRow({ coupon }: { coupon: Coupon }) {
       ]}>
       <View style={parlayStyles.cell}>
         <ThemedText style={[parlayStyles.label, { color: c.textMuted }]}>
-          FAIR ORAN
+          {t('coupons.parlay.fairOdd')}
         </ThemedText>
         <ThemedText style={[parlayStyles.value, { color: c.text }]}>
           {math.fairOdd.toFixed(2)}
@@ -227,7 +229,7 @@ function ParlayMathRow({ coupon }: { coupon: Coupon }) {
       <View style={[parlayStyles.cellDivider, { backgroundColor: c.borderSoft }]} />
       <View style={parlayStyles.cell}>
         <ThemedText style={[parlayStyles.label, { color: c.textMuted }]}>
-          BAHIS VIG
+          {t('coupons.parlay.vig')}
         </ThemedText>
         <ThemedText style={[parlayStyles.value, { color: c.text }]}>
           %{math.vigPercent.toFixed(1)}
@@ -241,7 +243,7 @@ function ParlayMathRow({ coupon }: { coupon: Coupon }) {
           { backgroundColor: edgeBg },
         ]}>
         <ThemedText style={[parlayStyles.label, { color: edgeColor }]}>
-          BEKL. GETİRİ
+          {t('coupons.parlay.expectedReturn')}
         </ThemedText>
         <ThemedText style={[parlayStyles.value, { color: edgeColor }]}>
           {edgePositive ? '+' : ''}
@@ -291,6 +293,7 @@ function CouponCard({
   onRequestDelete: () => void;
 }) {
   const c = useTheme();
+  const { t } = useTranslation();
   const created = format(parseISO(coupon.createdAt), 'dd.MM.yyyy HH:mm');
   const odd = totalOdd(coupon).toFixed(2);
   const outcome = couponOutcome(coupon);
@@ -301,10 +304,10 @@ function CouponCard({
 
   const statusLabel =
     outcome.state === 'won'
-      ? 'KAZANDI'
+      ? t('coupons.status.won')
       : outcome.state === 'lost'
-        ? 'KAYBETTİ'
-        : 'BEKLEMEDE';
+        ? t('coupons.status.lost')
+        : t('coupons.status.pending');
   const statusAccent =
     outcome.state === 'won'
       ? c.success
@@ -344,8 +347,11 @@ function CouponCard({
             {coupon.name}
           </ThemedText>
           <ThemedText style={[styles.cardSub, { color: c.textMuted }]}>
-            {created} · {coupon.selections.length} seçim ·{' '}
-            {outcome.settled}/{coupon.selections.length} sonuçlandı
+            {created} ·{' '}
+            {t('coupons.summary.selectionsSettled', {
+              count: coupon.selections.length,
+              settled: outcome.settled,
+            })}
           </ThemedText>
           <View
             style={[
@@ -364,7 +370,7 @@ function CouponCard({
         </View>
         <View style={styles.cardOdds}>
           <ThemedText style={[styles.oddLabel, { color: c.textMuted }]}>
-            TOPLAM
+            {t('coupons.totalLabel')}
           </ThemedText>
           <ThemedText
             style={[
@@ -381,13 +387,28 @@ function CouponCard({
             {odd}
           </ThemedText>
         </View>
+        <Pressable
+          onPress={() => shareCoupon(coupon)}
+          hitSlop={12}
+          accessibilityRole="button"
+          accessibilityLabel={t('coupons.a11y.shareCoupon', { name: coupon.name })}
+          style={({ pressed }) => [
+            styles.deleteBtn,
+            { backgroundColor: pressed ? c.brandSoft : 'transparent' },
+          ]}>
+          <MaterialCommunityIcons
+            name="share-variant"
+            size={20}
+            color={c.textMuted}
+          />
+        </Pressable>
         {deletable ? (
           <Pressable
             onPress={onRequestDelete}
             hitSlop={12}
             accessibilityRole="button"
-            accessibilityLabel={`${coupon.name} kuponunu sil`}
-            accessibilityHint="Onay penceresi açar"
+            accessibilityLabel={t('coupons.a11y.deleteCoupon', { name: coupon.name })}
+            accessibilityHint={t('coupons.a11y.deleteCouponHint')}
             style={({ pressed }) => [
               styles.deleteBtn,
               { backgroundColor: pressed ? c.dangerSoft : 'transparent' },
