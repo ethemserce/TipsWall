@@ -1,6 +1,8 @@
 import { format, parseISO } from 'date-fns';
 import { Image } from 'expo-image';
-import { StyleSheet, View } from 'react-native';
+import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { getStateBucket, getStateLabel } from '@/src/lib/fixtureState';
@@ -34,6 +36,7 @@ export function FixtureDetailHero({
   events,
 }: FixtureDetailHeroProps) {
   const c = useTheme();
+  const { t } = useTranslation();
   const bucket = getStateBucket(fixture.state_id);
   const live = bucket === 'live';
   const finished = bucket === 'finished';
@@ -77,6 +80,7 @@ export function FixtureDetailHero({
 
       <View style={styles.mainRow}>
         <TeamColumn
+          teamId={fixture.home_team_id}
           name={fixture.home_team_name}
           imagePath={fixture.home_team_image_path}
         />
@@ -117,13 +121,17 @@ export function FixtureDetailHero({
               {live && fixture.live_minute != null
                 ? `${fixture.live_minute}'`
                 : firstHalfPart
-                  ? `İY ${firstHalfPart.home}-${firstHalfPart.away}`
+                  ? t('fixture.hero.halfTimeShort', {
+                      home: firstHalfPart.home,
+                      away: firstHalfPart.away,
+                    })
                   : stateLabel}
             </ThemedText>
           ) : null}
         </View>
 
         <TeamColumn
+          teamId={fixture.away_team_id}
           name={fixture.away_team_name}
           imagePath={fixture.away_team_image_path}
         />
@@ -192,30 +200,48 @@ function GoalLine({
 }
 
 function TeamColumn({
+  teamId,
   name,
   imagePath,
 }: {
+  teamId: number | null | undefined;
   name: string | null | undefined;
   imagePath: string | null | undefined;
 }) {
   const c = useTheme();
+  const { t } = useTranslation();
+  // Tap on a team logo (or its placeholder) opens the team detail.
+  // Wrapping the logo only — not the surrounding star + name — keeps the
+  // affordance focused so the rest of the column doesn't accidentally
+  // navigate when the user is just reading the score.
+  const handlePress = () => {
+    if (teamId != null) router.push(`/team/${teamId}` as never);
+  };
   return (
     <View style={styles.teamColumn}>
       <ThemedText style={[styles.star, { color: c.textMuted }]}>☆</ThemedText>
-      {imagePath ? (
-        <Image
-          source={{ uri: imagePath }}
-          style={styles.teamLogo}
-          contentFit="contain"
-          transition={200}
-        />
-      ) : (
-        <View style={[styles.teamLogoPlaceholder, { backgroundColor: c.border }]} />
-      )}
+      <Pressable
+        onPress={handlePress}
+        disabled={teamId == null}
+        hitSlop={8}
+        accessibilityRole="button"
+        accessibilityLabel={name ?? t('fixture.hero.tbd')}
+        style={({ pressed }) => [pressed && { opacity: 0.6 }]}>
+        {imagePath ? (
+          <Image
+            source={{ uri: imagePath }}
+            style={styles.teamLogo}
+            contentFit="contain"
+            transition={200}
+          />
+        ) : (
+          <View style={[styles.teamLogoPlaceholder, { backgroundColor: c.border }]} />
+        )}
+      </Pressable>
       <ThemedText
         style={[styles.teamName, { color: c.text }]}
         numberOfLines={2}>
-        {name ?? 'TBD'}
+        {name ?? t('fixture.hero.tbd')}
       </ThemedText>
     </View>
   );
@@ -241,7 +267,7 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 20,
     paddingHorizontal: 16,
-    gap: 16,
+    gap: 20,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   kickoffRow: {
@@ -289,7 +315,7 @@ const styles = StyleSheet.create({
   centerColumn: {
     minWidth: 110,
     alignItems: 'center',
-    paddingTop: 18,
+    paddingTop: 24,
     gap: 4,
   },
   scoreRow: {
@@ -299,15 +325,18 @@ const styles = StyleSheet.create({
   },
   scoreText: {
     fontSize: 36,
+    lineHeight: 40,
     fontWeight: '700',
     fontVariant: ['tabular-nums'],
   },
   scoreSeparator: {
     fontSize: 28,
+    lineHeight: 40,
     fontWeight: '500',
   },
   kickoffTime: {
     fontSize: 26,
+    lineHeight: 30,
     fontWeight: '600',
     fontVariant: ['tabular-nums'],
   },

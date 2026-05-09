@@ -2,6 +2,10 @@ import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import {
+  formatOddValue,
+  useOddsHidden,
+} from '@/src/lib/settings/settingsStore';
 import { useTheme } from '@/src/lib/useTheme';
 import type { RateSummary } from '@/src/types/rateResult';
 
@@ -13,6 +17,7 @@ interface RateSummaryCardProps {
 export function RateSummaryCard({ summary, asOfDate }: RateSummaryCardProps) {
   const c = useTheme();
   const { t } = useTranslation();
+  const oddsHidden = useOddsHidden();
   const winRate =
     summary.bet_total > 0
       ? (summary.success_count / summary.bet_total) * 100
@@ -32,7 +37,7 @@ export function RateSummaryCard({ summary, asOfDate }: RateSummaryCardProps) {
         />
         <Stat
           label={t('rate.summary.avgOdd').toUpperCase()}
-          value={summary.avg_odd_value != null ? summary.avg_odd_value.toFixed(2) : '-'}
+          value={formatOddValue(summary.avg_odd_value, oddsHidden)}
           color={c.text}
         />
         <Stat

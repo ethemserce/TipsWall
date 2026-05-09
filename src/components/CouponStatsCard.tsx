@@ -13,6 +13,10 @@ import {
   type CalibrationPoint,
 } from '@/src/lib/coupons/stats';
 import type { Coupon } from '@/src/lib/coupons/types';
+import {
+  formatOddValue,
+  useOddsHidden,
+} from '@/src/lib/settings/settingsStore';
 import { useTheme } from '@/src/lib/useTheme';
 
 
@@ -28,6 +32,7 @@ interface CouponStatsCardProps {
 export function CouponStatsCard({ coupons }: CouponStatsCardProps) {
   const c = useTheme();
   const { t } = useTranslation();
+  const oddsHidden = useOddsHidden();
   const [expanded, setExpanded] = useState(false);
   const stats = useMemo(() => computeCouponStats(coupons), [coupons]);
   const breakdown = useMemo(() => computeMarketBreakdown(coupons), [coupons]);
@@ -96,7 +101,7 @@ export function CouponStatsCard({ coupons }: CouponStatsCardProps) {
           color={hitRate != null && hitRate >= 50 ? c.success : c.text}
         />
         <Stat
-          value={avgOdd != null ? avgOdd.toFixed(2) : '–'}
+          value={formatOddValue(avgOdd, oddsHidden)}
           label={t('coupons.stats.avgOdd')}
           color={c.text}
         />

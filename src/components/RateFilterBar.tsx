@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -22,16 +23,20 @@ interface RateFilterBarProps {
 
 const RATE_VALUES: number[] = [1.5, 1.8, 2.5, 4.0, 10.0];
 
-const WINDOW_LABEL: Record<WindowCode, string> = {
-  '1m': '1A',
-  '3m': '3A',
-  '6m': '6A',
-  '1y': '1Y',
-  all: 'Tümü',
+// Compact labels keyed by WindowCode. Pulled from i18n so they read as
+// "1m / 3m / 6m / 1y / All" in English and "1 Ay / 3 Ay / ... / Tümü"
+// when the device is set to Turkish.
+const WINDOW_LABEL_KEY: Record<WindowCode, string> = {
+  '1m': 'rate.filters.windowsShort.1m',
+  '3m': 'rate.filters.windowsShort.3m',
+  '6m': 'rate.filters.windowsShort.6m',
+  '1y': 'rate.filters.windowsShort.1y',
+  all: 'rate.filters.windowsShort.all',
 };
 
 export function RateFilterBar({ filters, onChange }: RateFilterBarProps) {
   const c = useTheme();
+  const { t } = useTranslation();
 
   const toggleBound = () =>
     onChange({
@@ -62,7 +67,7 @@ export function RateFilterBar({ filters, onChange }: RateFilterBarProps) {
                   styles.segmentText,
                   { color: active ? c.textInverse : c.text },
                 ]}>
-                {WINDOW_LABEL[key]}
+                {t(WINDOW_LABEL_KEY[key])}
               </ThemedText>
             </Pressable>
           );
@@ -81,7 +86,9 @@ export function RateFilterBar({ filters, onChange }: RateFilterBarProps) {
             {filters.rateBound === 'min' ? '≥' : '≤'}
           </ThemedText>
           <ThemedText style={[styles.boundLabel, { color: c.textInverse }]}>
-            {filters.rateBound === 'min' ? 'MIN' : 'MAX'}
+            {filters.rateBound === 'min'
+              ? t('rate.filters.bound.min')
+              : t('rate.filters.bound.max')}
           </ThemedText>
         </Pressable>
 
@@ -107,7 +114,7 @@ export function RateFilterBar({ filters, onChange }: RateFilterBarProps) {
                     filters.rateValue == null ? c.textInverse : c.textMuted,
                 },
               ]}>
-              Tümü
+              {t('common.all')}
             </ThemedText>
           </Pressable>
           {RATE_VALUES.map((value) => {

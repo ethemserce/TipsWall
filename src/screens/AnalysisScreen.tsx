@@ -1,6 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { format } from 'date-fns';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   FlatList,
@@ -8,6 +8,7 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
+  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -21,12 +22,16 @@ import {
 } from '@/src/components/AnalysisFiltersSheet';
 import { AppBrand } from '@/src/components/AppBrand';
 import { DateBar } from '@/src/components/DateBar';
+import { LeagueHeader } from '@/src/components/LeagueHeader';
 import { MarketLegendButton } from '@/src/components/MarketLegendButton';
 import { RateMatchCard } from '@/src/components/RateMatchCard';
 import { LeagueSectionSkeleton } from '@/src/components/Skeleton';
+import { useCountryLookup } from '@/src/hooks/useCountryLookup';
 import { useFixtureLookup } from '@/src/hooks/useFixtureLookup';
+import { useLeagueLookup } from '@/src/hooks/useLeagueLookup';
 import { useMarkets } from '@/src/hooks/useMarkets';
 import { useSignals } from '@/src/hooks/useSignals';
+import { getStateBucket } from '@/src/lib/fixtureState';
 import { useTheme } from '@/src/lib/useTheme';
 import type { SignalSort } from '@/src/api/signals';
 import type { RateResult } from '@/src/types/rateResult';
@@ -39,29 +44,46 @@ interface FixtureGroup {
   signals: RateResult[];
 }
 
-const SORTS: { key: SignalSort; label: string }[] = [
-  { key: 'confidence', label: 'Önerilen' },
-  { key: 'edge', label: 'Değer' },
-  { key: 'winning', label: 'DSO' },
-  { key: 'earning', label: 'VBET' },
-  { key: 'odd', label: 'Oran' },
-];
+interface LeagueGroup {
+  leagueId: number;
+  fixtures: FixtureGroup[];
+}
+
+// Sort is fixed to "confidence desc" — the chips that let users override
+// it (Önerilen / Değer / HIT / ROI / Oran) were removed; users tune the
+// list via the Filtre sheet only.
+const FIXED_SORT: SignalSort = 'confidence';
+const FIXED_SORT_DIR: 'asc' | 'desc' = 'desc';
+
+// Turkish-aware lowercasing — matches the home page's search behaviour.
+const normalizeForSearch = (value: string | null | undefined): string =>
+  (value ?? '').toLocaleLowerCase('tr-TR');
 
 export function AnalysisScreen() {
   const c = useTheme();
   const { t } = useTranslation();
   const [selectedDate, setSelectedDate] = useState(() => new Date());
-  const [sort, setSort] = useState<SignalSort>('confidence');
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [filters, setFilters] = useState<AnalysisFilterState>(DEFAULT_FILTERS);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const searchInputRef = useRef<TextInput | null>(null);
+
+  const handleToggleSearch = useCallback(() => {
+    setSearchOpen((prev) => {
+      const next = !prev;
+      if (!next) setSearchQuery('');
+      else setTimeout(() => searchInputRef.current?.focus(), 0);
+      return next;
+    });
+  }, []);
 
   const { data, isLoading, isFetching, isError, error, refetch } = useSignals({
     bookmakerId: BOOKMAKER_ID,
     fixtureDate: format(selectedDate, 'yyyy-MM-dd'),
     window: filters.window,
-    sort,
-    sortDir,
+    sort: FIXED_SORT,
+    sortDir: FIXED_SORT_DIR,
     minRate:
       filters.rateValue != null && filters.rateBound === 'min'
         ? filters.rateValue
@@ -81,7 +103,7 @@ export function AnalysisScreen() {
   const { lookup: marketLookup } = useMarkets();
   const items = data?.data.items ?? [];
 
-  const groups = useMemo<FixtureGroup[]>(() => {
+  const fixtureGroups = useMemo<FixtureGroup[]>(() => {
     const map = new Map<number, RateResult[]>();
     for (const r of items) {
       const list = map.get(r.fixture_id);
@@ -94,19 +116,127 @@ export function AnalysisScreen() {
     }));
   }, [items]);
 
-  const fixtureIds = useMemo(() => groups.map((g) => g.fixtureId), [groups]);
+  const fixtureIds = useMemo(
+    () => fixtureGroups.map((g) => g.fixtureId),
+    [fixtureGroups],
+  );
   const { lookup: fixtureLookup } = useFixtureLookup(fixtureIds);
 
-  const sortedGroups = useMemo(() => {
-    return [...groups].sort((a, b) => {
-      const ta = fixtureLookup.get(a.fixtureId)?.fixture.starting_at ?? '';
-      const tb = fixtureLookup.get(b.fixtureId)?.fixture.starting_at ?? '';
-      if (ta && tb) return ta.localeCompare(tb);
-      if (ta) return -1;
-      if (tb) return 1;
-      return a.fixtureId - b.fixtureId;
+  // Pull in league + country info so we can group, label, and filter by
+  // them. Both lookups dedup by id internally.
+  const leagueIds = useMemo(() => {
+    const ids = new Set<number>();
+    for (const f of fixtureLookup.values()) {
+      if (f.fixture.league_id != null) ids.add(f.fixture.league_id);
+    }
+    return Array.from(ids);
+  }, [fixtureLookup]);
+  const { lookup: leagueLookup } = useLeagueLookup(leagueIds);
+
+  const countryIds = useMemo(
+    () => Array.from(leagueLookup.values()).map((l) => l.country_id),
+    [leagueLookup],
+  );
+  const { lookup: countryLookup } = useCountryLookup(countryIds);
+
+  // Search across team and league + country names. Same matching rules as
+  // the home list so users get a consistent experience across screens.
+  const normalizedQuery = useMemo(
+    () => normalizeForSearch(searchQuery.trim()),
+    [searchQuery],
+  );
+  const searchActive = normalizedQuery.length > 0;
+  const filteredFixtureGroups = useMemo(() => {
+    if (!searchActive) return fixtureGroups;
+    return fixtureGroups.filter((g) => {
+      const fixture = fixtureLookup.get(g.fixtureId)?.fixture;
+      if (!fixture) return false;
+      if (
+        normalizeForSearch(fixture.home_team_name).includes(normalizedQuery) ||
+        normalizeForSearch(fixture.away_team_name).includes(normalizedQuery)
+      ) {
+        return true;
+      }
+      const league = fixture.league_id
+        ? leagueLookup.get(fixture.league_id)
+        : undefined;
+      if (normalizeForSearch(league?.name).includes(normalizedQuery)) return true;
+      const country = league?.country_id
+        ? countryLookup.get(league.country_id)
+        : undefined;
+      return normalizeForSearch(country?.name).includes(normalizedQuery);
     });
-  }, [groups, fixtureLookup]);
+  }, [fixtureGroups, fixtureLookup, leagueLookup, countryLookup, normalizedQuery, searchActive]);
+
+  // Group fixtures by league, ordered like the home list (by league
+  // category first, then name).
+  const leagueGroups = useMemo<LeagueGroup[]>(() => {
+    const map = new Map<number, FixtureGroup[]>();
+    const orphans: FixtureGroup[] = [];
+    for (const fg of filteredFixtureGroups) {
+      const fixture = fixtureLookup.get(fg.fixtureId)?.fixture;
+      const lid = fixture?.league_id;
+      if (lid == null) {
+        orphans.push(fg);
+        continue;
+      }
+      const existing = map.get(lid);
+      if (existing) existing.push(fg);
+      else map.set(lid, [fg]);
+    }
+    // Within each league sort fixtures by kickoff time.
+    for (const list of map.values()) {
+      list.sort((a, b) => {
+        const ta = fixtureLookup.get(a.fixtureId)?.fixture.starting_at ?? '';
+        const tb = fixtureLookup.get(b.fixtureId)?.fixture.starting_at ?? '';
+        return ta.localeCompare(tb);
+      });
+    }
+    const sorted: LeagueGroup[] = Array.from(map.entries())
+      .map(([leagueId, fixtures]) => ({ leagueId, fixtures }))
+      .sort((a, b) => {
+        const la = leagueLookup.get(a.leagueId);
+        const lb = leagueLookup.get(b.leagueId);
+        const ca = la?.category ?? Number.MAX_SAFE_INTEGER;
+        const cb = lb?.category ?? Number.MAX_SAFE_INTEGER;
+        if (ca !== cb) return ca - cb;
+        const na = la?.name ?? `Z${a.leagueId}`;
+        const nb = lb?.name ?? `Z${b.leagueId}`;
+        return na.localeCompare(nb);
+      });
+    if (orphans.length > 0) {
+      // -1 sentinel keeps orphan fixtures (no league_id resolved yet)
+      // visible under a "Diğer" section instead of dropping them.
+      sorted.push({ leagueId: -1, fixtures: orphans });
+    }
+    return sorted;
+  }, [filteredFixtureGroups, fixtureLookup, leagueLookup]);
+
+  // Per-league collapsed set + bulk toggle, mirroring the home list.
+  const [collapsed, setCollapsed] = useState<Set<number>>(() => new Set());
+  const toggleLeague = useCallback((leagueId: number) => {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(leagueId)) next.delete(leagueId);
+      else next.add(leagueId);
+      return next;
+    });
+  }, []);
+
+  // Live pip per league (any fixture currently in play).
+  const sectionLiveSet = useMemo(() => {
+    const out = new Set<number>();
+    for (const g of leagueGroups) {
+      for (const fg of g.fixtures) {
+        const fixture = fixtureLookup.get(fg.fixtureId)?.fixture;
+        if (fixture && getStateBucket(fixture.state_id) === 'live') {
+          out.add(g.leagueId);
+          break;
+        }
+      }
+    }
+    return out;
+  }, [leagueGroups, fixtureLookup]);
 
   const activeCount = countActiveFilters(filters);
 
@@ -114,14 +244,66 @@ export function AnalysisScreen() {
     <SafeAreaView style={[styles.flex, { backgroundColor: c.bg }]} edges={['top']}>
       <View style={styles.headerRow}>
         <AppBrand />
-        <View style={styles.headerRight}>
-          <MarketLegendButton />
-        </View>
+        <Pressable
+          onPress={handleToggleSearch}
+          hitSlop={12}
+          accessibilityRole="button"
+          accessibilityLabel={
+            searchOpen ? t('home.search.a11yClose') : t('home.search.a11yOpen')
+          }
+          style={({ pressed }) => [
+            styles.headerSearchBtn,
+            {
+              backgroundColor:
+                pressed || searchOpen ? c.brandSoft : 'transparent',
+            },
+          ]}>
+          <MaterialCommunityIcons
+            name={searchOpen ? 'close' : 'magnify'}
+            size={22}
+            color={searchOpen ? c.brand : c.textMuted}
+          />
+        </Pressable>
       </View>
+
+      {searchOpen ? (
+        <View
+          style={[
+            styles.searchRow,
+            { backgroundColor: c.surface, borderColor: c.borderSoft },
+          ]}>
+          <MaterialCommunityIcons name="magnify" size={18} color={c.textMuted} />
+          <TextInput
+            ref={searchInputRef}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder={t('home.search.placeholder')}
+            placeholderTextColor={c.textMuted}
+            autoCapitalize="none"
+            autoCorrect={false}
+            returnKeyType="search"
+            style={[styles.searchInput, { color: c.text }]}
+          />
+          {searchQuery.length > 0 ? (
+            <Pressable
+              onPress={() => setSearchQuery('')}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel={t('home.search.a11yClear')}>
+              <MaterialCommunityIcons
+                name="close-circle"
+                size={18}
+                color={c.textMuted}
+              />
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
 
       <DateBar selectedDate={selectedDate} onSelect={setSelectedDate} />
 
-      {/* Single-line control row: Filtre button + Sort chips */}
+      {/* Filter button + Legend share the control row. Filter on the left
+          because it's more often used; legend stays as a passive reference. */}
       <View style={[styles.controlRow, { borderBottomColor: c.border }]}>
         <Pressable
           onPress={() => setFiltersOpen(true)}
@@ -142,7 +324,7 @@ export function AnalysisScreen() {
               styles.filterBtnText,
               { color: activeCount > 0 ? c.textInverse : c.text },
             ]}>
-            Filtre
+            {t('analysis.filtersButton')}
           </ThemedText>
           {activeCount > 0 ? (
             <View style={[styles.badge, { backgroundColor: c.textInverse }]}>
@@ -152,50 +334,8 @@ export function AnalysisScreen() {
             </View>
           ) : null}
         </Pressable>
-
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.sortChipsContent}>
-          {SORTS.map((s) => {
-            const active = sort === s.key;
-            const onPress = () => {
-              if (active) {
-                // Re-tapping the active sort flips its direction.
-                setSortDir((d) => (d === 'desc' ? 'asc' : 'desc'));
-              } else {
-                setSort(s.key);
-                setSortDir('desc'); // new sort defaults to "best first"
-              }
-            };
-            return (
-              <Pressable
-                key={s.key}
-                onPress={onPress}
-                style={[
-                  styles.sortPill,
-                  { borderColor: c.border },
-                  active && { backgroundColor: c.brand, borderColor: c.brand },
-                ]}>
-                <ThemedText
-                  style={[
-                    styles.sortText,
-                    { color: active ? c.textInverse : c.textMuted },
-                  ]}>
-                  {s.label}
-                </ThemedText>
-                {active ? (
-                  <MaterialCommunityIcons
-                    name={sortDir === 'desc' ? 'arrow-down' : 'arrow-up'}
-                    size={11}
-                    color={c.textInverse}
-                    style={styles.sortArrow}
-                  />
-                ) : null}
-              </Pressable>
-            );
-          })}
-        </ScrollView>
+        <View style={styles.spacer} />
+        <MarketLegendButton />
       </View>
 
       {isLoading ? (
@@ -215,26 +355,91 @@ export function AnalysisScreen() {
         </View>
       ) : (
         <FlatList
-          data={sortedGroups}
-          keyExtractor={(g) => String(g.fixtureId)}
-          renderItem={({ item }) => (
-            <RateMatchCard
-              fixtureId={item.fixtureId}
-              fixture={fixtureLookup.get(item.fixtureId)}
-              signals={item.signals}
-              marketLookup={marketLookup}
-              primaryMetric={
-                sort === 'earning' ? 'earning_percent' : 'winning_percent'
-              }
-              gaugeColor={DSO_COLOR}
-            />
-          )}
+          data={leagueGroups}
+          keyExtractor={(g) => String(g.leagueId)}
+          keyboardShouldPersistTaps="handled"
+          renderItem={({ item }) => {
+            const league = leagueLookup.get(item.leagueId);
+            const country =
+              league?.country_id != null
+                ? countryLookup.get(league.country_id)
+                : undefined;
+            // While search is active sections auto-expand so hits are
+            // visible without first tapping the league header.
+            const isCollapsed =
+              !searchActive && collapsed.has(item.leagueId);
+            return (
+              <View
+                style={[
+                  styles.sectionCard,
+                  c.shadowCard,
+                  {
+                    backgroundColor: c.surfaceElevated,
+                    borderColor: c.borderSoft,
+                  },
+                ]}>
+                <LeagueHeader
+                  leagueId={item.leagueId}
+                  league={league}
+                  country={country}
+                  fixtureCount={item.fixtures.length}
+                  collapsed={isCollapsed}
+                  hasLive={sectionLiveSet.has(item.leagueId)}
+                  onToggle={() => toggleLeague(item.leagueId)}
+                />
+                {!isCollapsed
+                  ? item.fixtures.map((fg, idx) => (
+                      <View key={fg.fixtureId}>
+                        {idx > 0 ? (
+                          <View
+                            style={[
+                              styles.fixtureSeparator,
+                              { backgroundColor: c.borderSoft },
+                            ]}
+                          />
+                        ) : null}
+                        <RateMatchCard
+                          fixtureId={fg.fixtureId}
+                          fixture={fixtureLookup.get(fg.fixtureId)}
+                          signals={fg.signals}
+                          marketLookup={marketLookup}
+                          primaryMetric="winning_percent"
+                          gaugeColor={DSO_COLOR}
+                        />
+                      </View>
+                    ))
+                  : null}
+              </View>
+            );
+          }}
           contentContainerStyle={styles.list}
           ListEmptyComponent={
             <View style={styles.center}>
-              <ThemedText style={{ color: c.textMuted }}>
-                {t('rate.noResults')}
-              </ThemedText>
+              {searchActive ? (
+                <>
+                  <View
+                    style={[
+                      styles.emptyIconCircle,
+                      { backgroundColor: c.brandSoft },
+                    ]}>
+                    <MaterialCommunityIcons
+                      name="magnify-close"
+                      size={28}
+                      color={c.brand}
+                    />
+                  </View>
+                  <ThemedText style={[styles.errorTitle, { color: c.text }]}>
+                    {t('home.empty.searchTitle')}
+                  </ThemedText>
+                  <ThemedText style={[styles.errorMessage, { color: c.textMuted }]}>
+                    {t('home.empty.searchBody')}
+                  </ThemedText>
+                </>
+              ) : (
+                <ThemedText style={{ color: c.textMuted }}>
+                  {t('rate.noResults')}
+                </ThemedText>
+              )}
             </View>
           }
           refreshControl={
@@ -259,16 +464,40 @@ export function AnalysisScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  // Same layout as the home page so the screens feel like siblings: brand
+  // centered, magnify button corner-anchored.
   headerRow: {
     paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 4,
     justifyContent: 'center',
   },
-  headerRight: {
+  headerSearchBtn: {
     position: 'absolute',
     right: 12,
-    top: 8,
+    top: 6,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginHorizontal: 16,
+    marginTop: 4,
+    marginBottom: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    paddingVertical: 0,
   },
   controlRow: {
     flexDirection: 'row',
@@ -277,6 +506,9 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     gap: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  spacer: {
+    flex: 1,
   },
   filterBtn: {
     flexDirection: 'row',
@@ -305,31 +537,21 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     fontVariant: ['tabular-nums'],
   },
-  sortChipsContent: {
-    flexDirection: 'row',
-    gap: 4,
-    alignItems: 'center',
-  },
-  sortPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-    borderRadius: 999,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  sortText: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.3,
-  },
-  sortArrow: {
-    marginLeft: 1,
-  },
   list: {
+    paddingHorizontal: 12,
     paddingTop: 4,
     paddingBottom: 32,
+    gap: 12,
+    flexGrow: 1,
+  },
+  sectionCard: {
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: 'hidden',
+  },
+  fixtureSeparator: {
+    height: StyleSheet.hairlineWidth,
+    marginLeft: 16,
   },
   center: {
     flex: 1,
@@ -338,12 +560,21 @@ const styles = StyleSheet.create({
     padding: 32,
     gap: 8,
   },
+  emptyIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
   errorTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   errorMessage: {
     fontSize: 13,
     textAlign: 'center',
+    fontWeight: '500',
   },
 });

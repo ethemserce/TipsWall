@@ -1,6 +1,7 @@
 import { Image } from 'expo-image';
+import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { TabEmpty, TabError, TabLoading } from '@/src/components/TabFeedback';
@@ -69,13 +70,23 @@ export function StandingsTab({
 
       {rows.map((row) => {
         const highlighted = row.team_id != null && highlightSet.has(row.team_id);
+        // Whole row navigates to the team detail when team_id is known —
+        // makes the standings table a cheap entry point into team pages.
+        const onPress = () => {
+          if (row.team_id != null) {
+            router.push(`/team/${row.team_id}` as never);
+          }
+        };
         return (
-          <View
+          <Pressable
             key={row.team_id ?? row.position ?? Math.random()}
-            style={[
+            onPress={onPress}
+            disabled={row.team_id == null}
+            style={({ pressed }) => [
               styles.row,
               { borderTopColor: c.border },
               highlighted && { backgroundColor: c.bg },
+              pressed && row.team_id != null && { backgroundColor: c.brandSoft },
             ]}>
             <ThemedText
               style={[
@@ -124,7 +135,7 @@ export function StandingsTab({
               ]}>
               {row.points}
             </ThemedText>
-          </View>
+          </Pressable>
         );
       })}
 

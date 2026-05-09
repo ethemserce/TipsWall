@@ -11,9 +11,18 @@ import type { FixtureSummary } from '@/src/types/fixture';
 
 interface FixtureCardProps {
   fixture: FixtureSummary;
+  // Optional long-press peek hooks. Owner shows a faded preview of the
+  // detail screen while the user keeps the finger down; releases it on
+  // press-out. Tap navigation still goes through onPress.
+  onLongPress?: (fixture: FixtureSummary) => void;
+  onPressOut?: () => void;
 }
 
-export function FixtureCard({ fixture }: FixtureCardProps) {
+export function FixtureCard({
+  fixture,
+  onLongPress,
+  onPressOut,
+}: FixtureCardProps) {
   const c = useTheme();
   const router = useRouter();
   const bucket = getStateBucket(fixture.state_id);
@@ -43,6 +52,9 @@ export function FixtureCard({ fixture }: FixtureCardProps) {
   return (
     <Pressable
       onPress={() => router.push(`/fixture/${fixture.id}` as never)}
+      onLongPress={onLongPress ? () => onLongPress(fixture) : undefined}
+      onPressOut={onPressOut}
+      delayLongPress={350}
       style={({ pressed }) => [
         styles.card,
         {

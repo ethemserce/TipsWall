@@ -12,6 +12,10 @@ import {
 } from '@/src/lib/coupons/store';
 import { getStateBucket } from '@/src/lib/fixtureState';
 import { outcomeLiveStatus } from '@/src/lib/liveOutcome';
+import {
+  formatOddValue,
+  useOddsHidden,
+} from '@/src/lib/settings/settingsStore';
 import { useTheme } from '@/src/lib/useTheme';
 import type { FixtureDetail } from '@/src/types/fixtureDetail';
 import type { Market } from '@/src/types/market';
@@ -44,6 +48,7 @@ export function RateMatchCard({
   primaryMetric,
 }: RateMatchCardProps) {
   const c = useTheme();
+  const oddsHidden = useOddsHidden();
   const router = useRouter();
 
   const homeName = fixture?.fixture.home_team_name ?? null;
@@ -197,23 +202,25 @@ export function RateMatchCard({
           ]}>
           TİP
         </ThemedText>
-        <ThemedText style={[styles.headerCell, styles.cellNumber, { color: c.textMuted }]}>
-          ORAN
+        {!oddsHidden ? (
+          <ThemedText style={[styles.headerCell, styles.cellNumber, { color: c.textMuted }]}>
+            ORAN
+          </ThemedText>
+        ) : null}
+        <ThemedText style={[styles.headerCell, styles.cellGauge, { color: c.textMuted }]}>
+          ROI
         </ThemedText>
         <ThemedText style={[styles.headerCell, styles.cellGauge, { color: c.textMuted }]}>
-          VBET
+          HIT
         </ThemedText>
         <ThemedText style={[styles.headerCell, styles.cellGauge, { color: c.textMuted }]}>
-          DSO
-        </ThemedText>
-        <ThemedText style={[styles.headerCell, styles.cellGauge, { color: c.textMuted }]}>
-          İKO
+          IMP
         </ThemedText>
         <ThemedText style={[styles.headerCell, styles.cellNarrow, { color: c.textMuted }]}>
-          KZ
+          W
         </ThemedText>
         <ThemedText style={[styles.headerCell, styles.cellNarrow, { color: c.textMuted }]}>
-          KY
+          L
         </ThemedText>
       </View>
 
@@ -290,40 +297,50 @@ export function RateMatchCard({
           <View
             key={s.id}
             style={[styles.signalRow, { borderTopColor: c.border }]}>
-            <View style={styles.cellLabel}>
-              <ThemedText
-                style={[styles.label, { color: c.text }]}
-                numberOfLines={1}>
-                {formatLabel(s, market)}
-              </ThemedText>
-            </View>
             <Pressable
               onPress={handleAddToCoupon}
               disabled={tapDisabled && !inCoupon}
+              accessibilityRole="button"
+              accessibilityState={{ selected: inCoupon, disabled: tapDisabled && !inCoupon }}
               style={[
-                styles.cellNumber,
-                styles.oddCell,
-                inCoupon && {
-                  backgroundColor: c.brand,
-                  borderColor: c.brand,
-                },
-                !inCoupon && { borderColor: c.border },
+                styles.cellLabel,
+                styles.tipPressable,
+                inCoupon && { backgroundColor: c.brandSoft, borderColor: c.brand },
                 tapDisabled && !inCoupon && { opacity: 0.4 },
               ]}>
               <ThemedText
                 style={[
-                  styles.cell,
-                  styles.numberValue,
+                  styles.label,
                   {
-                    color: inCoupon
-                      ? c.textInverse
-                      : oddColor,
-                    fontWeight: inCoupon || won || lost ? '700' : '600',
+                    color: inCoupon ? c.brand : c.text,
+                    fontWeight: inCoupon ? '700' : '500',
                   },
-                ]}>
-                {s.odd_value != null ? s.odd_value.toFixed(2) : '-'}
+                ]}
+                numberOfLines={1}>
+                {inCoupon ? '✓ ' : ''}
+                {formatLabel(s, market)}
               </ThemedText>
             </Pressable>
+            {!oddsHidden ? (
+              <View
+                style={[
+                  styles.cellNumber,
+                  styles.oddCell,
+                  { borderColor: c.border },
+                ]}>
+                <ThemedText
+                  style={[
+                    styles.cell,
+                    styles.numberValue,
+                    {
+                      color: oddColor,
+                      fontWeight: won || lost ? '700' : '600',
+                    },
+                  ]}>
+                  {formatOddValue(s.odd_value, oddsHidden)}
+                </ThemedText>
+              </View>
+            ) : null}
             <View style={styles.cellGauge}>
               <CircularGauge
                 value={hasSample ? s.earning_percent : null}
@@ -614,6 +631,16 @@ const styles = StyleSheet.create({
   cellLabel: {
     flex: 1.3,
     paddingLeft: 6,
+  },
+  // Tip cell doubles as the coupon add/remove tap target now (was the odd
+  // cell). Subtle border so the affordance is visible without being noisy.
+  tipPressable: {
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'transparent',
+    justifyContent: 'center',
   },
   label: {
     fontSize: 12,

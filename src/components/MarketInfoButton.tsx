@@ -1,5 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Modal, Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -12,106 +13,21 @@ interface MarketDoc {
   outcomes: { key: string; meaning: string }[];
 }
 
-// Market explanations the mobile app surfaces. Keep aligned with the
-// market shortcodes used in RateMatchCard.formatLabel.
-const MARKETS: Record<number, MarketDoc> = {
-  1: {
-    short: 'MS',
-    title: 'Maç Sonucu',
-    blurb: 'Maçın 90 dakika bitimindeki sonucu. Uzatma ve penaltılar sayılmaz.',
-    outcomes: [
-      { key: '1', meaning: 'Ev sahibi galip' },
-      { key: 'X', meaning: 'Beraberlik' },
-      { key: '2', meaning: 'Deplasman galip' },
-    ],
-  },
-  10: {
-    short: 'DNB',
-    title: 'Beraberlikte İade',
-    blurb: 'Maç berabere biterse bahis iade edilir; aksi halde tahmin kazanır ya da kaybeder.',
-    outcomes: [
-      { key: '1', meaning: 'Ev sahibi galip' },
-      { key: '2', meaning: 'Deplasman galip' },
-    ],
-  },
-  14: {
-    short: 'KG',
-    title: 'Karşılıklı Gol',
-    blurb: 'Maçta iki takımın da gol atıp atmayacağı.',
-    outcomes: [
-      { key: 'Var', meaning: 'İki takım da en az 1 gol atar' },
-      { key: 'Yok', meaning: 'En az bir takım gol atamaz' },
-    ],
-  },
-  18: {
-    short: 'EV',
-    title: 'Ev Sahibi Tam Skor',
-    blurb: 'Ev sahibinin tam olarak kaç gol attığı.',
-    outcomes: [
-      { key: '0 / 1 / 2 / 3+', meaning: 'Ev sahibinin attığı gol sayısı (3+ üç ve üstü)' },
-    ],
-  },
-  19: {
-    short: 'DEP',
-    title: 'Deplasman Tam Skor',
-    blurb: 'Deplasman takımının tam olarak kaç gol attığı.',
-    outcomes: [
-      { key: '0 / 1 / 2 / 3+', meaning: 'Deplasmanın attığı gol sayısı' },
-    ],
-  },
-  31: {
-    short: 'İY MS',
-    title: 'İlk Yarı Sonucu',
-    blurb: 'İlk yarı (45 dk) bitimindeki sonuç.',
-    outcomes: [
-      { key: '1', meaning: 'Ev sahibi önde' },
-      { key: 'X', meaning: 'Beraberlik' },
-      { key: '2', meaning: 'Deplasman önde' },
-    ],
-  },
-  33: {
-    short: 'İY',
-    title: '1. Yarı Tam Skor',
-    blurb: 'İlk yarıda atılan toplam gol sayısı.',
-    outcomes: [
-      { key: '0 / 1 / 2 / 3 / 4 / 5+', meaning: 'İlk yarıda toplam gol' },
-    ],
-  },
-  38: {
-    short: '2Y',
-    title: '2. Yarı Tam Skor',
-    blurb: 'İkinci yarıda atılan toplam gol sayısı.',
-    outcomes: [
-      { key: '0 / 1 / 2 / 3 / 4 / 5+', meaning: 'İkinci yarıda toplam gol' },
-    ],
-  },
-  44: {
-    short: 'T/Ç',
-    title: 'Tek / Çift',
-    blurb: 'Maçtaki toplam gol sayısının tek mi çift mi olduğu.',
-    outcomes: [
-      { key: 'Tek', meaning: 'Toplam gol 1, 3, 5...' },
-      { key: 'Çift', meaning: 'Toplam gol 0, 2, 4...' },
-    ],
-  },
-  52: {
-    short: 'EV/DEP',
-    title: 'Ev Sahibi / Deplasman',
-    blurb: 'Beraberlik dikkate alınmaz; sadece galibiyet.',
-    outcomes: [
-      { key: 'Ev', meaning: 'Ev sahibi galip' },
-      { key: 'Dep', meaning: 'Deplasman galip' },
-    ],
-  },
-  80: {
-    short: 'A/Ü',
-    title: 'Toplam Gol Alt / Üst',
-    blurb: 'Maçtaki toplam gol sayısının verilen çizgiyi geçip geçmediği.',
-    outcomes: [
-      { key: 'Üst (Over)', meaning: 'Toplam gol > çizgi' },
-      { key: 'Alt (Under)', meaning: 'Toplam gol < çizgi' },
-    ],
-  },
+// Shortcodes are language-neutral betting glyphs (MS, KG, T/Ç) — they stay
+// in code and pair with a language-specific lookup for title / blurb / outcomes
+// pulled from the i18n bundle.
+const MARKET_SHORTS: Record<number, string> = {
+  1: 'MS',
+  10: 'DNB',
+  14: 'KG',
+  18: 'EV',
+  19: 'DEP',
+  31: 'İY MS',
+  33: 'İY',
+  38: '2Y',
+  44: 'T/Ç',
+  52: 'EV/DEP',
+  80: 'A/Ü',
 };
 
 interface MarketInfoButtonProps {
@@ -124,8 +40,26 @@ export function MarketInfoButton({
   fallbackName,
 }: MarketInfoButtonProps) {
   const c = useTheme();
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
-  const doc = MARKETS[marketId];
+  const short = MARKET_SHORTS[marketId];
+  // i18next allows arrays/objects through with returnObjects. We default to
+  // null when the key is missing so unknown marketIds render the fallback.
+  const i18nKey = `markets.info.${marketId}`;
+  const titleKey = `${i18nKey}.title`;
+  const titleResolved = t(titleKey, { defaultValue: '' });
+  const doc: MarketDoc | null =
+    short && titleResolved
+      ? {
+          short,
+          title: titleResolved,
+          blurb: t(`${i18nKey}.blurb`, { defaultValue: '' }),
+          outcomes: t(`${i18nKey}.outcomes`, {
+            returnObjects: true,
+            defaultValue: [],
+          }) as { key: string; meaning: string }[],
+        }
+      : null;
 
   return (
     <>
@@ -158,7 +92,7 @@ export function MarketInfoButton({
             <View style={styles.sheetHeader}>
               <View style={styles.titleBlock}>
                 <ThemedText style={[styles.sheetTitle, { color: c.text }]}>
-                  {doc?.title ?? fallbackName ?? `Market #${marketId}`}
+                  {doc?.title ?? fallbackName ?? t('markets.fallback', { id: marketId })}
                 </ThemedText>
                 {doc ? (
                   <ThemedText style={[styles.sheetShort, { color: c.brand }]}>
@@ -191,7 +125,7 @@ export function MarketInfoButton({
               </>
             ) : (
               <ThemedText style={[styles.blurb, { color: c.textMuted }]}>
-                Bu market için açıklama henüz eklenmemiş.
+                {t('markets.noInfo')}
               </ThemedText>
             )}
           </Pressable>

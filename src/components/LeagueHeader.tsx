@@ -1,5 +1,7 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Image } from 'expo-image';
+import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -29,30 +31,52 @@ export function LeagueHeader({
   hasLive = false,
 }: LeagueHeaderProps) {
   const c = useTheme();
+  const { t } = useTranslation();
   const title = league?.name ?? `League #${leagueId}`;
   const subtitle = country?.name ?? league?.short_code ?? null;
 
+  const handleNavigate = () => {
+    router.push(`/league/${leagueId}` as never);
+  };
+
+  // Only the logo is the league-detail tap target — taps on the title
+  // text or anywhere else fall through to the outer row's collapse
+  // toggle. Inner Pressable wins over outer in RN's gesture system, so
+  // tapping the logo doesn't double-fire the toggle.
+  const Logo = (
+    <Pressable
+      onPress={handleNavigate}
+      hitSlop={6}
+      accessibilityRole="button"
+      accessibilityLabel={title}
+      style={({ pressed }) => [
+        styles.logoWrap,
+        { backgroundColor: c.surface },
+        pressed && { opacity: 0.6 },
+      ]}>
+      {league?.image_path ? (
+        <Image
+          source={{ uri: league.image_path }}
+          style={styles.logo}
+          contentFit="contain"
+          transition={150}
+        />
+      ) : country?.image_path ? (
+        <Image
+          source={{ uri: country.image_path }}
+          style={styles.flag}
+          contentFit="cover"
+          transition={150}
+        />
+      ) : (
+        <View style={[styles.logoPlaceholder, { backgroundColor: c.border }]} />
+      )}
+    </Pressable>
+  );
+
   const Body = (
     <View style={styles.row}>
-      <View style={[styles.logoWrap, { backgroundColor: c.surface }]}>
-        {league?.image_path ? (
-          <Image
-            source={{ uri: league.image_path }}
-            style={styles.logo}
-            contentFit="contain"
-            transition={150}
-          />
-        ) : country?.image_path ? (
-          <Image
-            source={{ uri: country.image_path }}
-            style={styles.flag}
-            contentFit="cover"
-            transition={150}
-          />
-        ) : (
-          <View style={[styles.logoPlaceholder, { backgroundColor: c.border }]} />
-        )}
-      </View>
+      {Logo}
 
       <View style={styles.titleBlock}>
         <View style={styles.titleRow}>
@@ -116,7 +140,11 @@ export function LeagueHeader({
       onPress={onToggle}
       hitSlop={4}
       accessibilityRole="button"
-      accessibilityLabel={`${title} ligini ${collapsed ? 'aç' : 'kapat'}`}
+      accessibilityLabel={
+        collapsed
+          ? t('league.toggleExpand', { name: title })
+          : t('league.toggleCollapse', { name: title })
+      }
       accessibilityState={{ expanded: !collapsed }}
       style={({ pressed }) => [
         styles.surface,

@@ -7,6 +7,10 @@ import { MarketInfoButton } from '@/src/components/MarketInfoButton';
 import { toggleSelection, useCouponStore } from '@/src/lib/coupons/store';
 import { outcomeLiveStatus, type LiveScore } from '@/src/lib/liveOutcome';
 import { marketShort, shortenOutcome } from '@/src/lib/marketShort';
+import {
+  formatOddValue,
+  useOddsHidden,
+} from '@/src/lib/settings/settingsStore';
 import { useTheme } from '@/src/lib/useTheme';
 import type {
   FixtureOddOutcome,
@@ -51,6 +55,7 @@ export function OddsRatesCard({
   liveScore,
 }: OddsRatesCardProps) {
   const c = useTheme();
+  const oddsHidden = useOddsHidden();
 
   // Track which outcomes from this market are already in the draft so the
   // odd cell can render a "selected" state.
@@ -127,23 +132,25 @@ export function OddsRatesCard({
           ]}>
           TİP
         </ThemedText>
-        <ThemedText style={[styles.headerCell, styles.cellNumber, { color: c.textMuted }]}>
-          ORAN
+        {!oddsHidden ? (
+          <ThemedText style={[styles.headerCell, styles.cellNumber, { color: c.textMuted }]}>
+            ORAN
+          </ThemedText>
+        ) : null}
+        <ThemedText style={[styles.headerCell, styles.cellGauge, { color: c.textMuted }]}>
+          ROI
         </ThemedText>
         <ThemedText style={[styles.headerCell, styles.cellGauge, { color: c.textMuted }]}>
-          VBET
+          HIT
         </ThemedText>
         <ThemedText style={[styles.headerCell, styles.cellGauge, { color: c.textMuted }]}>
-          DSO
-        </ThemedText>
-        <ThemedText style={[styles.headerCell, styles.cellGauge, { color: c.textMuted }]}>
-          İKO
+          IMP
         </ThemedText>
         <ThemedText style={[styles.headerCell, styles.cellNarrow, { color: c.textMuted }]}>
-          KZ
+          W
         </ThemedText>
         <ThemedText style={[styles.headerCell, styles.cellNarrow, { color: c.textMuted }]}>
-          KY
+          L
         </ThemedText>
       </View>
 
@@ -233,49 +240,58 @@ export function OddsRatesCard({
             {isValueBet ? (
               <View style={[styles.valueAccent, { backgroundColor: c.brand }]} />
             ) : null}
-            <View style={styles.cellLabel}>
-              <ThemedText
-                style={[
-                  styles.cell,
-                  { color: isValueBet ? c.brand : c.text, fontWeight: isValueBet ? '700' : '500' },
-                ]}
-                numberOfLines={1}>
-                {isValueBet ? '★ ' : ''}
-                {formatLabel(outcome)}
-              </ThemedText>
-            </View>
+            {/* Tip cell carries the coupon-toggle now (was the odd cell). */}
             <Pressable
               onPress={handleAddToCoupon}
               disabled={tapDisabled && !inCoupon}
               accessibilityRole="button"
               accessibilityLabel={
                 inCoupon
-                  ? `${formatLabel(outcome)} sepetten çıkar, oran ${formatOdd(outcome.value)}`
+                  ? `${formatLabel(outcome)} sepetten çıkar`
                   : tapDisabled
                     ? `${formatLabel(outcome)} eklenemez`
-                    : `${formatLabel(outcome)} sepete ekle, oran ${formatOdd(outcome.value)}`
+                    : `${formatLabel(outcome)} sepete ekle`
               }
               accessibilityState={{ selected: inCoupon, disabled: tapDisabled && !inCoupon }}
               style={[
-                styles.cellNumber,
-                styles.oddCell,
-                inCoupon
-                  ? { backgroundColor: c.brand, borderColor: c.brand }
-                  : { borderColor: c.border },
+                styles.cellLabel,
+                styles.tipPressable,
+                inCoupon && { backgroundColor: c.brandSoft, borderColor: c.brand },
                 tapDisabled && !inCoupon && { opacity: 0.4 },
               ]}>
               <ThemedText
                 style={[
                   styles.cell,
-                  styles.numberValue,
                   {
-                    color: inCoupon ? c.textInverse : liveColor ?? c.text,
-                    fontWeight: inCoupon || liveColor ? '700' : '600',
+                    color: inCoupon ? c.brand : isValueBet ? c.brand : c.text,
+                    fontWeight: inCoupon || isValueBet ? '700' : '500',
                   },
-                ]}>
-                {formatOdd(outcome.value)}
+                ]}
+                numberOfLines={1}>
+                {inCoupon ? '✓ ' : isValueBet ? '★ ' : ''}
+                {formatLabel(outcome)}
               </ThemedText>
             </Pressable>
+            {!oddsHidden ? (
+              <View
+                style={[
+                  styles.cellNumber,
+                  styles.oddCell,
+                  { borderColor: c.border },
+                ]}>
+                <ThemedText
+                  style={[
+                    styles.cell,
+                    styles.numberValue,
+                    {
+                      color: liveColor ?? c.text,
+                      fontWeight: liveColor ? '700' : '600',
+                    },
+                  ]}>
+                  {formatOddValue(outcome.value, oddsHidden)}
+                </ThemedText>
+              </View>
+            ) : null}
             <View style={styles.cellGauge}>
               <CircularGauge
                 value={hasSample ? outcome.earning_percent : null}
@@ -311,11 +327,6 @@ function formatLabel(o: FixtureOddOutcome): string {
   return suffix ? `${o.label} ${suffix}` : o.label;
 }
 
-
-function formatOdd(value: number | null | undefined): string {
-  if (value == null) return '-';
-  return value.toFixed(2);
-}
 
 const styles = StyleSheet.create({
   card: {
@@ -370,6 +381,16 @@ const styles = StyleSheet.create({
     flex: 1.2,
     fontWeight: '500',
     paddingLeft: 6,
+  },
+  // Visual treatment for the tip cell when it's a tap target. Subtle border
+  // hints at affordance without competing with the value-bet ★ row accent.
+  tipPressable: {
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'transparent',
+    justifyContent: 'center',
   },
   cellNumber: {
     flex: 0.7,

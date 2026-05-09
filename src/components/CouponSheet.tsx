@@ -14,6 +14,10 @@ import {
   useCouponStore,
 } from '@/src/lib/coupons/store';
 import type { CouponSelection } from '@/src/lib/coupons/types';
+import {
+  formatOddValue,
+  useOddsHidden,
+} from '@/src/lib/settings/settingsStore';
 import { useTheme } from '@/src/lib/useTheme';
 
 interface CouponSheetProps {
@@ -24,6 +28,7 @@ interface CouponSheetProps {
 export function CouponSheet({ visible, onClose }: CouponSheetProps) {
   const c = useTheme();
   const { t } = useTranslation();
+  const oddsHidden = useOddsHidden();
   const draft = useCouponStore((s) => s.draft);
   const suggestions = useDraftSuggestions(draft.selections);
 
@@ -95,7 +100,7 @@ export function CouponSheet({ visible, onClose }: CouponSheetProps) {
                   {t('coupons.sheet.totalOdd')}
                 </ThemedText>
                 <ThemedText style={[styles.totalValue, { color: c.text }]}>
-                  {totalOdd(draft).toFixed(2)}
+                  {formatOddValue(totalOdd(draft), oddsHidden)}
                 </ThemedText>
               </View>
               <Pressable
@@ -120,6 +125,7 @@ export function CouponSheet({ visible, onClose }: CouponSheetProps) {
 
 function SelectionRow({ selection }: { selection: CouponSelection }) {
   const c = useTheme();
+  const oddsHidden = useOddsHidden();
   const time =
     selection.startingAt
       ? format(parseISO(selection.startingAt), 'dd.MM HH:mm')
@@ -152,17 +158,21 @@ function SelectionRow({ selection }: { selection: CouponSelection }) {
           </ThemedText>
           {selection.dso != null ? (
             <ThemedText style={[styles.snapshot, { color: c.textMuted }]}>
-              DSO {selection.dso.toFixed(0)}%
+              HIT {selection.dso.toFixed(0)}%
               {selection.iko != null
-                ? ` · İKO ${selection.iko.toFixed(0)}%`
+                ? ` · IMP ${selection.iko.toFixed(0)}%`
                 : ''}
             </ThemedText>
           ) : null}
         </View>
       </View>
       <View style={styles.rowOdd}>
-        <ThemedText style={[styles.oddValue, { color: c.text }]}>
-          {selection.oddValue.toFixed(2)}
+        <ThemedText
+          style={[styles.oddValue, { color: c.text }]}
+          numberOfLines={1}>
+          {oddsHidden
+            ? `${selection.marketShort} ${selection.outcomeDisplay ?? selection.outcomeLabel}`
+            : formatOddValue(selection.oddValue, oddsHidden)}
         </ThemedText>
       </View>
       <Pressable
@@ -177,6 +187,7 @@ function SelectionRow({ selection }: { selection: CouponSelection }) {
 
 function SuggestionRow({ suggestion }: { suggestion: DraftSuggestion }) {
   const c = useTheme();
+  const oddsHidden = useOddsHidden();
   const time = suggestion.startingAt
     ? format(parseISO(suggestion.startingAt), 'HH:mm')
     : null;
@@ -227,8 +238,12 @@ function SuggestionRow({ suggestion }: { suggestion: DraftSuggestion }) {
         </ThemedText>
       </View>
       <View style={styles.suggestRight}>
-        <ThemedText style={[styles.suggestOdd, { color: c.text }]}>
-          {suggestion.oddValue.toFixed(2)}
+        <ThemedText
+          style={[styles.suggestOdd, { color: c.text }]}
+          numberOfLines={1}>
+          {oddsHidden
+            ? `${suggestion.marketShort} ${suggestion.outcomeDisplay}`
+            : formatOddValue(suggestion.oddValue, oddsHidden)}
         </ThemedText>
         <View style={[styles.suggestAdd, { backgroundColor: c.brand }]}>
           <MaterialCommunityIcons name="plus" size={14} color={c.textInverse} />

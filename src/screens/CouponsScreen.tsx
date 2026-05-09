@@ -1,8 +1,14 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { format, parseISO } from 'date-fns';
+import { format, isToday, isYesterday, parseISO, subDays } from 'date-fns';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FlatList, Modal, Pressable, StyleSheet, View } from 'react-native';
+import {
+  Modal,
+  Pressable,
+  SectionList,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -23,9 +29,70 @@ import {
 import type { Coupon } from '@/src/lib/coupons/types';
 import { getStateBucket } from '@/src/lib/fixtureState';
 import { outcomeLiveStatus, type LiveScore } from '@/src/lib/liveOutcome';
+import {
+  formatOddValue,
+  useOddsHidden,
+} from '@/src/lib/settings/settingsStore';
 import { useTheme } from '@/src/lib/useTheme';
 import type { FixtureDetail } from '@/src/types/fixtureDetail';
 
+type DateFilter = 'all' | 'today' | 'week' | 'month';
+
+const DATE_FILTERS: { key: DateFilter; i18nKey: string }[] = [
+  { key: 'all', i18nKey: 'common.all' },
+  { key: 'today', i18nKey: 'coupons.dateFilter.today' },
+  { key: 'week', i18nKey: 'coupons.dateFilter.week' },
+  { key: 'month', i18nKey: 'coupons.dateFilter.month' },
+];
+
+function applyDateFilter(coupons: Coupon[], filter: DateFilter): Coupon[] {
+  if (filter === 'all') return coupons;
+  const now = new Date();
+  const cutoff =
+    filter === 'today'
+      ? new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      : filter === 'week'
+        ? subDays(now, 7)
+        : subDays(now, 30);
+  return coupons.filter((c) => parseISO(c.createdAt) >= cutoff);
+}
+
+interface CouponSection {
+  title: string;
+  data: Coupon[];
+  count: number;
+}
+
+function buildSections(
+  coupons: Coupon[],
+  todayLabel: string,
+  yesterdayLabel: string,
+): CouponSection[] {
+  // Group coupons by their createdAt calendar day so the user sees a
+  // natural temporal scroll: today's batch up top, then yesterday, then
+  // older days back through history.
+  const groups = new Map<string, Coupon[]>();
+  for (const coupon of coupons) {
+    const key = format(parseISO(coupon.createdAt), 'yyyy-MM-dd');
+    const list = groups.get(key);
+    if (list) list.push(coupon);
+    else groups.set(key, [coupon]);
+  }
+  return Array.from(groups.entries())
+    .sort((a, b) => b[0].localeCompare(a[0]))
+    .map(([key, list]) => {
+      const date = parseISO(`${key}T00:00:00`);
+      const title = isToday(date)
+        ? todayLabel
+        : isYesterday(date)
+          ? yesterdayLabel
+          : format(date, 'dd MMM yyyy');
+      const data = [...list].sort((a, b) =>
+        b.createdAt.localeCompare(a.createdAt),
+      );
+      return { title, data, count: data.length };
+    });
+}
 
 export function CouponsScreen() {
   const c = useTheme();
@@ -60,6 +127,18 @@ export function CouponsScreen() {
   const pendingCoupon = pendingDeleteId
     ? saved.find((c) => c.id === pendingDeleteId) ?? null
     : null;
+
+  const [dateFilter, setDateFilter] = useState<DateFilter>('all');
+  const filteredCoupons = useMemo(
+    () => applyDateFilter(saved, dateFilter),
+    [saved, dateFilter],
+  );
+  const todayLabel = t('coupons.dateLabel.today');
+  const yesterdayLabel = t('coupons.dateLabel.yesterday');
+  const sections = useMemo(
+    () => buildSections(filteredCoupons, todayLabel, yesterdayLabel),
+    [filteredCoupons, todayLabel, yesterdayLabel],
+  );
 
   return (
     <SafeAreaView style={[styles.flex, { backgroundColor: c.bg }]} edges={['top']}>
@@ -109,8 +188,8 @@ export function CouponsScreen() {
           </View>
         </View>
       ) : (
-        <FlatList
-          data={saved}
+        <SectionList
+          sections={sections}
           keyExtractor={(c) => c.id}
           renderItem={({ item }) => (
             <CouponCard
@@ -119,9 +198,78 @@ export function CouponsScreen() {
               onRequestDelete={() => setPendingDeleteId(item.id)}
             />
           )}
-          ListHeaderComponent={<CouponStatsCard coupons={saved} />}
+          renderSectionHeader={({ section }) => (
+            <View
+              style={[
+                styles.sectionHeader,
+                { backgroundColor: c.bg },
+              ]}>
+              <ThemedText
+                style={[styles.sectionHeaderText, { color: c.textMuted }]}>
+                {section.title.toLocaleUpperCase('tr-TR')}
+              </ThemedText>
+              <View
+                style={[
+                  styles.sectionCountBadge,
+                  { backgroundColor: c.brandSoft },
+                ]}>
+                <ThemedText
+                  style={[styles.sectionCountText, { color: c.brand }]}>
+                  {section.count}
+                </ThemedText>
+              </View>
+            </View>
+          )}
+          renderSectionFooter={() => <View style={styles.sectionFooter} />}
+          stickySectionHeadersEnabled={false}
+          ListHeaderComponent={
+            <View>
+              <CouponStatsCard coupons={saved} />
+              <View style={styles.dateFilterRow}>
+                {DATE_FILTERS.map(({ key, i18nKey }) => {
+                  const active = dateFilter === key;
+                  return (
+                    <Pressable
+                      key={key}
+                      onPress={() => setDateFilter(key)}
+                      style={[
+                        styles.dateFilterPill,
+                        { borderColor: c.border },
+                        active && {
+                          backgroundColor: c.brand,
+                          borderColor: c.brand,
+                        },
+                      ]}>
+                      <ThemedText
+                        style={[
+                          styles.dateFilterText,
+                          { color: active ? c.textInverse : c.textMuted },
+                        ]}>
+                        {t(i18nKey)}
+                      </ThemedText>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          }
+          ListEmptyComponent={
+            saved.length > 0 ? (
+              <View style={styles.filterEmpty}>
+                <MaterialCommunityIcons
+                  name="filter-variant-remove"
+                  size={28}
+                  color={c.textMuted}
+                />
+                <ThemedText
+                  style={[styles.filterEmptyText, { color: c.textMuted }]}>
+                  {t('coupons.dateFilter.empty')}
+                </ThemedText>
+              </View>
+            ) : null
+          }
           contentContainerStyle={styles.list}
-          extraData={`${pendingDeleteId}|${fixtureLookup.size}`}
+          extraData={`${pendingDeleteId}|${fixtureLookup.size}|${dateFilter}`}
         />
       )}
 
@@ -205,8 +353,13 @@ function DeleteConfirmModal({
 function ParlayMathRow({ coupon }: { coupon: Coupon }) {
   const c = useTheme();
   const { t } = useTranslation();
+  const oddsHidden = useOddsHidden();
   const math = useMemo(() => computeParlayMath(coupon), [coupon]);
   if (!math) return null;
+  // Whole row is odd-derived (fair odd, vig, expected return) — opting out
+  // of the column-hide rule by leaving any of these visible would defeat
+  // the user's "hide odds entirely" intent.
+  if (oddsHidden) return null;
 
   const edgePositive = math.edgePercent >= 0;
   const edgeColor = edgePositive ? c.success : c.danger;
@@ -223,7 +376,7 @@ function ParlayMathRow({ coupon }: { coupon: Coupon }) {
           {t('coupons.parlay.fairOdd')}
         </ThemedText>
         <ThemedText style={[parlayStyles.value, { color: c.text }]}>
-          {math.fairOdd.toFixed(2)}
+          {formatOddValue(math.fairOdd, oddsHidden)}
         </ThemedText>
       </View>
       <View style={[parlayStyles.cellDivider, { backgroundColor: c.borderSoft }]} />
@@ -294,8 +447,12 @@ function CouponCard({
 }) {
   const c = useTheme();
   const { t } = useTranslation();
+  const oddsHidden = useOddsHidden();
+  // Cards default closed — users almost always want a quick scroll over
+  // their history; expanding shows the full leg-by-leg breakdown.
+  const [expanded, setExpanded] = useState(false);
   const created = format(parseISO(coupon.createdAt), 'dd.MM.yyyy HH:mm');
-  const odd = totalOdd(coupon).toFixed(2);
+  const odd = formatOddValue(totalOdd(coupon), oddsHidden);
   const outcome = couponOutcome(coupon);
   // Delete is allowed while the coupon's outcome is still pending — that
   // covers everything from "no match started yet" to "some matches in
@@ -339,7 +496,15 @@ function CouponCard({
       ]}>
       {/* Coloured top edge — instant scan of status without reading the pill */}
       <View style={[styles.cardAccent, { backgroundColor: statusAccent }]} />
-      <View style={styles.cardHeader}>
+      <Pressable
+        onPress={() => setExpanded((v) => !v)}
+        accessibilityRole="button"
+        accessibilityLabel={`${coupon.name}, ${statusLabel}, ${odd}`}
+        accessibilityState={{ expanded }}
+        style={({ pressed }) => [
+          styles.cardHeader,
+          pressed && { backgroundColor: c.brandSoft },
+        ]}>
         <View style={styles.cardTitleBlock}>
           <ThemedText
             style={[styles.cardTitle, { color: c.text }]}
@@ -387,43 +552,63 @@ function CouponCard({
             {odd}
           </ThemedText>
         </View>
-        <Pressable
-          onPress={() => shareCoupon(coupon)}
-          hitSlop={12}
-          accessibilityRole="button"
-          accessibilityLabel={t('coupons.a11y.shareCoupon', { name: coupon.name })}
-          style={({ pressed }) => [
-            styles.deleteBtn,
-            { backgroundColor: pressed ? c.brandSoft : 'transparent' },
-          ]}>
-          <MaterialCommunityIcons
-            name="share-variant"
-            size={20}
-            color={c.textMuted}
-          />
-        </Pressable>
-        {deletable ? (
-          <Pressable
-            onPress={onRequestDelete}
-            hitSlop={12}
-            accessibilityRole="button"
-            accessibilityLabel={t('coupons.a11y.deleteCoupon', { name: coupon.name })}
-            accessibilityHint={t('coupons.a11y.deleteCouponHint')}
-            style={({ pressed }) => [
-              styles.deleteBtn,
-              { backgroundColor: pressed ? c.dangerSoft : 'transparent' },
-            ]}>
-            <MaterialCommunityIcons
-              name="trash-can-outline"
-              size={20}
-              color={c.danger}
-            />
-          </Pressable>
-        ) : null}
-      </View>
-      <ParlayMathRow coupon={coupon} />
-      <View style={styles.divider} />
-      {coupon.selections.map((s) => {
+        <MaterialCommunityIcons
+          name={expanded ? 'chevron-up' : 'chevron-down'}
+          size={22}
+          color={c.textMuted}
+          style={styles.chevron}
+        />
+      </Pressable>
+
+      {expanded ? (
+        <>
+          <View style={[styles.actionsRow, { borderTopColor: c.border }]}>
+            <Pressable
+              onPress={() => shareCoupon(coupon)}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={t('coupons.a11y.shareCoupon', { name: coupon.name })}
+              style={({ pressed }) => [
+                styles.actionBtn,
+                { backgroundColor: pressed ? c.brandSoft : 'transparent' },
+              ]}>
+              <MaterialCommunityIcons
+                name="share-variant"
+                size={16}
+                color={c.textMuted}
+              />
+              <ThemedText style={[styles.actionText, { color: c.textMuted }]}>
+                {t('common.share').toLocaleUpperCase('tr-TR')}
+              </ThemedText>
+            </Pressable>
+            {deletable ? (
+              <Pressable
+                onPress={onRequestDelete}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel={t('coupons.a11y.deleteCoupon', { name: coupon.name })}
+                accessibilityHint={t('coupons.a11y.deleteCouponHint')}
+                style={({ pressed }) => [
+                  styles.actionBtn,
+                  { backgroundColor: pressed ? c.dangerSoft : 'transparent' },
+                ]}>
+                <MaterialCommunityIcons
+                  name="trash-can-outline"
+                  size={16}
+                  color={c.danger}
+                />
+                <ThemedText style={[styles.actionText, { color: c.danger }]}>
+                  {t('common.delete').toLocaleUpperCase('tr-TR')}
+                </ThemedText>
+              </Pressable>
+            ) : null}
+          </View>
+          <ParlayMathRow coupon={coupon} />
+          <View style={styles.divider} />
+        </>
+      ) : null}
+      {expanded
+        ? coupon.selections.map((s) => {
         // Don't show win/loss until the fixture has actually started,
         // even if betWinning leaked through earlier from stale data.
         const started = selectionStarted(s);
@@ -539,13 +724,17 @@ function CouponCard({
                     color: won ? c.success : lost ? c.danger : c.text,
                     fontWeight: won || lost ? '800' : '700',
                   },
-                ]}>
-                {s.oddValue.toFixed(2)}
+                ]}
+                numberOfLines={1}>
+                {oddsHidden
+                  ? `${s.marketShort} ${s.outcomeDisplay ?? s.outcomeLabel}`
+                  : formatOddValue(s.oddValue, oddsHidden)}
               </ThemedText>
             </View>
           </View>
         );
-      })}
+      })
+        : null}
     </View>
   );
 }
@@ -568,8 +757,72 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   list: {
-    padding: 12,
-    gap: 12,
+    paddingHorizontal: 12,
+    paddingTop: 4,
+    paddingBottom: 32,
+  },
+  // Compact, lowercase-friendly chip strip — sits between the stats card
+  // and the first date section. The Filtre style mirrors the analysis tab
+  // so the visual vocabulary stays consistent across the app.
+  dateFilterRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    paddingHorizontal: 4,
+    paddingTop: 4,
+    paddingBottom: 8,
+  },
+  dateFilterPill: {
+    paddingHorizontal: 11,
+    paddingVertical: 5,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  dateFilterText: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  // "BUGÜN · 3" style — small uppercase label + count badge. Acts as the
+  // visual divider between groups so cards within a day stay tight while
+  // groups feel meaningfully separated.
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    paddingTop: 22,
+    paddingBottom: 10,
+    gap: 8,
+  },
+  sectionHeaderText: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.7,
+  },
+  sectionCountBadge: {
+    minWidth: 20,
+    height: 18,
+    paddingHorizontal: 6,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sectionCountText: {
+    fontSize: 10,
+    fontWeight: '800',
+    fontVariant: ['tabular-nums'],
+  },
+  sectionFooter: {
+    height: 8,
+  },
+  filterEmpty: {
+    paddingVertical: 36,
+    alignItems: 'center',
+    gap: 8,
+  },
+  filterEmptyText: {
+    fontSize: 13,
+    fontWeight: '600',
   },
   empty: {
     flex: 1,
@@ -626,14 +879,18 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     lineHeight: 13,
   },
+  // Spacious gap between cards so each coupon stands on its own. Section
+  // header padding above puts even more air between groups (different
+  // days). Combined with the cards-default-collapsed pattern this keeps
+  // long histories scannable without feeling like a wall of cards.
   card: {
     borderRadius: 14,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: 'hidden',
-    marginBottom: 14,
+    marginBottom: 18,
   },
   cardAccent: {
-    height: 3,
+    height: 4,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -641,7 +898,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingTop: 12,
     paddingBottom: 12,
-    gap: 12,
+    gap: 10,
   },
   cardTitleBlock: {
     flex: 1,
@@ -691,6 +948,37 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  // Chevron sits at the far right of the (collapsed) card header — it's
+  // the visual cue that the row is expandable. Only renders inside the
+  // header Pressable so the whole strip stays a single tap target.
+  chevron: {
+    alignSelf: 'center',
+    marginLeft: 4,
+  },
+  // Action footer surfaces only when the card is expanded — keeps the
+  // collapsed view clean and shifts the destructive Sil button below
+  // the more-frequent Paylaş button so finger-stretch matches frequency.
+  actionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  actionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+  },
+  actionText: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   divider: {
     height: StyleSheet.hairlineWidth,

@@ -6,6 +6,10 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { toggleSelection, useCouponStore } from '@/src/lib/coupons/store';
 import { marketShort, shortenOutcome } from '@/src/lib/marketShort';
+import {
+  formatOddValue,
+  useOddsHidden,
+} from '@/src/lib/settings/settingsStore';
 import { useTheme } from '@/src/lib/useTheme';
 import type { FixtureOddsMarket } from '@/src/types/fixtureOdds';
 
@@ -161,6 +165,7 @@ function PickRow({
 }) {
   const c = useTheme();
   const { t } = useTranslation();
+  const oddsHidden = useOddsHidden();
   const draftSelections = useCouponStore((s) => s.draft.selections);
   const inCoupon = draftSelections.some(
     (s) =>
@@ -225,8 +230,12 @@ function PickRow({
           })}
         </ThemedText>
       </View>
-      <ThemedText style={[styles.pickOdd, { color: c.text }]}>
-        {pick.oddValue.toFixed(2)}
+      <ThemedText
+        style={[styles.pickOdd, { color: c.text }]}
+        numberOfLines={1}>
+        {oddsHidden
+          ? `${marketShort(pick.marketId, pick.marketName)} ${pick.outcomeDisplay}`
+          : formatOddValue(pick.oddValue, oddsHidden)}
       </ThemedText>
       <View
         style={[

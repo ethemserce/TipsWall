@@ -10,11 +10,14 @@ import { useTheme } from '@/src/lib/useTheme';
 // resolve from the i18n bundle so the same component speaks both TR and
 // EN. The shortcodes themselves stay literal — they're metric symbols,
 // not translations.
+// HIT/ROI/IMP replace the older DSO/VBET/IKO labels — the underlying metric
+// keys (and the values stored on coupons) stay the same so legacy data
+// surfaces under the new column names without migration.
 const METRIC_KEYS: { short: string; key: 'dso' | 'vbet' | 'iko' | 'kzky' }[] = [
-  { short: 'DSO', key: 'dso' },
-  { short: 'VBET', key: 'vbet' },
-  { short: 'İKO', key: 'iko' },
-  { short: 'KZ / KY', key: 'kzky' },
+  { short: 'HIT', key: 'dso' },
+  { short: 'ROI', key: 'vbet' },
+  { short: 'IMP', key: 'iko' },
+  { short: 'W / L', key: 'kzky' },
 ];
 
 const MARKET_KEYS: { short: string; key: string }[] = [
