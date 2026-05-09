@@ -3,6 +3,7 @@ import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import { getAuthSnapshot } from '@/src/lib/auth/authStore';
 import { refreshAccessToken } from '@/src/lib/auth/refreshLock';
 import { env } from '@/src/lib/env';
+import { captureException } from '@/src/lib/monitoring';
 import type { ApiResponse, PagedResult } from '@/src/types/api';
 
 export const apiClient = axios.create({
@@ -32,6 +33,15 @@ apiClient.interceptors.response.use(
   async (error: AxiosError) => {
     const status = error.response?.status;
     const original = error.config as RetryableConfig | undefined;
+    // Server-side faults are reported to Sentry — these are real
+    // regressions, not user error or transient network glitches.
+    if (status != null && status >= 500) {
+      captureException(error, {
+        url: original?.url,
+        method: original?.method,
+        status,
+      });
+    }
     if (status !== 401 || !original || original._authRetry) {
       return Promise.reject(error);
     }

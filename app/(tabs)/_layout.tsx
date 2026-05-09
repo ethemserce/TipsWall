@@ -6,6 +6,7 @@ import { View } from 'react-native';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { CouponBadge } from '@/src/components/CouponBadge';
+import { LiveStatusBanner } from '@/src/components/LiveStatusBanner';
 import { useAutoSettleSavedCoupons } from '@/src/hooks/useCouponSettlement';
 import { useTheme } from '@/src/lib/useTheme';
 
@@ -22,6 +23,7 @@ export default function TabLayout() {
   // on the pill itself.
   return (
     <View style={{ flex: 1 }}>
+      <LiveStatusBanner />
       <Tabs
         screenOptions={{
           tabBarActiveTintColor: c.brand,
