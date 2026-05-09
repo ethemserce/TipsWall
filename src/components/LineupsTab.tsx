@@ -44,7 +44,7 @@ export function LineupsTab({
   if (error && !lineups) return <TabError error={error} />;
   if (loading && !lineups) return <TabLoading />;
   if (!lineups || (!lineups.home && !lineups.away))
-    return <TabEmpty message={t('fixture.lineups.notAvailable')} />;
+    return <TabEmpty icon="account-group-outline" message={t('fixture.lineups.notAvailable')} />;
 
   const hasHome = lineups.home != null;
   const hasAway = lineups.away != null;

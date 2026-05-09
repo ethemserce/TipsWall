@@ -315,7 +315,7 @@ function OddsTabContent({
       ) : loading && markets.length === 0 ? (
         <TabLoading />
       ) : markets.length === 0 ? (
-        <TabEmpty message={t('fixture.odds.noOdds')} />
+        <TabEmpty icon="tag-outline" message={t('fixture.odds.noOdds')} />
       ) : (
         markets.map((market) => (
           <OddsRatesCard

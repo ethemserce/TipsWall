@@ -1,5 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Svg, { Circle, Line, Polyline } from 'react-native-svg';
 
@@ -26,6 +27,7 @@ interface CouponStatsCardProps {
  */
 export function CouponStatsCard({ coupons }: CouponStatsCardProps) {
   const c = useTheme();
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const stats = useMemo(() => computeCouponStats(coupons), [coupons]);
   const breakdown = useMemo(() => computeMarketBreakdown(coupons), [coupons]);
@@ -52,7 +54,7 @@ export function CouponStatsCard({ coupons }: CouponStatsCardProps) {
       <Pressable
         onPress={() => setExpanded((v) => !v)}
         accessibilityRole="button"
-        accessibilityLabel="İstatistikleri göster"
+        accessibilityLabel={t('coupons.stats.a11yShow')}
         accessibilityState={{ expanded }}
         style={({ pressed }) => [
           styles.header,
@@ -67,7 +69,7 @@ export function CouponStatsCard({ coupons }: CouponStatsCardProps) {
             />
           </View>
           <ThemedText style={[styles.title, { color: c.text }]}>
-            İstatistiklerim
+            {t('coupons.stats.title')}
           </ThemedText>
         </View>
         <MaterialCommunityIcons
@@ -80,22 +82,22 @@ export function CouponStatsCard({ coupons }: CouponStatsCardProps) {
       <View style={[styles.summary, { borderTopColor: c.border }]}>
         <Stat
           value={String(stats.totalCoupons)}
-          label="Kupon"
+          label={t('coupons.stats.kupon')}
           color={c.text}
         />
         <Stat
           value={`${stats.wonCoupons}/${stats.settledCoupons}`}
-          label="Tutan"
+          label={t('coupons.stats.won')}
           color={c.text}
         />
         <Stat
           value={hitRate != null ? `%${hitRate.toFixed(0)}` : '–'}
-          label="Tutturma"
+          label={t('coupons.stats.hitRate')}
           color={hitRate != null && hitRate >= 50 ? c.success : c.text}
         />
         <Stat
           value={avgOdd != null ? avgOdd.toFixed(2) : '–'}
-          label="Ort. Oran"
+          label={t('coupons.stats.avgOdd')}
           color={c.text}
         />
       </View>
@@ -105,15 +107,15 @@ export function CouponStatsCard({ coupons }: CouponStatsCardProps) {
           {calibration ? (
             <View style={[styles.breakdown, { borderTopColor: c.border }]}>
               <ThemedText style={[styles.sectionLabel, { color: c.textMuted }]}>
-                KALİBRASYON ({calibration.totalSelections} tahmin)
+                {t('coupons.stats.calibration', { count: calibration.totalSelections })}
               </ThemedText>
               <CalibrationRow
-                label="Sistem"
+                label={t('coupons.stats.calibrationSystem')}
                 percent={calibration.systemAvgPercent}
                 color={c.brand}
               />
               <CalibrationRow
-                label="Sen"
+                label={t('coupons.stats.calibrationUser')}
                 percent={calibration.userActualPercent}
                 color={
                   calibration.deltaPoints >= 0 ? c.success : c.danger
@@ -127,12 +129,16 @@ export function CouponStatsCard({ coupons }: CouponStatsCardProps) {
                       calibration.deltaPoints >= 0 ? c.success : c.danger,
                   },
                 ]}>
-                {calibration.deltaPoints >= 0 ? '+' : ''}
-                {calibration.deltaPoints.toFixed(1)} puan{' '}
+                {t('coupons.stats.deltaPoints', {
+                  delta:
+                    (calibration.deltaPoints >= 0 ? '+' : '') +
+                    calibration.deltaPoints.toFixed(1),
+                })}{' '}
                 <ThemedText style={[styles.deltaSub, { color: c.textMuted }]}>
-                  · {calibration.deltaPoints >= 0
-                    ? 'sistemin üstünde'
-                    : 'sistemin altında'}
+                  ·{' '}
+                  {calibration.deltaPoints >= 0
+                    ? t('coupons.stats.deltaAbove')
+                    : t('coupons.stats.deltaBelow')}
                 </ThemedText>
               </ThemedText>
               {timeline.length >= 2 ? (
@@ -144,7 +150,7 @@ export function CouponStatsCard({ coupons }: CouponStatsCardProps) {
           {breakdown.length > 0 ? (
             <View style={[styles.breakdown, { borderTopColor: c.border }]}>
               <ThemedText style={[styles.sectionLabel, { color: c.textMuted }]}>
-                TAHMİN PERFORMANSI
+                {t('coupons.stats.marketBreakdown')}
               </ThemedText>
               {breakdown.map((row) => (
                 <View key={row.marketShort} style={styles.breakdownRow}>
@@ -188,6 +194,7 @@ export function CouponStatsCard({ coupons }: CouponStatsCardProps) {
  */
 function CalibrationTimelineChart({ points }: { points: CalibrationPoint[] }) {
   const c = useTheme();
+  const { t } = useTranslation();
   const [width, setWidth] = useState(0);
   const HEIGHT = 92;
   const PAD_X = 4;
@@ -254,17 +261,17 @@ function CalibrationTimelineChart({ points }: { points: CalibrationPoint[] }) {
         <View style={styles.legendItem}>
           <View style={[styles.legendDot, { backgroundColor: c.brand }]} />
           <ThemedText style={[styles.legendText, { color: c.textMuted }]}>
-            Sistem (DSO ort.)
+            {t('coupons.stats.legendSystem')}
           </ThemedText>
         </View>
         <View style={styles.legendItem}>
           <View style={[styles.legendDot, { backgroundColor: c.success }]} />
           <ThemedText style={[styles.legendText, { color: c.textMuted }]}>
-            Sen (gerçek)
+            {t('coupons.stats.legendUser')}
           </ThemedText>
         </View>
         <ThemedText style={[styles.legendText, { color: c.textMuted, marginLeft: 'auto' }]}>
-          {points.length} tahmin
+          {t('coupons.stats.legendCount', { count: points.length })}
         </ThemedText>
       </View>
     </View>

@@ -20,7 +20,7 @@ export function StatsTab({ loading, error, stats }: StatsTabProps) {
 
   if (error && stats.length === 0) return <TabError error={error} />;
   if (loading && stats.length === 0) return <TabLoading />;
-  if (stats.length === 0) return <TabEmpty message={t('fixture.stats.notAvailable')} />;
+  if (stats.length === 0) return <TabEmpty icon="chart-bar" message={t('fixture.stats.notAvailable')} />;
 
   return (
     <View

@@ -1,5 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -52,6 +53,7 @@ export function FixtureTopPicksCard({
   upcoming,
 }: Props) {
   const c = useTheme();
+  const { t } = useTranslation();
   // Re-renders whenever the draft changes so the CTA can flip between
   // "Sepete Ekle" / "Sepette" / disabled (another pick on this fixture).
   const draftSelections = useCouponStore((s) => s.draft.selections);
@@ -114,11 +116,13 @@ export function FixtureTopPicksCard({
           color={c.brand}
         />
         <ThemedText style={[styles.title, { color: c.brand }]}>
-          ÖNERİLEN SEÇİM{picks.length > 1 ? 'LER' : ''}
+          {picks.length > 1
+            ? t('coupons.topPicks.headerMany')
+            : t('coupons.topPicks.headerOne')}
         </ThemedText>
         <View style={[styles.headerBadge, { backgroundColor: c.brand }]}>
           <ThemedText style={[styles.headerBadgeText, { color: c.textInverse }]}>
-            DEĞER
+            {t('coupons.topPicks.valueBadge')}
           </ThemedText>
         </View>
       </View>
@@ -156,6 +160,7 @@ function PickRow({
   fixtureAlreadyPicked: boolean;
 }) {
   const c = useTheme();
+  const { t } = useTranslation();
   const draftSelections = useCouponStore((s) => s.draft.selections);
   const inCoupon = draftSelections.some(
     (s) =>
@@ -191,10 +196,10 @@ function PickRow({
   };
 
   const buttonLabel = inCoupon
-    ? 'SEPETTE'
+    ? t('coupons.topPicks.actionInBasket')
     : disabled
-      ? 'KAPALI'
-      : 'SEPETE EKLE';
+      ? t('coupons.topPicks.actionDisabled')
+      : t('coupons.topPicks.actionAdd');
 
   return (
     <Pressable
@@ -213,7 +218,11 @@ function PickRow({
           {marketShort(pick.marketId, pick.marketName)} {pick.outcomeDisplay}
         </ThemedText>
         <ThemedText style={[styles.pickStats, { color: c.textMuted }]}>
-          DSO {pick.dso.toFixed(0)}% · İKO {pick.iko.toFixed(0)}% · örnek {pick.sampleCount}
+          {t('coupons.topPicks.stats', {
+            dso: pick.dso.toFixed(0),
+            iko: pick.iko.toFixed(0),
+            sample: pick.sampleCount,
+          })}
         </ThemedText>
       </View>
       <ThemedText style={[styles.pickOdd, { color: c.text }]}>

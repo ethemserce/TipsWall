@@ -1,5 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { format, parseISO } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -22,6 +23,7 @@ interface CouponSheetProps {
 
 export function CouponSheet({ visible, onClose }: CouponSheetProps) {
   const c = useTheme();
+  const { t } = useTranslation();
   const draft = useCouponStore((s) => s.draft);
   const suggestions = useDraftSuggestions(draft.selections);
 
@@ -54,11 +56,11 @@ export function CouponSheet({ visible, onClose }: CouponSheetProps) {
 
           <View style={styles.header}>
             <ThemedText style={[styles.title, { color: c.text }]}>
-              Sepetim ({draft.selections.length})
+              {t('coupons.sheet.title', { count: draft.selections.length })}
             </ThemedText>
             <Pressable onPress={handleClear} hitSlop={8}>
               <ThemedText style={[styles.clearText, { color: c.textMuted }]}>
-                TEMİZLE
+                {t('coupons.sheet.clear')}
               </ThemedText>
             </Pressable>
           </View>
@@ -66,7 +68,7 @@ export function CouponSheet({ visible, onClose }: CouponSheetProps) {
           <ScrollView contentContainerStyle={styles.body}>
             {draft.selections.length === 0 ? (
               <ThemedText style={[styles.empty, { color: c.textMuted }]}>
-                Sepetin boş. Bir oran seçince buraya eklenir.
+                {t('coupons.sheet.empty')}
               </ThemedText>
             ) : (
               draft.selections.map((s) => (
@@ -77,7 +79,7 @@ export function CouponSheet({ visible, onClose }: CouponSheetProps) {
             {suggestions.length > 0 ? (
               <View style={styles.suggestSection}>
                 <ThemedText style={[styles.suggestLabel, { color: c.textMuted }]}>
-                  TAMAMLAMAK İÇİN ÖNERİLER
+                  {t('coupons.sheet.suggestions')}
                 </ThemedText>
                 {suggestions.map((sg) => (
                   <SuggestionRow key={sg.signal.id} suggestion={sg} />
@@ -90,7 +92,7 @@ export function CouponSheet({ visible, onClose }: CouponSheetProps) {
             <View style={[styles.footer, { borderTopColor: c.border }]}>
               <View style={styles.totals}>
                 <ThemedText style={[styles.totalLabel, { color: c.textMuted }]}>
-                  TOPLAM ORAN
+                  {t('coupons.sheet.totalOdd')}
                 </ThemedText>
                 <ThemedText style={[styles.totalValue, { color: c.text }]}>
                   {totalOdd(draft).toFixed(2)}
@@ -105,7 +107,7 @@ export function CouponSheet({ visible, onClose }: CouponSheetProps) {
                   color={c.textInverse}
                 />
                 <ThemedText style={[styles.saveText, { color: c.textInverse }]}>
-                  KUPONU KAYDET
+                  {t('coupons.sheet.save')}
                 </ThemedText>
               </Pressable>
             </View>

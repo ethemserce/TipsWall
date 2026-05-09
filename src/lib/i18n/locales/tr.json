@@ -55,6 +55,104 @@
       "shareCoupon": "{{name}} kuponunu paylaş",
       "confirmCancel": "İptal",
       "confirmDelete": "Sil ve onayla"
+    },
+    "sheet": {
+      "title": "Sepetim ({{count}})",
+      "clear": "TEMİZLE",
+      "empty": "Sepetin boş. Bir oran seçince buraya eklenir.",
+      "suggestions": "TAMAMLAMAK İÇİN ÖNERİLER",
+      "totalOdd": "TOPLAM ORAN",
+      "save": "KUPONU KAYDET"
+    },
+    "topPicks": {
+      "headerOne": "ÖNERİLEN SEÇİM",
+      "headerMany": "ÖNERİLEN SEÇİMLER",
+      "valueBadge": "DEĞER",
+      "stats": "DSO {{dso}}% · İKO {{iko}}% · örnek {{sample}}",
+      "actionInBasket": "SEPETTE",
+      "actionDisabled": "KAPALI",
+      "actionAdd": "SEPETE EKLE"
+    },
+    "stats": {
+      "title": "İstatistiklerim",
+      "a11yShow": "İstatistikleri göster",
+      "kupon": "Kupon",
+      "won": "Tutan",
+      "hitRate": "Tutturma",
+      "avgOdd": "Ort. Oran",
+      "calibration": "KALİBRASYON ({{count}} tahmin)",
+      "calibrationSystem": "Sistem",
+      "calibrationUser": "Sen",
+      "deltaPoints": "{{delta}} puan",
+      "deltaAbove": "sistemin üstünde",
+      "deltaBelow": "sistemin altında",
+      "marketBreakdown": "TAHMİN PERFORMANSI",
+      "legendSystem": "Sistem (DSO ort.)",
+      "legendUser": "Sen (gerçek)",
+      "legendCount": "{{count}} tahmin"
+    }
+  },
+  "filters": {
+    "title": "Filtreler",
+    "reset": "SIFIRLA",
+    "apply": "UYGULA",
+    "strategy": "STRATEJİ",
+    "presets": {
+      "banker": { "label": "Banker", "description": "Düşük oran, yüksek isabet — sağlam ayak" },
+      "value": { "label": "Değer", "description": "Bahisçi düşük fiyatlamış — matematik avantajı" },
+      "longshot": { "label": "Yüksek Oran", "description": "Az tutmuş ama tuttuğunda büyük katkı" }
+    },
+    "topPerFixture": {
+      "title": "Maç başına en iyi 3",
+      "subtitle": "Her maç için sıralamada en yüksek 3 öneri"
+    },
+    "valueOnly": {
+      "title": "Sadece değer",
+      "subtitle": "DSO > İKO koşulunu sağlayan oranlar"
+    },
+    "sliders": {
+      "dsoMin": "DSO en az",
+      "vbetMin": "VBET en az",
+      "kzMin": "KZ (örneklem) en az",
+      "off": "kapalı"
+    },
+    "period": "PERİYOT",
+    "rate": "ORAN",
+    "rateMin": "≥ MIN",
+    "rateMax": "≤ MAX",
+    "all": "Tümü"
+  },
+  "legend": {
+    "title": "Açıklamalar",
+    "metricsHeader": "METRİKLER",
+    "marketsHeader": "MARKET KISALTMALARI",
+    "metrics": {
+      "dso": {
+        "long": "Doğru Sonuç Oranı",
+        "description": "Geçmiş örneklemde bu tahminin tutma yüzdesi. 5 maçtan 3'ünde tuttuysa %60. (winning_percent)"
+      },
+      "vbet": {
+        "long": "Beklenen Getiri (ROI)",
+        "description": "100 birim oynanmış olsa beklenen net kâr/zarar. Pozitif değer bahisçinin oranı düşük fiyatladığını gösterir. (earning_percent)"
+      },
+      "iko": {
+        "long": "İmplied Olasılık",
+        "description": "Bahisçinin oranlardan çıkardığı, marj temizlenmiş olasılık. Aynı market içinde tüm sonuçlar 100'e tamamlanır. DSO İKO'dan büyükse değer vardır."
+      },
+      "kzky": {
+        "long": "Kazanan / Kaybeden",
+        "description": "Geçmiş örneklemde tutmuş ve tutmamış maç sayıları (win_count / lost_count)."
+      }
+    },
+    "markets": {
+      "MS": "Maç Sonucu",
+      "DNB": "Beraberlikte iade (Draw No Bet)",
+      "KG": "Karşılıklı Gol",
+      "EV": "Ev Sahibi Tam Skor",
+      "DEP": "Deplasman Tam Skor",
+      "iy": "1. Yarı Tam Skor",
+      "y2": "2. Yarı Tam Skor",
+      "tc": "Tek / Çift Gol"
     }
   },
   "tabs": {

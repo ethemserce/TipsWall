@@ -1,52 +1,36 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/src/lib/useTheme';
 
-// Metric column shortcodes used in card rows. Single source of truth so
-// the analysis screen and the fixture detail share one explanation.
-const METRICS: { short: string; long: string; description: string }[] = [
-  {
-    short: 'DSO',
-    long: 'Doğru Sonuç Oranı',
-    description:
-      'Geçmiş örneklemde bu tahminin tutma yüzdesi. 5 maçtan 3’ünde tuttuysa %60. (winning_percent)',
-  },
-  {
-    short: 'VBET',
-    long: 'Beklenen Getiri (ROI)',
-    description:
-      '100 birim oynanmış olsa beklenen net kâr/zarar. Pozitif değer bahisçinin oranı düşük fiyatladığını gösterir. (earning_percent)',
-  },
-  {
-    short: 'İKO',
-    long: 'İmplied Olasılık',
-    description:
-      'Bahisçinin oranlardan çıkardığı, marj temizlenmiş olasılık. Aynı market içinde tüm sonuçlar 100’e tamamlanır. DSO İKO’dan büyükse "değer" vardır.',
-  },
-  {
-    short: 'KZ / KY',
-    long: 'Kazanan / Kaybeden',
-    description:
-      'Geçmiş örneklemde tutmuş ve tutmamış maç sayıları (win_count / lost_count).',
-  },
+// Metric column shortcodes used in card rows. Long names + descriptions
+// resolve from the i18n bundle so the same component speaks both TR and
+// EN. The shortcodes themselves stay literal — they're metric symbols,
+// not translations.
+const METRIC_KEYS: { short: string; key: 'dso' | 'vbet' | 'iko' | 'kzky' }[] = [
+  { short: 'DSO', key: 'dso' },
+  { short: 'VBET', key: 'vbet' },
+  { short: 'İKO', key: 'iko' },
+  { short: 'KZ / KY', key: 'kzky' },
 ];
 
-const MARKETS: { short: string; long: string }[] = [
-  { short: 'MS', long: 'Maç Sonucu' },
-  { short: 'DNB', long: 'Beraberlikte iade (Draw No Bet)' },
-  { short: 'KG', long: 'Karşılıklı Gol' },
-  { short: 'EV', long: 'Ev Sahibi Tam Skor' },
-  { short: 'DEP', long: 'Deplasman Tam Skor' },
-  { short: 'İY', long: '1. Yarı Tam Skor' },
-  { short: '2Y', long: '2. Yarı Tam Skor' },
-  { short: 'T/Ç', long: 'Tek / Çift Gol' },
+const MARKET_KEYS: { short: string; key: string }[] = [
+  { short: 'MS', key: 'MS' },
+  { short: 'DNB', key: 'DNB' },
+  { short: 'KG', key: 'KG' },
+  { short: 'EV', key: 'EV' },
+  { short: 'DEP', key: 'DEP' },
+  { short: 'İY', key: 'iy' },
+  { short: '2Y', key: 'y2' },
+  { short: 'T/Ç', key: 'tc' },
 ];
 
 export function MarketLegendButton() {
   const c = useTheme();
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
 
   return (
@@ -79,7 +63,7 @@ export function MarketLegendButton() {
             ]}>
             <View style={styles.sheetHeader}>
               <ThemedText style={[styles.sheetTitle, { color: c.text }]}>
-                Açıklamalar
+                {t('legend.title')}
               </ThemedText>
               <Pressable onPress={() => setOpen(false)} hitSlop={12}>
                 <MaterialCommunityIcons name="close" size={20} color={c.textMuted} />
@@ -89,9 +73,9 @@ export function MarketLegendButton() {
             <ScrollView contentContainerStyle={styles.body}>
               {/* Metric explanations — what the columns in each row mean */}
               <ThemedText style={[styles.sectionLabel, { color: c.textMuted }]}>
-                METRİKLER
+                {t('legend.metricsHeader')}
               </ThemedText>
-              {METRICS.map((m) => (
+              {METRIC_KEYS.map((m) => (
                 <View
                   key={m.short}
                   style={[styles.metricRow, { borderTopColor: c.border }]}>
@@ -100,12 +84,12 @@ export function MarketLegendButton() {
                       {m.short}
                     </ThemedText>
                     <ThemedText style={[styles.long, { color: c.text }]}>
-                      {m.long}
+                      {t(`legend.metrics.${m.key}.long`)}
                     </ThemedText>
                   </View>
                   <ThemedText
                     style={[styles.description, { color: c.textMuted }]}>
-                    {m.description}
+                    {t(`legend.metrics.${m.key}.description`)}
                   </ThemedText>
                 </View>
               ))}
@@ -116,9 +100,9 @@ export function MarketLegendButton() {
                   styles.sectionLabelSpaced,
                   { color: c.textMuted },
                 ]}>
-                MARKET KISALTMALARI
+                {t('legend.marketsHeader')}
               </ThemedText>
-              {MARKETS.map((e) => (
+              {MARKET_KEYS.map((e) => (
                 <View
                   key={e.short}
                   style={[styles.row, { borderTopColor: c.border }]}>
@@ -126,7 +110,7 @@ export function MarketLegendButton() {
                     {e.short}
                   </ThemedText>
                   <ThemedText style={[styles.long, { color: c.textMuted }]}>
-                    {e.long}
+                    {t(`legend.markets.${e.key}`)}
                   </ThemedText>
                 </View>
               ))}

@@ -1,5 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -41,13 +42,11 @@ export const DEFAULT_FILTERS: AnalysisFilterState = {
  */
 export type StrategyPreset = 'banker' | 'value' | 'longshot';
 
-export const PRESETS: Record<
-  StrategyPreset,
-  { label: string; description: string; filters: AnalysisFilterState }
-> = {
+// Preset definitions live as filter shapes only — labels + descriptions
+// come from the i18n bundle at render time so the same preset speaks the
+// user's language without having to duplicate the structure.
+export const PRESETS: Record<StrategyPreset, { filters: AnalysisFilterState }> = {
   banker: {
-    label: 'Banker',
-    description: 'Düşük oran, yüksek isabet — sağlam ayak',
     filters: {
       ...DEFAULT_FILTERS,
       dsoMin: 60,
@@ -59,8 +58,6 @@ export const PRESETS: Record<
     },
   },
   value: {
-    label: 'Değer',
-    description: 'Bahisçi düşük fiyatlamış — matematik avantajı',
     filters: {
       ...DEFAULT_FILTERS,
       dsoMin: 50,
@@ -70,8 +67,6 @@ export const PRESETS: Record<
     },
   },
   longshot: {
-    label: 'Yüksek Oran',
-    description: 'Az tutmuş ama tuttuğunda büyük katkı',
     filters: {
       ...DEFAULT_FILTERS,
       dsoMin: 30,
@@ -112,13 +107,10 @@ interface AnalysisFiltersSheetProps {
   onClose: () => void;
 }
 
-const WINDOWS: { key: WindowCode; label: string }[] = [
-  { key: '1m', label: '1A' },
-  { key: '3m', label: '3A' },
-  { key: '6m', label: '6A' },
-  { key: '1y', label: '1Y' },
-  { key: 'all', label: 'Tümü' },
-];
+// Period chip labels come from rate.filters.windows.* — same abbreviation
+// scheme the legacy RateFilterBar uses. Resolved lazily inside the
+// component so the active language wins on re-render.
+const WINDOW_KEYS: WindowCode[] = ['1m', '3m', '6m', '1y', 'all'];
 
 const RATE_VALUES: number[] = [1.5, 1.8, 2.5, 4.0, 10.0];
 
@@ -129,6 +121,7 @@ export function AnalysisFiltersSheet({
   onClose,
 }: AnalysisFiltersSheetProps) {
   const c = useTheme();
+  const { t } = useTranslation();
 
   // Edits live in a local draft. Parent (committed) state only updates when
   // the user taps UYGULA; closing via backdrop / handle discards. Each open
@@ -169,11 +162,11 @@ export function AnalysisFiltersSheet({
 
           <View style={styles.header}>
             <ThemedText style={[styles.title, { color: c.text }]}>
-              Filtreler
+              {t('filters.title')}
             </ThemedText>
             <Pressable onPress={reset} hitSlop={8}>
               <ThemedText style={[styles.resetText, { color: c.textMuted }]}>
-                SIFIRLA
+                {t('filters.reset')}
               </ThemedText>
             </Pressable>
           </View>
@@ -183,7 +176,7 @@ export function AnalysisFiltersSheet({
                 lets the user fine-tune before applying. */}
             <View style={styles.group}>
               <ThemedText style={[styles.groupLabel, { color: c.textMuted }]}>
-                STRATEJİ
+                {t('filters.strategy')}
               </ThemedText>
               <View style={styles.presetRow}>
                 {(Object.keys(PRESETS) as StrategyPreset[]).map((key) => {
@@ -205,7 +198,7 @@ export function AnalysisFiltersSheet({
                           styles.presetLabel,
                           { color: active ? c.textInverse : c.text },
                         ]}>
-                        {preset.label}
+                        {t(`filters.presets.${key}.label`)}
                       </ThemedText>
                       <ThemedText
                         style={[
@@ -217,7 +210,7 @@ export function AnalysisFiltersSheet({
                           },
                         ]}
                         numberOfLines={2}>
-                        {preset.description}
+                        {t(`filters.presets.${key}.description`)}
                       </ThemedText>
                     </Pressable>
                   );
@@ -251,10 +244,10 @@ export function AnalysisFiltersSheet({
               />
               <View style={styles.valueText}>
                 <ThemedText style={[styles.valueTitle, { color: c.text }]}>
-                  Maç başına en iyi 3
+                  {t('filters.topPerFixture.title')}
                 </ThemedText>
                 <ThemedText style={[styles.valueSubtitle, { color: c.textMuted }]}>
-                  Her maç için sıralamada en yüksek 3 öneri
+                  {t('filters.topPerFixture.subtitle')}
                 </ThemedText>
               </View>
               <View
@@ -299,7 +292,7 @@ export function AnalysisFiltersSheet({
                     styles.valueTitle,
                     { color: draft.valueOnly ? c.textInverse : c.text },
                   ]}>
-                  Sadece değer
+                  {t('filters.valueOnly.title')}
                 </ThemedText>
                 <ThemedText
                   style={[
@@ -310,7 +303,7 @@ export function AnalysisFiltersSheet({
                         : c.textMuted,
                     },
                   ]}>
-                  DSO &gt; İKO koşulunu sağlayan oranlar
+                  {t('filters.valueOnly.subtitle')}
                 </ThemedText>
               </View>
               <View
@@ -334,27 +327,27 @@ export function AnalysisFiltersSheet({
             </Pressable>
 
             <SliderRow
-              label="DSO en az"
+              label={t('filters.sliders.dsoMin')}
               value={draft.dsoMin}
               min={0}
               max={100}
               step={5}
               format={(v) => `≥ %${v}`}
-              hint={draft.dsoMin === 0 ? 'kapalı' : null}
+              hint={draft.dsoMin === 0 ? t('filters.sliders.off') : null}
               onChange={(v) => set('dsoMin', v)}
             />
             <SliderRow
-              label="VBET en az"
+              label={t('filters.sliders.vbetMin')}
               value={draft.vbetMin}
               min={0}
               max={100}
               step={5}
               format={(v) => `≥ %${v}`}
-              hint={draft.vbetMin === 0 ? 'kapalı' : null}
+              hint={draft.vbetMin === 0 ? t('filters.sliders.off') : null}
               onChange={(v) => set('vbetMin', v)}
             />
             <SliderRow
-              label="KZ (örneklem) en az"
+              label={t('filters.sliders.kzMin')}
               value={draft.kzMin}
               min={1}
               max={10}
@@ -367,15 +360,15 @@ export function AnalysisFiltersSheet({
             {/* Period */}
             <View style={styles.group}>
               <ThemedText style={[styles.groupLabel, { color: c.textMuted }]}>
-                PERİYOT
+                {t('filters.period')}
               </ThemedText>
               <View style={[styles.segmented, { borderColor: c.border, backgroundColor: c.bg }]}>
-                {WINDOWS.map((w) => {
-                  const active = draft.window === w.key;
+                {WINDOW_KEYS.map((key) => {
+                  const active = draft.window === key;
                   return (
                     <Pressable
-                      key={w.key}
-                      onPress={() => set('window', w.key)}
+                      key={key}
+                      onPress={() => set('window', key)}
                       style={[
                         styles.segment,
                         active && { backgroundColor: c.brand },
@@ -385,7 +378,7 @@ export function AnalysisFiltersSheet({
                           styles.segmentText,
                           { color: active ? c.textInverse : c.text },
                         ]}>
-                        {w.label}
+                        {t(`rate.filters.windows.${key}`)}
                       </ThemedText>
                     </Pressable>
                   );
@@ -397,7 +390,7 @@ export function AnalysisFiltersSheet({
             <View style={styles.group}>
               <View style={styles.oranHeader}>
                 <ThemedText style={[styles.groupLabel, { color: c.textMuted }]}>
-                  ORAN
+                  {t('filters.rate')}
                 </ThemedText>
                 <View style={[styles.boundToggle, { borderColor: c.border }]}>
                   {(['min', 'max'] as const).map((bound) => {
@@ -415,7 +408,9 @@ export function AnalysisFiltersSheet({
                             styles.boundText,
                             { color: active ? c.textInverse : c.text },
                           ]}>
-                          {bound === 'min' ? '≥ MIN' : '≤ MAX'}
+                          {bound === 'min'
+                            ? t('filters.rateMin')
+                            : t('filters.rateMax')}
                         </ThemedText>
                       </Pressable>
                     );
@@ -443,7 +438,7 @@ export function AnalysisFiltersSheet({
                             : c.text,
                       },
                     ]}>
-                    Tümü
+                    {t('filters.all')}
                   </ThemedText>
                 </Pressable>
                 {RATE_VALUES.map((v) => {
@@ -478,7 +473,7 @@ export function AnalysisFiltersSheet({
             onPress={apply}
             style={[styles.applyBtn, { backgroundColor: c.brand }]}>
             <ThemedText style={[styles.applyText, { color: c.textInverse }]}>
-              UYGULA
+              {t('filters.apply')}
             </ThemedText>
           </Pressable>
         </Pressable>

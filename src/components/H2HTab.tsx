@@ -30,7 +30,7 @@ export function H2HTab({
   if (error && fixtures.length === 0) return <TabError error={error} />;
   if (loading && fixtures.length === 0) return <TabLoading />;
   if (fixtures.length === 0)
-    return <TabEmpty message={t('fixture.h2h.notAvailable')} />;
+    return <TabEmpty icon="swap-horizontal" message={t('fixture.h2h.notAvailable')} />;
 
   const summary = computeRecord(fixtures, homeTeamId, awayTeamId);
 

@@ -28,7 +28,7 @@ export function StandingsTab({
   if (error && rows.length === 0) return <TabError error={error} />;
   if (loading && rows.length === 0) return <TabLoading />;
   if (rows.length === 0)
-    return <TabEmpty message={t('fixture.standings.notAvailable')} />;
+    return <TabEmpty icon="podium" message={t('fixture.standings.notAvailable')} />;
 
   const highlightSet = new Set(
     highlightTeamIds.filter((id): id is number => id != null),

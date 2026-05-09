@@ -1,9 +1,12 @@
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ApiClientError } from '@/src/api/client';
 import { useTheme } from '@/src/lib/useTheme';
+
+type IconName = keyof typeof MaterialCommunityIcons.glyphMap;
 
 export function TabLoading() {
   const c = useTheme();
@@ -28,6 +31,13 @@ export function TabError({ error }: TabErrorProps) {
 
   return (
     <View style={styles.empty}>
+      <View style={[styles.iconCircle, { backgroundColor: c.dangerSoft }]}>
+        <MaterialCommunityIcons
+          name="alert-circle-outline"
+          size={28}
+          color={c.danger}
+        />
+      </View>
       <ThemedText style={[styles.title, { color: c.text }]}>
         {t('common.couldNotLoad')}{status ? ` (HTTP ${status})` : ''}
       </ThemedText>
@@ -45,13 +55,21 @@ export function TabError({ error }: TabErrorProps) {
 
 interface TabEmptyProps {
   message: string;
+  /** Optional icon for the brand-tinted circle. Defaults to a generic
+   *  "no results" mark when caller doesn't pass one. */
+  icon?: IconName;
 }
 
-export function TabEmpty({ message }: TabEmptyProps) {
+export function TabEmpty({ message, icon = 'tray-remove' }: TabEmptyProps) {
   const c = useTheme();
   return (
     <View style={styles.empty}>
-      <ThemedText style={[styles.message, { color: c.textMuted }]}>
+      <View style={[styles.iconCircle, { backgroundColor: c.brandSoft }]}>
+        <MaterialCommunityIcons name={icon} size={28} color={c.brand} />
+      </View>
+      <ThemedText
+        style={[styles.message, { color: c.textMuted }]}
+        numberOfLines={3}>
         {message}
       </ThemedText>
     </View>
@@ -60,18 +78,28 @@ export function TabEmpty({ message }: TabEmptyProps) {
 
 const styles = StyleSheet.create({
   empty: {
-    paddingVertical: 64,
+    paddingVertical: 56,
     paddingHorizontal: 32,
     alignItems: 'center',
-    gap: 6,
+    gap: 10,
+  },
+  iconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
   },
   title: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
   },
   message: {
     fontSize: 13,
     textAlign: 'center',
+    fontWeight: '500',
+    lineHeight: 19,
   },
   url: {
     fontSize: 11,

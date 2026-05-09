@@ -55,6 +55,104 @@
       "shareCoupon": "Share coupon {{name}}",
       "confirmCancel": "Cancel",
       "confirmDelete": "Confirm delete"
+    },
+    "sheet": {
+      "title": "My basket ({{count}})",
+      "clear": "CLEAR",
+      "empty": "Basket is empty. Tap an odd to add it here.",
+      "suggestions": "PICKS TO COMPLETE",
+      "totalOdd": "TOTAL ODD",
+      "save": "SAVE COUPON"
+    },
+    "topPicks": {
+      "headerOne": "TOP PICK",
+      "headerMany": "TOP PICKS",
+      "valueBadge": "VALUE",
+      "stats": "DSO {{dso}}% · IKO {{iko}}% · sample {{sample}}",
+      "actionInBasket": "IN BASKET",
+      "actionDisabled": "OFF",
+      "actionAdd": "ADD"
+    },
+    "stats": {
+      "title": "My stats",
+      "a11yShow": "Show stats",
+      "kupon": "Coupons",
+      "won": "Won",
+      "hitRate": "Hit rate",
+      "avgOdd": "Avg odd",
+      "calibration": "CALIBRATION ({{count}} picks)",
+      "calibrationSystem": "System",
+      "calibrationUser": "You",
+      "deltaPoints": "{{delta}} pp",
+      "deltaAbove": "above the system",
+      "deltaBelow": "below the system",
+      "marketBreakdown": "MARKET PERFORMANCE",
+      "legendSystem": "System (avg DSO)",
+      "legendUser": "You (actual)",
+      "legendCount": "{{count}} picks"
+    }
+  },
+  "filters": {
+    "title": "Filters",
+    "reset": "RESET",
+    "apply": "APPLY",
+    "strategy": "STRATEGY",
+    "presets": {
+      "banker": { "label": "Banker", "description": "Low odds, high hit rate — solid leg" },
+      "value": { "label": "Value", "description": "Bookmaker mispriced — math edge" },
+      "longshot": { "label": "Long shot", "description": "Rare but high-payout when it lands" }
+    },
+    "topPerFixture": {
+      "title": "Best 3 per match",
+      "subtitle": "Top 3 ranked picks per fixture"
+    },
+    "valueOnly": {
+      "title": "Value only",
+      "subtitle": "Picks where DSO > IKO"
+    },
+    "sliders": {
+      "dsoMin": "DSO min",
+      "vbetMin": "VBET min",
+      "kzMin": "Sample size min",
+      "off": "off"
+    },
+    "period": "PERIOD",
+    "rate": "ODD",
+    "rateMin": "≥ MIN",
+    "rateMax": "≤ MAX",
+    "all": "All"
+  },
+  "legend": {
+    "title": "Legend",
+    "metricsHeader": "METRICS",
+    "marketsHeader": "MARKET CODES",
+    "metrics": {
+      "dso": {
+        "long": "Direct Outcome Rate",
+        "description": "Historical hit rate of this pick. 3 of 5 matches = 60%. (winning_percent)"
+      },
+      "vbet": {
+        "long": "Expected Return (ROI)",
+        "description": "Net P/L if 100 units were staked. Positive = bookmaker priced too low. (earning_percent)"
+      },
+      "iko": {
+        "long": "Implied Probability",
+        "description": "Bookmaker's no-vig implied probability. Outcomes within a market sum to 100. DSO > IKO = value."
+      },
+      "kzky": {
+        "long": "Won / Lost",
+        "description": "Historical win and loss counts (win_count / lost_count)."
+      }
+    },
+    "markets": {
+      "MS": "Match Result",
+      "DNB": "Draw No Bet",
+      "KG": "Both Teams To Score",
+      "EV": "Home Exact Goals",
+      "DEP": "Away Exact Goals",
+      "iy": "1st Half Exact Goals",
+      "y2": "2nd Half Exact Goals",
+      "tc": "Odd / Even"
     }
   },
   "tabs": {
