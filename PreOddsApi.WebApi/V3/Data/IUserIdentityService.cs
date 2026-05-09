@@ -22,6 +22,25 @@ namespace PreOddsApi.WebApi.V3.Data
         Task<UserDto?> GetByIdAsync(
             Guid userId,
             CancellationToken ct = default);
+
+        /// <summary>Returns the user id matching either username or email. Null when not found.</summary>
+        Task<Guid?> FindUserIdByEmailOrUsernameAsync(
+            string emailOrUsername,
+            CancellationToken ct = default);
+
+        /// <summary>
+        /// Replaces the password without requiring the old one. Caller must
+        /// have proven identity another way (consumed account token).
+        /// </summary>
+        Task<bool> ResetPasswordAsync(
+            Guid userId,
+            string newPassword,
+            CancellationToken ct = default);
+
+        /// <summary>Stamps the user record as email-verified.</summary>
+        Task<bool> MarkEmailVerifiedAsync(
+            Guid userId,
+            CancellationToken ct = default);
     }
 
     public sealed class SignupOutcome

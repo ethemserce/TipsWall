@@ -82,6 +82,8 @@ builder.Services.AddScoped<PreOddsApi.WebApi.V3.Data.IUserIdentityService,
     PreOddsApi.WebApi.V3.Data.PostgresUserIdentityService>();
 builder.Services.AddSingleton<PreOddsApi.WebApi.V3.Data.IRefreshTokenService,
     PreOddsApi.WebApi.V3.Data.PostgresRefreshTokenService>();
+builder.Services.AddSingleton<PreOddsApi.WebApi.V3.Data.IAccountTokenService,
+    PreOddsApi.WebApi.V3.Data.PostgresAccountTokenService>();
 builder.Services.AddSingleton<PreOddsApi.WebApi.V3.Data.IUserDataService,
     PreOddsApi.WebApi.V3.Data.PostgresUserDataService>();
 builder.Services.AddSingleton<PreOddsApi.WebApi.V3.Data.IAnalyticsReader,

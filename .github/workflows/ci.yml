@@ -37,6 +37,20 @@ jobs:
       - name: Restore
         run: dotnet restore PreOddsApi.sln
 
+      # Whitespace gate (soft). The legacy projects haven't been
+      # formatted; a hard `--verify-no-changes` would block every PR
+      # until we baseline. Soft-fail surfaces drift in the CI output
+      # without blocking. Flip continue-on-error to false once we run
+      # `dotnet format whitespace` once and commit the baseline.
+      - name: Format check (whitespace, soft)
+        continue-on-error: true
+        run: |
+          dotnet format whitespace PreOddsApi.WebApi/PreOddsApi.WebApi.csproj \
+            --verify-no-changes \
+            --include "PreOddsApi.WebApi/V3/**" \
+                      "PreOddsApi.WebApi/Program.cs" \
+            || echo "::warning::dotnet format whitespace would rewrite files; run locally and commit."
+
       - name: Build
         run: dotnet build PreOddsApi.sln --configuration Release --no-restore
 
@@ -48,6 +62,47 @@ jobs:
             --filter "FullyQualifiedName!~Integration" \
             --logger "trx;LogFileName=unit.trx" \
             --results-directory TestResults
+
+      # Migrations smoke test: run the migrator end-to-end against an
+      # ephemeral Postgres so a malformed SQL file or a checksum drift
+      # is caught in CI rather than at deploy time. We run it twice —
+      # the second run must be a clean no-op (idempotency check).
+      - name: Start ephemeral Postgres for migrator smoke
+        run: |
+          docker run -d --name pg-migrator-smoke \
+            -e POSTGRES_USER=preodds \
+            -e POSTGRES_PASSWORD=preodds_ci \
+            -e POSTGRES_DB=preodds \
+            -p 15433:5432 \
+            postgres:16-alpine
+          # Wait for the server to accept connections.
+          for i in {1..30}; do
+            docker exec pg-migrator-smoke pg_isready -U preodds && break
+            sleep 1
+          done
+
+      - name: Run migrator
+        env:
+          PREODDS_POSTGRES_CONNECTION: "Host=localhost;Port=15433;Database=preodds;Username=preodds;Password=preodds_ci"
+        run: |
+          dotnet run --project PreOddsApi.Migrator/PreOddsApi.Migrator.csproj \
+            --configuration Release --no-build -- database/postgres
+
+      - name: Re-run migrator (idempotency)
+        env:
+          PREODDS_POSTGRES_CONNECTION: "Host=localhost;Port=15433;Database=preodds;Username=preodds;Password=preodds_ci"
+        run: |
+          # If anything in this run says `[apply]`, a migration was not
+          # tracked properly. The "Done: 0 new file(s)" line is what we
+          # want. grep -v inverts so the step fails on any [apply] line.
+          dotnet run --project PreOddsApi.Migrator/PreOddsApi.Migrator.csproj \
+            --configuration Release --no-build -- database/postgres \
+            | tee migrator-second-run.log
+          ! grep -q "\[apply\]" migrator-second-run.log
+
+      - name: Tear down ephemeral Postgres
+        if: always()
+        run: docker rm -f pg-migrator-smoke || true
 
       # Integration tests use Testcontainers which spins up a real Postgres
       # container on the runner. Slower but exercises the full host +

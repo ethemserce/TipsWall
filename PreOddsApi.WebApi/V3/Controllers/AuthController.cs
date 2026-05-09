@@ -18,17 +18,27 @@ namespace PreOddsApi.WebApi.V3.Controllers
     [EnableRateLimiting("auth")]
     public sealed class AuthController : ApiControllerBase
     {
+        // 1h is enough for users to click an email link without keeping
+        // the door open through a stolen mailbox archive.
+        private static readonly TimeSpan PasswordResetLifetime = TimeSpan.FromHours(1);
+        // Email verify is less time-sensitive — links commonly sit in
+        // inboxes for a day or two before being clicked.
+        private static readonly TimeSpan EmailVerifyLifetime = TimeSpan.FromHours(24);
+
         private readonly IUserIdentityService _identity;
         private readonly IRefreshTokenService _refreshTokens;
+        private readonly IAccountTokenService _accountTokens;
         private readonly AuthOptions _authOptions;
 
         public AuthController(
             IUserIdentityService identity,
             IRefreshTokenService refreshTokens,
+            IAccountTokenService accountTokens,
             AuthOptions authOptions)
         {
             _identity = identity;
             _refreshTokens = refreshTokens;
+            _accountTokens = accountTokens;
             _authOptions = authOptions;
         }
 
@@ -136,6 +146,108 @@ namespace PreOddsApi.WebApi.V3.Controllers
 
             await _refreshTokens.RevokeAsync(request.RefreshToken, "logout", ct);
             return OkResponse(new { revoked = true });
+        }
+
+        // ---------- Password reset ------------------------------------
+
+        [AllowAnonymous]
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPasswordAsync(
+            [FromBody] ForgotPasswordRequest request,
+            CancellationToken ct)
+        {
+            // Always return 200 regardless of whether the account exists.
+            // Leaking existence via 404 / timing is a privacy regression.
+            // The token (when issued) is logged out so an operator can
+            // surface it to the email pipeline; in production this hands
+            // off to your email provider (SES / Postmark / Sendgrid).
+            var userId = await _identity.FindUserIdByEmailOrUsernameAsync(
+                request.EmailOrUsername ?? string.Empty, ct);
+
+            string? rawToken = null;
+            if (userId.HasValue)
+            {
+                var issued = await _accountTokens.IssueAsync(
+                    userId.Value, AccountTokenPurpose.PasswordReset, PasswordResetLifetime, ct);
+                rawToken = issued.RawToken;
+            }
+
+            // The token is returned in the body in non-Production environments
+            // so the mobile dev / e2e tester can redeem it without a real
+            // email pipeline. Production builds suppress it.
+            var includeTokenInBody = string.Equals(
+                Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"),
+                "Development",
+                StringComparison.OrdinalIgnoreCase);
+
+            return OkResponse(includeTokenInBody && rawToken != null
+                ? new { sent = true, dev_token = rawToken }
+                : (object)new { sent = true });
+        }
+
+        [AllowAnonymous]
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPasswordAsync(
+            [FromBody] ResetPasswordRequest request,
+            CancellationToken ct)
+        {
+            if (string.IsNullOrWhiteSpace(request.Token))
+                return BadRequestResponse("token is required.");
+            if (string.IsNullOrEmpty(request.NewPassword) || request.NewPassword.Length < 8)
+                return BadRequestResponse("new_password must be at least 8 characters.");
+
+            var redemption = await _accountTokens.ConsumeAsync(
+                request.Token, AccountTokenPurpose.PasswordReset, ct);
+            if (!redemption.Succeeded)
+                return BadRequestResponse("Invalid or expired token.");
+
+            var ok = await _identity.ResetPasswordAsync(redemption.UserId, request.NewPassword, ct);
+            if (!ok)
+                return BadRequestResponse("Could not update password.");
+
+            return OkResponse(new { reset = true });
+        }
+
+        // ---------- Email verification --------------------------------
+
+        [Authorize]
+        [HttpPost("request-email-verification")]
+        public async Task<IActionResult> RequestEmailVerificationAsync(CancellationToken ct)
+        {
+            var uid = User.FindFirst("uid")?.Value;
+            if (!Guid.TryParse(uid, out var userId))
+                return Unauthorized(ApiResponse<object>.Fail(
+                    ApiError.Codes.Unauthorized, "Invalid token."));
+
+            var issued = await _accountTokens.IssueAsync(
+                userId, AccountTokenPurpose.EmailVerify, EmailVerifyLifetime, ct);
+
+            var includeTokenInBody = string.Equals(
+                Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"),
+                "Development",
+                StringComparison.OrdinalIgnoreCase);
+
+            return OkResponse(includeTokenInBody
+                ? new { sent = true, dev_token = issued.RawToken }
+                : (object)new { sent = true });
+        }
+
+        [AllowAnonymous]
+        [HttpPost("verify-email")]
+        public async Task<IActionResult> VerifyEmailAsync(
+            [FromBody] VerifyEmailRequest request,
+            CancellationToken ct)
+        {
+            if (string.IsNullOrWhiteSpace(request.Token))
+                return BadRequestResponse("token is required.");
+
+            var redemption = await _accountTokens.ConsumeAsync(
+                request.Token, AccountTokenPurpose.EmailVerify, ct);
+            if (!redemption.Succeeded)
+                return BadRequestResponse("Invalid or expired token.");
+
+            await _identity.MarkEmailVerifiedAsync(redemption.UserId, ct);
+            return OkResponse(new { verified = true });
         }
 
         [Authorize]

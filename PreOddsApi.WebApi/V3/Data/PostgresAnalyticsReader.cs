@@ -62,8 +62,13 @@ namespace PreOddsApi.WebApi.V3.Data
             }
             if (query.FixtureDate.HasValue)
             {
-                baseClauses.Add("f.starting_at::date = @fixture_date");
-                parameters.Add(new NpgsqlParameter("fixture_date", query.FixtureDate.Value.Date));
+                // Range comparison instead of `f.starting_at::date = @date` so
+                // the planner can use ix_fixtures_starting_at and the new
+                // ix_fixtures_league_state_starting_at composite. Casting the
+                // column makes the predicate non-sargable.
+                baseClauses.Add("f.starting_at >= @fixture_date_start and f.starting_at < @fixture_date_end");
+                parameters.Add(new NpgsqlParameter("fixture_date_start", query.FixtureDate.Value.Date));
+                parameters.Add(new NpgsqlParameter("fixture_date_end", query.FixtureDate.Value.Date.AddDays(1)));
             }
 
             if (query.MinRate.HasValue)

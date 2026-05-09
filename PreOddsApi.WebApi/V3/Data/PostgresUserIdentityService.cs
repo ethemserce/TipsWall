@@ -249,6 +249,72 @@ namespace PreOddsApi.WebApi.V3.Data
                 "Failed to bridge legacy user to app.users.");
         }
 
+        public async Task<Guid?> FindUserIdByEmailOrUsernameAsync(
+            string emailOrUsername,
+            CancellationToken ct = default)
+        {
+            if (string.IsNullOrWhiteSpace(emailOrUsername)) return null;
+            var key = emailOrUsername.Trim().ToLowerInvariant();
+
+            // app.users has functional unique indexes on lower(email) /
+            // lower(username); match those expressions exactly so the
+            // planner picks them up.
+            const string sql = @"
+                select id
+                from app.users
+                where lower(email) = @k or lower(username) = @k
+                limit 1;";
+
+            await using var connection = await OpenAsync(ct);
+            await using var command = new NpgsqlCommand(sql, connection);
+            command.Parameters.AddWithValue("k", key);
+            var result = await command.ExecuteScalarAsync(ct);
+            return result is Guid id ? id : null;
+        }
+
+        public async Task<bool> ResetPasswordAsync(
+            Guid userId,
+            string newPassword,
+            CancellationToken ct = default)
+        {
+            // Caller has already proven identity (consumed an account token).
+            // No old-password check; just rehash and store.
+            if (string.IsNullOrEmpty(newPassword) || newPassword.Length < 8)
+                return false;
+
+            var hash = PasswordHasher.Hash(newPassword);
+
+            const string sql = @"
+                update app.users
+                set password_hash = @hash,
+                    updated_at = now()
+                where id = @id;";
+
+            await using var connection = await OpenAsync(ct);
+            await using var command = new NpgsqlCommand(sql, connection);
+            command.Parameters.AddWithValue("id", userId);
+            command.Parameters.AddWithValue("hash", hash);
+            var rows = await command.ExecuteNonQueryAsync(ct);
+            return rows > 0;
+        }
+
+        public async Task<bool> MarkEmailVerifiedAsync(
+            Guid userId,
+            CancellationToken ct = default)
+        {
+            const string sql = @"
+                update app.users
+                set email_verified_at = coalesce(email_verified_at, now()),
+                    updated_at = now()
+                where id = @id;";
+
+            await using var connection = await OpenAsync(ct);
+            await using var command = new NpgsqlCommand(sql, connection);
+            command.Parameters.AddWithValue("id", userId);
+            var rows = await command.ExecuteNonQueryAsync(ct);
+            return rows > 0;
+        }
+
         private Task<NpgsqlConnection> OpenAsync(CancellationToken ct)
             => _dataSource.OpenConnectionAsync(ct).AsTask();
 
