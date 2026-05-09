@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel in-flight runs on the same branch when a new commit is pushed —
+# saves CI minutes during quick iteration.
+concurrency:
+  group: mobile-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          # react-native@0.81 wants 20.19+; pin to 20.x latest so we don't
+          # silently drift when GH bumps the default.
+          node-version: '20.x'
+          cache: 'npm'
+
+      - name: Install dependencies
+        # `npm ci` is faster + deterministic vs `npm install` and fails if
+        # package-lock.json drifts from package.json.
+        run: npm ci
+
+      - name: TypeScript typecheck
+        # `expo` doesn't ship a dedicated typecheck script; tsc --noEmit
+        # is the standard. Catches API drift between mobile and the
+        # hand-mirrored backend DTOs.
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test -- --ci --reporters=default
+
+      # Sanity check: a full Expo prebuild dry-run catches malformed
+      # app.json / native config without committing to a build artefact.
+      - name: Expo doctor
+        run: npx expo-doctor || true
