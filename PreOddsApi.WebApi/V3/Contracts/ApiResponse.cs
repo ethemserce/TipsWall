@@ -1,19 +1,14 @@
-using Newtonsoft.Json;
 
 namespace PreOddsApi.WebApi.V3.Contracts
 {
     public sealed class ApiResponse<T>
     {
-        [JsonProperty("success")]
         public bool Success { get; init; }
 
-        [JsonProperty("data", NullValueHandling = NullValueHandling.Ignore)]
         public T? Data { get; init; }
 
-        [JsonProperty("pagination", NullValueHandling = NullValueHandling.Ignore)]
         public ApiPagination? Pagination { get; init; }
 
-        [JsonProperty("error", NullValueHandling = NullValueHandling.Ignore)]
         public ApiError? Error { get; init; }
 
         public static ApiResponse<T> Ok(T data) => new()

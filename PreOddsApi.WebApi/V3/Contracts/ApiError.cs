@@ -1,13 +1,10 @@
-using Newtonsoft.Json;
 
 namespace PreOddsApi.WebApi.V3.Contracts
 {
     public sealed class ApiError
     {
-        [JsonProperty("code")]
         public string Code { get; init; } = string.Empty;
 
-        [JsonProperty("message")]
         public string Message { get; init; } = string.Empty;
 
         public static class Codes
