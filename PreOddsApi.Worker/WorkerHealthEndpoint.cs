@@ -44,9 +44,12 @@ namespace PreOddsApi.Worker
             }
 
             using var listener = new HttpListener();
-            // "+" matches any host header; works inside containers where
-            // the listener doesn't know its public hostname.
-            listener.Prefixes.Add($"http://+:{_port}/");
+            // Loopback only. The "+" form would catch every host header
+            // but Windows requires an admin urlacl reservation for it
+            // (HttpListenerException: Access is denied), and our K8s
+            // probe contract is "the kubelet runs `curl localhost:port`
+            // from inside the container" — same loopback either way.
+            listener.Prefixes.Add($"http://localhost:{_port}/");
             try
             {
                 listener.Start();
