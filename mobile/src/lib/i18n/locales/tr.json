@@ -1,0 +1,500 @@
+{
+  "common": {
+    "loading": "Yükleniyor…",
+    "tbd": "—",
+    "today": "Bugün",
+    "all": "Tümü",
+    "live": "Canlı",
+    "upcoming": "Yaklaşan",
+    "finished": "Bitti",
+    "match": "Maç",
+    "back": "Geri",
+    "cancel": "İptal",
+    "delete": "Sil",
+    "share": "Paylaş",
+    "couldNotLoad": "Yüklenemedi",
+    "somethingWentWrong": "Bir şeyler ters gitti.",
+    "noResults": "Sonuç bulunamadı.",
+    "comingSoon": "{{name}} yakında.",
+    "offline": "İnternet bağlantısı yok. Yeniden bağlanılınca güncellenecek.",
+    "liveReconnecting": "Canlı veriye yeniden bağlanılıyor…",
+    "liveDisconnected": "Canlı veri bağlantısı yok. Skorlar gecikebilir."
+  },
+  "coupons": {
+    "empty": {
+      "title": "Henüz kupon yok",
+      "body": "Bir tipin üstüne dokunarak sepete ekle. Sepet dolunca buradan kaydedip takip edebilirsin.",
+      "hintAnalysisLabel": "Analiz",
+      "hintAnalysisText": "HIT/ROI sıralı tipler",
+      "hintDetailLabel": "Detay",
+      "hintDetailText": "Maç sayfasında öneriler"
+    },
+    "dateFilter": {
+      "today": "Bugün",
+      "week": "Bu Hafta",
+      "month": "Bu Ay",
+      "empty": "Bu aralıkta kupon yok"
+    },
+    "dateLabel": {
+      "today": "Bugün",
+      "yesterday": "Dün"
+    },
+    "status": {
+      "won": "KAZANDI",
+      "lost": "KAYBETTİ",
+      "pending": "BEKLEMEDE"
+    },
+    "totalLabel": "TOPLAM",
+    "parlay": {
+      "fairOdd": "FAIR ORAN",
+      "vig": "BAHİS VİG",
+      "expectedReturn": "BEKL. GETİRİ"
+    },
+    "delete": {
+      "title": "Kuponu sil",
+      "body": "\"{{name}}\" silinsin mi? Bu işlem geri alınamaz.",
+      "cancel": "İPTAL",
+      "confirm": "SİL"
+    },
+    "summary": {
+      "selectionsSettled": "{{count}} seçim · {{settled}}/{{count}} sonuçlandı"
+    },
+    "a11y": {
+      "deleteCoupon": "{{name}} kuponunu sil",
+      "deleteCouponHint": "Onay penceresi açar",
+      "shareCoupon": "{{name}} kuponunu paylaş",
+      "confirmCancel": "İptal",
+      "confirmDelete": "Sil ve onayla"
+    },
+    "sheet": {
+      "title": "Sepetim ({{count}})",
+      "clear": "TEMİZLE",
+      "empty": "Sepetin boş. Bir oran seçince buraya eklenir.",
+      "suggestions": "TAMAMLAMAK İÇİN ÖNERİLER",
+      "totalOdd": "TOPLAM ORAN",
+      "save": "KUPONU KAYDET"
+    },
+    "topPicks": {
+      "headerOne": "ÖNERİLEN SEÇİM",
+      "headerMany": "ÖNERİLEN SEÇİMLER",
+      "valueBadge": "DEĞER",
+      "stats": "HIT {{dso}}% · IMP {{iko}}% · örnek {{sample}}",
+      "actionInBasket": "SEPETTE",
+      "actionDisabled": "KAPALI",
+      "actionAdd": "SEPETE EKLE"
+    },
+    "stats": {
+      "title": "İstatistiklerim",
+      "a11yShow": "İstatistikleri göster",
+      "kupon": "Kupon",
+      "won": "Tutan",
+      "hitRate": "Tutturma",
+      "avgOdd": "Ort. Oran",
+      "calibration": "KALİBRASYON ({{count}} tahmin)",
+      "calibrationSystem": "Sistem",
+      "calibrationUser": "Sen",
+      "deltaPoints": "{{delta}} puan",
+      "deltaAbove": "sistemin üstünde",
+      "deltaBelow": "sistemin altında",
+      "marketBreakdown": "TAHMİN PERFORMANSI",
+      "legendSystem": "Sistem (HIT ort.)",
+      "legendUser": "Sen (gerçek)",
+      "legendCount": "{{count}} tahmin"
+    }
+  },
+  "filters": {
+    "title": "Filtreler",
+    "reset": "SIFIRLA",
+    "apply": "UYGULA",
+    "strategy": "STRATEJİ",
+    "presets": {
+      "banker": { "label": "Banker", "description": "Düşük oran, yüksek isabet — sağlam ayak" },
+      "value": { "label": "Değer", "description": "Bahisçi düşük fiyatlamış — matematik avantajı" },
+      "longshot": { "label": "Yüksek Oran", "description": "Az tutmuş ama tuttuğunda büyük katkı" }
+    },
+    "topPerFixture": {
+      "title": "Maç başına en iyi 3",
+      "subtitle": "Her maç için sıralamada en yüksek 3 öneri"
+    },
+    "valueOnly": {
+      "title": "Sadece değer",
+      "subtitle": "HIT > IMP koşulunu sağlayan tipler"
+    },
+    "sliders": {
+      "dsoMin": "HIT en az",
+      "vbetMin": "ROI en az",
+      "kzMin": "KZ (örneklem) en az",
+      "off": "kapalı"
+    },
+    "period": "PERİYOT",
+    "rate": "ORAN",
+    "rateMin": "≥ MIN",
+    "rateMax": "≤ MAX",
+    "all": "Tümü"
+  },
+  "legend": {
+    "title": "Açıklamalar",
+    "metricsHeader": "METRİKLER",
+    "marketsHeader": "MARKET KISALTMALARI",
+    "metrics": {
+      "dso": {
+        "long": "Tutturma Oranı (HIT)",
+        "description": "Geçmiş örneklemde bu tahminin tutma yüzdesi. 5 maçtan 3'ünde tuttuysa %60."
+      },
+      "vbet": {
+        "long": "Beklenen Getiri (ROI)",
+        "description": "100 birim oynanmış olsa beklenen net kâr/zarar. Pozitif değer bahisçinin oranı düşük fiyatladığını gösterir."
+      },
+      "iko": {
+        "long": "Bahisçi Olasılığı (IMP)",
+        "description": "Bahisçinin oranlardan çıkardığı, marj temizlenmiş olasılık. Aynı market içinde tüm sonuçlar 100'e tamamlanır. HIT, IMP'den büyükse değer vardır."
+      },
+      "kzky": {
+        "long": "Kazanan / Kaybeden",
+        "description": "Geçmiş örneklemde tutmuş ve tutmamış maç sayıları (win_count / lost_count)."
+      }
+    },
+    "markets": {
+      "MS": "Maç Sonucu",
+      "DNB": "Beraberlikte iade (Draw No Bet)",
+      "KG": "Karşılıklı Gol",
+      "EV": "Ev Sahibi Tam Skor",
+      "DEP": "Deplasman Tam Skor",
+      "iy": "1. Yarı Tam Skor",
+      "y2": "2. Yarı Tam Skor",
+      "tc": "Tek / Çift Gol"
+    }
+  },
+  "tabs": {
+    "home": "Anasayfa",
+    "analysis": "Analiz",
+    "leagues": "Ligler",
+    "coupons": "Kuponlarım",
+    "settings": "Ayarlar",
+    "winning": "Kazanma",
+    "hot": "Sıcak",
+    "earning": "Kâr"
+  },
+  "leagues": {
+    "searchPlaceholder": "Lig adı ara",
+    "unknownCountry": "Diğer",
+    "empty": {
+      "title": "Henüz lig yok",
+      "body": "Veri kaynağından henüz lig çekilmedi.",
+      "searchTitle": "Sonuç bulunamadı",
+      "searchBody": "Farklı bir lig ya da ülke adı dene."
+    }
+  },
+  "settings": {
+    "title": "Ayarlar",
+    "appearance": {
+      "header": "Görünüm",
+      "theme": "Tema",
+      "themeHint": "Telefon ayarına göre otomatik veya sabit seçim",
+      "modes": {
+        "system": "Telefon ayarı",
+        "light": "Açık",
+        "dark": "Koyu"
+      }
+    },
+    "privacy": {
+      "header": "Gizlilik",
+      "oddsHidden": "Oranları gizle",
+      "oddsHiddenHint": "Tüm bahis oranları yerine ‘••’ gösterilir"
+    },
+    "language": {
+      "header": "Dil",
+      "label": "Uygulama dili",
+      "hint": "Telefonun diline göre otomatik veya sabit seçim",
+      "modes": {
+        "system": "Telefon ayarı",
+        "en": "İngilizce",
+        "tr": "Türkçe"
+      }
+    }
+  },
+  "home": {
+    "filters": {
+      "odds": "Oranlar"
+    },
+    "noFixturesForFilter": "Bu filtreyle eşleşen maç yok.",
+    "search": {
+      "placeholder": "Takım veya lig ara",
+      "a11yOpen": "Ara",
+      "a11yClose": "Aramayı kapat",
+      "a11yClear": "Temizle"
+    },
+    "toggleAll": {
+      "expand": "Hepsini aç",
+      "collapse": "Hepsini kapat"
+    },
+    "meta": {
+      "summary": "{{leagues}} lig · {{matches}} maç"
+    },
+    "error": {
+      "title": "Maçlar yüklenemedi",
+      "unknown": "Bilinmeyen hata"
+    },
+    "empty": {
+      "searchTitle": "Sonuç bulunamadı",
+      "searchBody": "Farklı bir takım veya lig adı deneyebilirsin.",
+      "filterTitle": "Bu filtreye uygun maç yok",
+      "filterBody": "Farklı bir tarih veya filtre deneyebilirsin."
+    }
+  },
+  "team": {
+    "matches": {
+      "empty": "Bu takım için yaklaşan veya geçmiş maç yok"
+    },
+    "dateLabel": {
+      "tomorrow": "Yarın"
+    },
+    "stats": {
+      "played": "Oynanan",
+      "wins": "Galibiyet",
+      "draws": "Beraberlik",
+      "losses": "Mağlubiyet",
+      "goalsFor": "Atılan",
+      "goalsAgainst": "Yenilen",
+      "goalDiff": "Averaj"
+    }
+  },
+  "league": {
+    "toggleExpand": "{{name}} ligini aç",
+    "toggleCollapse": "{{name}} ligini kapat",
+    "tabs": {
+      "matches": "Maçlar",
+      "stats": "İstatistikler",
+      "standings": "Puan Durumu"
+    },
+    "stats": {
+      "empty": "Bu lig için henüz istatistik yok",
+      "total": "Toplam",
+      "goalsHeader": "GOLLER",
+      "totalGoals": "Toplam gol",
+      "avgGoals": "Maç başına ort.",
+      "distHeader": "{{count}} biten maç sonucu",
+      "homeWins": "Ev sahibi galip",
+      "draws": "Beraberlik",
+      "awayWins": "Deplasman galip",
+      "topAttack": "EN ÇOK GOL ATAN",
+      "topDefense": "EN AZ GOL YİYEN (ORT.)"
+    },
+    "matches": {
+      "empty": "Bu lig için yaklaşan veya geçmiş maç yok",
+      "tbd": "Tarihi belirsiz"
+    },
+    "week": {
+      "thisWeek": "Bu Hafta",
+      "lastWeek": "Geçen Hafta",
+      "nextWeek": "Gelecek Hafta",
+      "empty": "Bu haftada maç yok",
+      "emptyHint": "Önceki veya sonraki haftaya kaydır"
+    }
+  },
+  "analysis": {
+    "filtersButton": "Filtre"
+  },
+  "markets": {
+    "tbd": "TBD",
+    "fallback": "Market #{{id}}",
+    "noInfo": "Bu market için açıklama henüz eklenmemiş.",
+    "info": {
+      "1": {
+        "title": "Maç Sonucu",
+        "blurb": "Maçın 90 dakika bitimindeki sonucu. Uzatma ve penaltılar sayılmaz.",
+        "outcomes": [
+          { "key": "1", "meaning": "Ev sahibi galip" },
+          { "key": "X", "meaning": "Beraberlik" },
+          { "key": "2", "meaning": "Deplasman galip" }
+        ]
+      },
+      "10": {
+        "title": "Beraberlikte İade",
+        "blurb": "Maç berabere biterse bahis iade edilir; aksi halde tahmin kazanır ya da kaybeder.",
+        "outcomes": [
+          { "key": "1", "meaning": "Ev sahibi galip" },
+          { "key": "2", "meaning": "Deplasman galip" }
+        ]
+      },
+      "14": {
+        "title": "Karşılıklı Gol",
+        "blurb": "Maçta iki takımın da gol atıp atmayacağı.",
+        "outcomes": [
+          { "key": "Var", "meaning": "İki takım da en az 1 gol atar" },
+          { "key": "Yok", "meaning": "En az bir takım gol atamaz" }
+        ]
+      },
+      "18": {
+        "title": "Ev Sahibi Tam Skor",
+        "blurb": "Ev sahibinin tam olarak kaç gol attığı.",
+        "outcomes": [
+          { "key": "0 / 1 / 2 / 3+", "meaning": "Ev sahibinin attığı gol sayısı (3+ üç ve üstü)" }
+        ]
+      },
+      "19": {
+        "title": "Deplasman Tam Skor",
+        "blurb": "Deplasman takımının tam olarak kaç gol attığı.",
+        "outcomes": [
+          { "key": "0 / 1 / 2 / 3+", "meaning": "Deplasmanın attığı gol sayısı" }
+        ]
+      },
+      "31": {
+        "title": "İlk Yarı Sonucu",
+        "blurb": "İlk yarı (45 dk) bitimindeki sonuç.",
+        "outcomes": [
+          { "key": "1", "meaning": "Ev sahibi önde" },
+          { "key": "X", "meaning": "Beraberlik" },
+          { "key": "2", "meaning": "Deplasman önde" }
+        ]
+      },
+      "33": {
+        "title": "1. Yarı Tam Skor",
+        "blurb": "İlk yarıda atılan toplam gol sayısı.",
+        "outcomes": [
+          { "key": "0 / 1 / 2 / 3 / 4 / 5+", "meaning": "İlk yarıda toplam gol" }
+        ]
+      },
+      "38": {
+        "title": "2. Yarı Tam Skor",
+        "blurb": "İkinci yarıda atılan toplam gol sayısı.",
+        "outcomes": [
+          { "key": "0 / 1 / 2 / 3 / 4 / 5+", "meaning": "İkinci yarıda toplam gol" }
+        ]
+      },
+      "44": {
+        "title": "Tek / Çift",
+        "blurb": "Maçtaki toplam gol sayısının tek mi çift mi olduğu.",
+        "outcomes": [
+          { "key": "Tek", "meaning": "Toplam gol 1, 3, 5..." },
+          { "key": "Çift", "meaning": "Toplam gol 0, 2, 4..." }
+        ]
+      },
+      "52": {
+        "title": "Ev Sahibi / Deplasman",
+        "blurb": "Beraberlik dikkate alınmaz; sadece galibiyet.",
+        "outcomes": [
+          { "key": "Ev", "meaning": "Ev sahibi galip" },
+          { "key": "Dep", "meaning": "Deplasman galip" }
+        ]
+      },
+      "80": {
+        "title": "Toplam Gol Alt / Üst",
+        "blurb": "Maçtaki toplam gol sayısının verilen çizgiyi geçip geçmediği.",
+        "outcomes": [
+          { "key": "Üst (Over)", "meaning": "Toplam gol > çizgi" },
+          { "key": "Alt (Under)", "meaning": "Toplam gol < çizgi" }
+        ]
+      }
+    }
+  },
+  "fixture": {
+    "tabs": {
+      "details": "Detaylar",
+      "odds": "Analiz",
+      "stats": "İstatistikler",
+      "lineups": "Kadrolar",
+      "h2h": "Karşılaşmalar",
+      "standings": "Puan Durumu"
+    },
+    "events": {
+      "firstHalf": "1. Yarı",
+      "secondHalf": "2. Yarı"
+    },
+    "hero": {
+      "halfTimeShort": "İY {{home}}-{{away}}",
+      "tbd": "TBD"
+    },
+    "info": {
+      "title": "Maç Bilgisi",
+      "tournament": "Turnuva",
+      "country": "Ülke",
+      "type": "Tür",
+      "kickOff": "Başlangıç",
+      "length": "Süre",
+      "leg": "Etap",
+      "result": "Sonuç",
+      "lengthMinutes": "{{count}} dk"
+    },
+    "score": {
+      "title": "Skor",
+      "halftime": "İY",
+      "firstHalf": "1. Yarı",
+      "secondHalf": "2. Yarı",
+      "extraTime": "Uzatma",
+      "penalties": "Penaltılar",
+      "fullTime": "Maç Sonu"
+    },
+    "lineups": {
+      "notAvailable": "Kadrolar henüz açıklanmadı.",
+      "formation": "Diziliş",
+      "startingXi": "İlk 11",
+      "bench": "Yedekler",
+      "home": "Ev Sahibi",
+      "away": "Deplasman"
+    },
+    "stats": {
+      "title": "İstatistikler",
+      "notAvailable": "Bu maç için istatistik bulunmuyor."
+    },
+    "h2h": {
+      "title": "Karşılıklı ({{count}})",
+      "homeWins": "Ev sahibi galibiyet",
+      "draws": "Beraberlik",
+      "awayWins": "Deplasman galibiyet",
+      "notAvailable": "Bu iki takım arasında henüz oynanmış maç yok."
+    },
+    "odds": {
+      "noOdds": "Bu maç için henüz oran yok."
+    },
+    "standings": {
+      "team": "Takım",
+      "notAvailable": "Bu lig için puan durumu mevcut değil.",
+      "legend": "O: Oynanan · G: Galibiyet · B: Beraberlik · M: Mağlubiyet · AV: Averaj · P: Puan"
+    }
+  },
+  "rate": {
+    "filters": {
+      "period": "Periyot",
+      "minOdd": "Min Oran",
+      "status": "Durum",
+      "notStartedOnly": "Sadece Başlamayan",
+      "all": "Tümü",
+      "windows": {
+        "1m": "1 Ay",
+        "3m": "3 Ay",
+        "6m": "6 Ay",
+        "1y": "1 Yıl",
+        "all": "Tümü"
+      },
+      "windowsShort": {
+        "1m": "1A",
+        "3m": "3A",
+        "6m": "6A",
+        "1y": "1Y",
+        "all": "Tümü"
+      },
+      "bound": {
+        "min": "MIN",
+        "max": "MAX"
+      }
+    },
+    "summary": {
+      "signals": "Sinyal",
+      "avgOdd": "Ort. Oran",
+      "avgWin": "Ort. % Kazanma",
+      "avgRoi": "Ort. % ROI",
+      "verification": "Doğrulama",
+      "actualWin": "Gerçek %",
+      "earnings": "Kazanç",
+      "lastRefresh": "Son güncelleme: {{date}}"
+    },
+    "noResults": "Bu filtreyle sonuç bulunamadı.",
+    "couldNotLoad": "{{title}} yüklenemedi",
+    "titles": {
+      "hot": "Sıcak Bahisler",
+      "winning": "Kazanan Bahisler",
+      "earning": "Kârlı Bahisler"
+    }
+  }
+}

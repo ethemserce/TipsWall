@@ -1,0 +1,500 @@
+{
+  "common": {
+    "loading": "Loading…",
+    "tbd": "TBD",
+    "today": "Today",
+    "all": "All",
+    "live": "Live",
+    "upcoming": "Upcoming",
+    "finished": "Finished",
+    "match": "Match",
+    "back": "Back",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "share": "Share",
+    "couldNotLoad": "Couldn't load",
+    "somethingWentWrong": "Something went wrong.",
+    "noResults": "No results.",
+    "comingSoon": "{{name}} coming soon.",
+    "offline": "No internet connection. Will refresh when reconnected.",
+    "liveReconnecting": "Reconnecting to live data…",
+    "liveDisconnected": "Live connection unavailable. Scores may lag."
+  },
+  "coupons": {
+    "empty": {
+      "title": "No coupons yet",
+      "body": "Tap a tip to drop it into your basket. Save the basket here once you've filled it.",
+      "hintAnalysisLabel": "Analysis",
+      "hintAnalysisText": "HIT/ROI-ranked tips",
+      "hintDetailLabel": "Detail",
+      "hintDetailText": "Picks on the match page"
+    },
+    "dateFilter": {
+      "today": "Today",
+      "week": "This Week",
+      "month": "This Month",
+      "empty": "No coupons in this range"
+    },
+    "dateLabel": {
+      "today": "Today",
+      "yesterday": "Yesterday"
+    },
+    "status": {
+      "won": "WON",
+      "lost": "LOST",
+      "pending": "PENDING"
+    },
+    "totalLabel": "TOTAL",
+    "parlay": {
+      "fairOdd": "FAIR ODD",
+      "vig": "BOOK VIG",
+      "expectedReturn": "EXP. RETURN"
+    },
+    "delete": {
+      "title": "Delete coupon",
+      "body": "Delete \"{{name}}\"? This can't be undone.",
+      "cancel": "CANCEL",
+      "confirm": "DELETE"
+    },
+    "summary": {
+      "selectionsSettled": "{{count}} picks · {{settled}}/{{count}} settled"
+    },
+    "a11y": {
+      "deleteCoupon": "Delete coupon {{name}}",
+      "deleteCouponHint": "Opens a confirmation dialog",
+      "shareCoupon": "Share coupon {{name}}",
+      "confirmCancel": "Cancel",
+      "confirmDelete": "Confirm delete"
+    },
+    "sheet": {
+      "title": "My basket ({{count}})",
+      "clear": "CLEAR",
+      "empty": "Basket is empty. Tap an odd to add it here.",
+      "suggestions": "PICKS TO COMPLETE",
+      "totalOdd": "TOTAL ODD",
+      "save": "SAVE COUPON"
+    },
+    "topPicks": {
+      "headerOne": "TOP PICK",
+      "headerMany": "TOP PICKS",
+      "valueBadge": "VALUE",
+      "stats": "HIT {{dso}}% · IMP {{iko}}% · sample {{sample}}",
+      "actionInBasket": "IN BASKET",
+      "actionDisabled": "OFF",
+      "actionAdd": "ADD"
+    },
+    "stats": {
+      "title": "My stats",
+      "a11yShow": "Show stats",
+      "kupon": "Coupons",
+      "won": "Won",
+      "hitRate": "Hit rate",
+      "avgOdd": "Avg odd",
+      "calibration": "CALIBRATION ({{count}} picks)",
+      "calibrationSystem": "System",
+      "calibrationUser": "You",
+      "deltaPoints": "{{delta}} pp",
+      "deltaAbove": "above the system",
+      "deltaBelow": "below the system",
+      "marketBreakdown": "MARKET PERFORMANCE",
+      "legendSystem": "System (avg HIT)",
+      "legendUser": "You (actual)",
+      "legendCount": "{{count}} picks"
+    }
+  },
+  "filters": {
+    "title": "Filters",
+    "reset": "RESET",
+    "apply": "APPLY",
+    "strategy": "STRATEGY",
+    "presets": {
+      "banker": { "label": "Banker", "description": "Low odds, high hit rate — solid leg" },
+      "value": { "label": "Value", "description": "Bookmaker mispriced — math edge" },
+      "longshot": { "label": "Long shot", "description": "Rare but high-payout when it lands" }
+    },
+    "topPerFixture": {
+      "title": "Best 3 per match",
+      "subtitle": "Top 3 ranked picks per fixture"
+    },
+    "valueOnly": {
+      "title": "Value only",
+      "subtitle": "Picks where HIT > IMP"
+    },
+    "sliders": {
+      "dsoMin": "HIT min",
+      "vbetMin": "ROI min",
+      "kzMin": "Sample size min",
+      "off": "off"
+    },
+    "period": "PERIOD",
+    "rate": "ODD",
+    "rateMin": "≥ MIN",
+    "rateMax": "≤ MAX",
+    "all": "All"
+  },
+  "legend": {
+    "title": "Legend",
+    "metricsHeader": "METRICS",
+    "marketsHeader": "MARKET CODES",
+    "metrics": {
+      "dso": {
+        "long": "Hit Rate (HIT)",
+        "description": "Historical hit rate of this pick. 3 of 5 matches = 60%."
+      },
+      "vbet": {
+        "long": "Expected Return (ROI)",
+        "description": "Net P/L if 100 units were staked. Positive = bookmaker priced too low."
+      },
+      "iko": {
+        "long": "Implied Probability (IMP)",
+        "description": "Bookmaker's no-vig implied probability. Outcomes within a market sum to 100. HIT > IMP = value."
+      },
+      "kzky": {
+        "long": "Won / Lost",
+        "description": "Historical win and loss counts (win_count / lost_count)."
+      }
+    },
+    "markets": {
+      "MS": "Match Result",
+      "DNB": "Draw No Bet",
+      "KG": "Both Teams To Score",
+      "EV": "Home Exact Goals",
+      "DEP": "Away Exact Goals",
+      "iy": "1st Half Exact Goals",
+      "y2": "2nd Half Exact Goals",
+      "tc": "Odd / Even"
+    }
+  },
+  "tabs": {
+    "home": "Home",
+    "analysis": "Analysis",
+    "leagues": "Leagues",
+    "coupons": "Coupons",
+    "settings": "Settings",
+    "winning": "Winning",
+    "hot": "Hot",
+    "earning": "Earning"
+  },
+  "leagues": {
+    "searchPlaceholder": "Search league",
+    "unknownCountry": "Other",
+    "empty": {
+      "title": "No leagues yet",
+      "body": "Nothing has been pulled from the upstream feed.",
+      "searchTitle": "No results",
+      "searchBody": "Try a different league or country name."
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "appearance": {
+      "header": "Appearance",
+      "theme": "Theme",
+      "themeHint": "Follow the device or pin a specific mode",
+      "modes": {
+        "system": "Device",
+        "light": "Light",
+        "dark": "Dark"
+      }
+    },
+    "privacy": {
+      "header": "Privacy",
+      "oddsHidden": "Hide odds",
+      "oddsHiddenHint": "Replaces every betting odd with ‘••’"
+    },
+    "language": {
+      "header": "Language",
+      "label": "App language",
+      "hint": "Follow the device or pin a specific language",
+      "modes": {
+        "system": "Device",
+        "en": "English",
+        "tr": "Turkish"
+      }
+    }
+  },
+  "home": {
+    "filters": {
+      "odds": "Odds"
+    },
+    "noFixturesForFilter": "No fixtures match this filter.",
+    "search": {
+      "placeholder": "Search team or league",
+      "a11yOpen": "Search",
+      "a11yClose": "Close search",
+      "a11yClear": "Clear"
+    },
+    "toggleAll": {
+      "expand": "Expand all",
+      "collapse": "Collapse all"
+    },
+    "meta": {
+      "summary": "{{leagues}} leagues · {{matches}} matches"
+    },
+    "error": {
+      "title": "Couldn't load matches",
+      "unknown": "Unknown error"
+    },
+    "empty": {
+      "searchTitle": "No results",
+      "searchBody": "Try a different team or league name.",
+      "filterTitle": "No matches for this filter",
+      "filterBody": "Try a different date or filter."
+    }
+  },
+  "team": {
+    "matches": {
+      "empty": "No upcoming or recent matches for this team"
+    },
+    "dateLabel": {
+      "tomorrow": "Tomorrow"
+    },
+    "stats": {
+      "played": "Played",
+      "wins": "Wins",
+      "draws": "Draws",
+      "losses": "Losses",
+      "goalsFor": "Scored",
+      "goalsAgainst": "Conceded",
+      "goalDiff": "GD"
+    }
+  },
+  "league": {
+    "toggleExpand": "Expand {{name}} league",
+    "toggleCollapse": "Collapse {{name}} league",
+    "tabs": {
+      "matches": "Matches",
+      "stats": "Stats",
+      "standings": "Standings"
+    },
+    "stats": {
+      "empty": "No stats available for this league yet",
+      "total": "Total",
+      "goalsHeader": "GOALS",
+      "totalGoals": "Total goals",
+      "avgGoals": "Avg per match",
+      "distHeader": "{{count}} settled matches",
+      "homeWins": "Home wins",
+      "draws": "Draws",
+      "awayWins": "Away wins",
+      "topAttack": "TOP SCORERS",
+      "topDefense": "TOP DEFENSE (AVG)"
+    },
+    "matches": {
+      "empty": "No upcoming or recent matches in this league",
+      "tbd": "Date TBD"
+    },
+    "week": {
+      "thisWeek": "This Week",
+      "lastWeek": "Last Week",
+      "nextWeek": "Next Week",
+      "empty": "No matches this week",
+      "emptyHint": "Swipe to the previous or next week"
+    }
+  },
+  "analysis": {
+    "filtersButton": "Filter"
+  },
+  "markets": {
+    "tbd": "TBD",
+    "fallback": "Market #{{id}}",
+    "noInfo": "No description has been added for this market yet.",
+    "info": {
+      "1": {
+        "title": "Match Result",
+        "blurb": "The result at the end of 90 minutes. Extra time and penalties don't count.",
+        "outcomes": [
+          { "key": "1", "meaning": "Home team wins" },
+          { "key": "X", "meaning": "Draw" },
+          { "key": "2", "meaning": "Away team wins" }
+        ]
+      },
+      "10": {
+        "title": "Draw No Bet",
+        "blurb": "If the match ends in a draw the stake is refunded; otherwise the pick wins or loses.",
+        "outcomes": [
+          { "key": "1", "meaning": "Home team wins" },
+          { "key": "2", "meaning": "Away team wins" }
+        ]
+      },
+      "14": {
+        "title": "Both Teams to Score",
+        "blurb": "Whether both teams score at least one goal in the match.",
+        "outcomes": [
+          { "key": "Yes", "meaning": "Both teams score at least 1 goal" },
+          { "key": "No", "meaning": "At least one team fails to score" }
+        ]
+      },
+      "18": {
+        "title": "Home Team Exact Goals",
+        "blurb": "How many goals the home team scores exactly.",
+        "outcomes": [
+          { "key": "0 / 1 / 2 / 3+", "meaning": "Goals scored by home (3+ means three or more)" }
+        ]
+      },
+      "19": {
+        "title": "Away Team Exact Goals",
+        "blurb": "How many goals the away team scores exactly.",
+        "outcomes": [
+          { "key": "0 / 1 / 2 / 3+", "meaning": "Goals scored by away" }
+        ]
+      },
+      "31": {
+        "title": "Half Time Result",
+        "blurb": "Result at the end of the first half (45 minutes).",
+        "outcomes": [
+          { "key": "1", "meaning": "Home leading" },
+          { "key": "X", "meaning": "Draw" },
+          { "key": "2", "meaning": "Away leading" }
+        ]
+      },
+      "33": {
+        "title": "1st Half Total Goals",
+        "blurb": "Total goals scored in the first half.",
+        "outcomes": [
+          { "key": "0 / 1 / 2 / 3 / 4 / 5+", "meaning": "Total first half goals" }
+        ]
+      },
+      "38": {
+        "title": "2nd Half Total Goals",
+        "blurb": "Total goals scored in the second half.",
+        "outcomes": [
+          { "key": "0 / 1 / 2 / 3 / 4 / 5+", "meaning": "Total second half goals" }
+        ]
+      },
+      "44": {
+        "title": "Odd / Even",
+        "blurb": "Whether the total number of goals in the match is odd or even.",
+        "outcomes": [
+          { "key": "Odd", "meaning": "Total goals 1, 3, 5..." },
+          { "key": "Even", "meaning": "Total goals 0, 2, 4..." }
+        ]
+      },
+      "52": {
+        "title": "Home / Away",
+        "blurb": "Draws are excluded; only outright wins.",
+        "outcomes": [
+          { "key": "Home", "meaning": "Home team wins" },
+          { "key": "Away", "meaning": "Away team wins" }
+        ]
+      },
+      "80": {
+        "title": "Total Goals Over / Under",
+        "blurb": "Whether the total goal count is above or below the given line.",
+        "outcomes": [
+          { "key": "Over", "meaning": "Total goals > line" },
+          { "key": "Under", "meaning": "Total goals < line" }
+        ]
+      }
+    }
+  },
+  "fixture": {
+    "tabs": {
+      "details": "Details",
+      "odds": "Analysis",
+      "stats": "Stats",
+      "lineups": "Lineups",
+      "h2h": "H2H",
+      "standings": "Standings"
+    },
+    "hero": {
+      "halfTimeShort": "HT {{home}}-{{away}}",
+      "tbd": "TBD"
+    },
+    "events": {
+      "firstHalf": "1st Half",
+      "secondHalf": "2nd Half"
+    },
+    "info": {
+      "title": "Match Info",
+      "tournament": "Tournament",
+      "country": "Country",
+      "type": "Type",
+      "kickOff": "Kick-off",
+      "length": "Length",
+      "leg": "Leg",
+      "result": "Result",
+      "lengthMinutes": "{{count}} min"
+    },
+    "score": {
+      "title": "Score",
+      "halftime": "HT",
+      "firstHalf": "1st Half",
+      "secondHalf": "2nd Half",
+      "extraTime": "Extra Time",
+      "penalties": "Penalties",
+      "fullTime": "Full Time"
+    },
+    "lineups": {
+      "notAvailable": "Lineups not available yet.",
+      "formation": "Formation",
+      "startingXi": "Starting XI",
+      "bench": "Bench",
+      "home": "Home",
+      "away": "Away"
+    },
+    "stats": {
+      "title": "Statistics",
+      "notAvailable": "No statistics for this match yet."
+    },
+    "h2h": {
+      "title": "Head-to-head ({{count}})",
+      "homeWins": "Home wins",
+      "draws": "Draws",
+      "awayWins": "Away wins",
+      "notAvailable": "No previous matches between these teams yet."
+    },
+    "odds": {
+      "noOdds": "No odds available for this match yet."
+    },
+    "standings": {
+      "team": "Team",
+      "notAvailable": "League table not available for this competition.",
+      "legend": "P: Played · W: Won · D: Drawn · L: Lost · GD: Goal diff · Pts: Points"
+    }
+  },
+  "rate": {
+    "filters": {
+      "period": "Period",
+      "minOdd": "Min Odd",
+      "status": "Status",
+      "notStartedOnly": "Upcoming only",
+      "all": "All",
+      "windows": {
+        "1m": "1 Mo",
+        "3m": "3 Mo",
+        "6m": "6 Mo",
+        "1y": "1 Yr",
+        "all": "All"
+      },
+      "windowsShort": {
+        "1m": "1m",
+        "3m": "3m",
+        "6m": "6m",
+        "1y": "1y",
+        "all": "All"
+      },
+      "bound": {
+        "min": "MIN",
+        "max": "MAX"
+      }
+    },
+    "summary": {
+      "signals": "Signals",
+      "avgOdd": "Avg Odd",
+      "avgWin": "Avg Win %",
+      "avgRoi": "Avg ROI %",
+      "verification": "Verified",
+      "actualWin": "Actual %",
+      "earnings": "Earnings",
+      "lastRefresh": "Last updated: {{date}}"
+    },
+    "noResults": "No results match your filter.",
+    "couldNotLoad": "Couldn't load {{title}}",
+    "titles": {
+      "hot": "Hot Rate",
+      "winning": "Winning Rate",
+      "earning": "Earning Rate"
+    }
+  }
+}
