@@ -51,6 +51,9 @@ export function CouponStatsCard({ coupons }: CouponStatsCardProps) {
       ]}>
       <Pressable
         onPress={() => setExpanded((v) => !v)}
+        accessibilityRole="button"
+        accessibilityLabel="İstatistikleri göster"
+        accessibilityState={{ expanded }}
         style={({ pressed }) => [
           styles.header,
           pressed && { backgroundColor: c.brandSoft },

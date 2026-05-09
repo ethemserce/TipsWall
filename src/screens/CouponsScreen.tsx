@@ -168,6 +168,8 @@ function DeleteConfirmModal({
           <View style={styles.modalActions}>
             <Pressable
               onPress={onCancel}
+              accessibilityRole="button"
+              accessibilityLabel="İptal"
               style={[styles.modalBtn, { borderColor: c.border }]}>
               <ThemedText style={[styles.modalBtnText, { color: c.text }]}>
                 İPTAL
@@ -175,6 +177,8 @@ function DeleteConfirmModal({
             </Pressable>
             <Pressable
               onPress={onConfirm}
+              accessibilityRole="button"
+              accessibilityLabel="Sil ve onayla"
               style={[
                 styles.modalBtn,
                 { backgroundColor: c.danger, borderColor: c.danger },
@@ -323,6 +327,9 @@ function CouponCard({
           <Pressable
             onPress={onRequestDelete}
             hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel={`${coupon.name} kuponunu sil`}
+            accessibilityHint="Onay penceresi açar"
             style={({ pressed }) => [
               styles.deleteBtn,
               { backgroundColor: pressed ? c.dangerSoft : 'transparent' },

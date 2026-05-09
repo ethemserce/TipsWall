@@ -3,7 +3,6 @@ import { format } from 'date-fns';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  ActivityIndicator,
   FlatList,
   Pressable,
   RefreshControl,
@@ -24,6 +23,7 @@ import { AppBrand } from '@/src/components/AppBrand';
 import { DateBar } from '@/src/components/DateBar';
 import { MarketLegendButton } from '@/src/components/MarketLegendButton';
 import { RateMatchCard } from '@/src/components/RateMatchCard';
+import { LeagueSectionSkeleton } from '@/src/components/Skeleton';
 import { useFixtureLookup } from '@/src/hooks/useFixtureLookup';
 import { useMarkets } from '@/src/hooks/useMarkets';
 import { useSignals } from '@/src/hooks/useSignals';
@@ -199,9 +199,11 @@ export function AnalysisScreen() {
       </View>
 
       {isLoading ? (
-        <View style={styles.center}>
-          <ActivityIndicator color={c.brand} />
-        </View>
+        <ScrollView contentContainerStyle={styles.list}>
+          <LeagueSectionSkeleton rows={3} />
+          <LeagueSectionSkeleton rows={2} />
+          <LeagueSectionSkeleton rows={2} />
+        </ScrollView>
       ) : isError ? (
         <View style={styles.center}>
           <ThemedText style={[styles.errorTitle, { color: c.text }]}>

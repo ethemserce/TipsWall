@@ -4,20 +4,51 @@ import { Animated, Easing, StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { useLiveStatus } from '@/src/lib/liveConnection';
+import { useNetStatus } from '@/src/lib/netStatus';
 import { useTheme } from '@/src/lib/useTheme';
 
+interface BannerState {
+  icon: 'wifi-off' | 'sync' | 'wifi-strength-1-alert';
+  message: string;
+  tone: 'warning' | 'danger';
+}
+
 /**
- * Subtle banner under the tab bar when the SignalR connection is not in
- * the `connected` state. We don't want the user staring at stale data
- * thinking it's live; the banner makes the disconnect explicit.
+ * Single banner that covers two failure modes the user needs to see:
+ *  - `offline`: device can't reach the internet at all (NetInfo).
+ *  - `connecting/disconnected`: SignalR live channel is down even though
+ *    the device might still have HTTP — live scores will lag.
  *
- * The `idle` state (no consumer has called ensureLiveConnected yet) is
- * silent — only `connecting` and `disconnected` show.
+ * Offline takes priority: if there's no internet, the SignalR state is
+ * meaningless. Only one banner is shown at a time.
  */
 export function LiveStatusBanner() {
   const c = useTheme();
-  const status = useLiveStatus();
-  const visible = status === 'connecting' || status === 'disconnected';
+  const liveStatus = useLiveStatus();
+  const netStatus = useNetStatus();
+
+  let state: BannerState | null = null;
+  if (netStatus === 'offline') {
+    state = {
+      icon: 'wifi-strength-1-alert',
+      message: 'İnternet bağlantısı yok. Yeniden bağlanılınca güncellenecek.',
+      tone: 'danger',
+    };
+  } else if (liveStatus === 'connecting') {
+    state = {
+      icon: 'sync',
+      message: 'Canlı veriye yeniden bağlanılıyor…',
+      tone: 'warning',
+    };
+  } else if (liveStatus === 'disconnected') {
+    state = {
+      icon: 'wifi-off',
+      message: 'Canlı veri bağlantısı yok. Skorlar gecikebilir.',
+      tone: 'danger',
+    };
+  }
+
+  const visible = state != null;
   const translate = useRef(new Animated.Value(visible ? 0 : -36)).current;
 
   useEffect(() => {
@@ -29,20 +60,17 @@ export function LiveStatusBanner() {
     }).start();
   }, [visible, translate]);
 
-  if (status === 'idle' || status === 'connected') {
-    if (status !== 'idle' && !visible) return null;
-  }
+  if (!state) return null;
 
-  const isReconnecting = status === 'connecting';
-  const accent = isReconnecting ? c.warning : c.danger;
-  const accentSoft = isReconnecting ? c.warningSoft : c.dangerSoft;
-  const message = isReconnecting
-    ? 'Canlı veriye yeniden bağlanılıyor…'
-    : 'Canlı veri bağlantısı yok. Skorlar gecikebilir.';
+  const accent = state.tone === 'warning' ? c.warning : c.danger;
+  const accentSoft = state.tone === 'warning' ? c.warningSoft : c.dangerSoft;
 
   return (
     <Animated.View
       pointerEvents="none"
+      accessible
+      accessibilityRole="alert"
+      accessibilityLabel={state.message}
       style={[
         styles.banner,
         {
@@ -51,12 +79,8 @@ export function LiveStatusBanner() {
           borderBottomColor: accent,
         },
       ]}>
-      <MaterialCommunityIcons
-        name={isReconnecting ? 'sync' : 'wifi-off'}
-        size={14}
-        color={accent}
-      />
-      <ThemedText style={[styles.text, { color: accent }]}>{message}</ThemedText>
+      <MaterialCommunityIcons name={state.icon} size={14} color={accent} />
+      <ThemedText style={[styles.text, { color: accent }]}>{state.message}</ThemedText>
     </Animated.View>
   );
 }

@@ -247,6 +247,15 @@ export function OddsRatesCard({
             <Pressable
               onPress={handleAddToCoupon}
               disabled={tapDisabled && !inCoupon}
+              accessibilityRole="button"
+              accessibilityLabel={
+                inCoupon
+                  ? `${formatLabel(outcome)} sepetten çıkar, oran ${formatOdd(outcome.value)}`
+                  : tapDisabled
+                    ? `${formatLabel(outcome)} eklenemez`
+                    : `${formatLabel(outcome)} sepete ekle, oran ${formatOdd(outcome.value)}`
+              }
+              accessibilityState={{ selected: inCoupon, disabled: tapDisabled && !inCoupon }}
               style={[
                 styles.cellNumber,
                 styles.oddCell,

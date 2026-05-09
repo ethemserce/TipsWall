@@ -1,3 +1,8 @@
+// React Native injects __DEV__ at runtime; declare it so TypeScript and
+// ts-jest are happy even though the identifier never resolves in tests
+// (typeof guards below handle the Jest/Node case).
+declare const __DEV__: boolean | undefined;
+
 export interface LiveScore {
   home: number;
   away: number;
@@ -8,6 +13,31 @@ export interface OutcomeShape {
   label: string;
   total?: string | null;
   handicap?: string | null;
+}
+
+// Markets the resolver intentionally doesn't decide live — either because
+// the data we have (full-match score) can't answer them (half-only markets)
+// or because they're known but skipped. Listing them keeps the dev-warn
+// below from spamming when these legitimately can't be settled.
+const KNOWN_UNRESOLVABLE_MARKETS = new Set<number>([
+  33, // First Half Exact Goals
+  38, // Second Half Exact Goals
+]);
+
+const warnedMarkets = new Set<number>();
+
+function warnUnknownMarket(marketId: number): void {
+  if (KNOWN_UNRESOLVABLE_MARKETS.has(marketId)) return;
+  if (warnedMarkets.has(marketId)) return;
+  warnedMarkets.add(marketId);
+  // Loud during development so we notice missing market translations
+  // promptly; silent in production + tests (typeof guard handles the
+  // Node/Jest environment where __DEV__ doesn't exist).
+  if (typeof __DEV__ !== 'undefined' && __DEV__) {
+    console.warn(
+      `[liveOutcome] no resolver for market_id=${marketId}; outcome will render as undecided.`,
+    );
+  }
 }
 
 /**
@@ -98,8 +128,14 @@ export function outcomeLiveStatus(
     // 33/38 (First/Second Half Exact Goals) need the half-time/2nd-half-only
     // score, which the fixture summary doesn't expose — leave neutral.
     default:
+      warnUnknownMarket(outcome.market_id);
       return null;
   }
+}
+
+/** Test-only: clear the warned-once memo so warning behaviour is deterministic. */
+export function __resetWarnedMarketsForTests(): void {
+  warnedMarkets.clear();
 }
 
 function parseExactGoalsLabel(

@@ -115,6 +115,9 @@ export function LeagueHeader({
     <Pressable
       onPress={onToggle}
       hitSlop={4}
+      accessibilityRole="button"
+      accessibilityLabel={`${title} ligini ${collapsed ? 'aç' : 'kapat'}`}
+      accessibilityState={{ expanded: !collapsed }}
       style={({ pressed }) => [
         styles.surface,
         {

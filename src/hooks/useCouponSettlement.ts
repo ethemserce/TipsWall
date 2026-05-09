@@ -87,14 +87,17 @@ export function useCouponSettlement(saved: Coupon[]) {
       for (const { coupon, selection } of bucket.selections) {
         const market = q.data.find((m) => m.market_id === selection.marketId);
         if (!market) continue;
+        // Match by (label, total, handicap) only — the oddValue at settle
+        // time can drift from pick-time (bookmaker re-prices, line moves)
+        // but the outcome identity doesn't. The bet pays out at the original
+        // odd we already stored on the selection; what we need from the API
+        // is just the verdict (`winning` flag).
         const outcome = market.outcomes.find(
           (o) =>
             (o.label ?? '').toLowerCase() ===
               selection.outcomeLabel.toLowerCase() &&
             (o.total ?? null) === (selection.total ?? null) &&
-            (o.handicap ?? null) === (selection.handicap ?? null) &&
-            o.value != null &&
-            Math.abs(o.value - selection.oddValue) < 0.0001,
+            (o.handicap ?? null) === (selection.handicap ?? null),
         );
         const winning = outcome?.winning;
         if (winning === true || winning === false) {

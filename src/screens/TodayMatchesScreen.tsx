@@ -3,10 +3,10 @@ import { useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
   FlatList,
   Pressable,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   View,
 } from 'react-native';
@@ -17,6 +17,7 @@ import { AppBrand } from '@/src/components/AppBrand';
 import { DateBar } from '@/src/components/DateBar';
 import { FixtureCard } from '@/src/components/FixtureCard';
 import { LeagueHeader } from '@/src/components/LeagueHeader';
+import { LeagueSectionSkeleton } from '@/src/components/Skeleton';
 import { StateFilterBar, type FixtureFilter } from '@/src/components/StateFilterBar';
 import { useCountryLookup } from '@/src/hooks/useCountryLookup';
 import { useFixtures } from '@/src/hooks/useFixtures';
@@ -196,9 +197,11 @@ export function TodayMatchesScreen() {
       ) : null}
 
       {isLoading ? (
-        <View style={styles.center}>
-          <ActivityIndicator color={c.brand} />
-        </View>
+        <ScrollView contentContainerStyle={styles.list}>
+          <LeagueSectionSkeleton rows={4} />
+          <LeagueSectionSkeleton rows={3} />
+          <LeagueSectionSkeleton rows={2} />
+        </ScrollView>
       ) : isError ? (
         <View style={styles.center}>
           <View style={[styles.errorIconCircle, { backgroundColor: c.dangerSoft }]}>
