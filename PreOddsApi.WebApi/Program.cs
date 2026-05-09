@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.Extensions.Configuration;
@@ -20,7 +19,6 @@ using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using Serilog;
 using System;
-using System.Globalization;
 using System.Text;
 using System.Threading.RateLimiting;
 
@@ -200,18 +198,9 @@ builder.Services.AddMvc();
 builder.Services.AddAutoMapper(typeof(MappingProfile));
 
 
-builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
-builder.Services.Configure<RequestLocalizationOptions>(options => {
-    var supportedCultures = new[]
-    {
-                    new CultureInfo("en"),
-                    new CultureInfo("tr"),
-                };
-
-    options.DefaultRequestCulture = new RequestCulture(culture: "en", uiCulture: "en");
-    options.SupportedCultures = supportedCultures;
-    options.SupportedUICultures = supportedCultures;
-});
+// Legacy ASP.NET Core resource-based localization for the deleted
+// WebUI/Razor controllers — V3 doesn't use resx (mobile owns
+// translations via i18next). Removed alongside the legacy controllers.
 
 // AuthOptions is the single source of truth for JWT issuer/audience/secret/
 // lifetimes. AuthController and JwtBearer both read from the same singleton
