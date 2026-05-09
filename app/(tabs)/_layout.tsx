@@ -61,7 +61,6 @@ export default function TabLayout() {
         <Tabs.Screen name="winning" options={{ href: null }} />
         <Tabs.Screen name="hot" options={{ href: null }} />
         <Tabs.Screen name="earning" options={{ href: null }} />
-        <Tabs.Screen name="explore" options={{ href: null }} />
         <Tabs.Screen name="fixture/[id]" options={{ href: null }} />
       </Tabs>
       <CouponBadge />

@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { selectionKey, type Coupon, type CouponSelection } from '@/src/lib/coupons/types';
 
@@ -48,6 +48,65 @@ function persist() {
   AsyncStorage.setItem(SAVED_KEY, JSON.stringify(state.saved)).catch(() => {});
 }
 
+/**
+ * Migrates a hydrated coupon to the current shape. Each historical schema
+ * change adds a step here so users keep their saved coupons forever. The
+ * v1 keys (`preodds.coupons.*.v1`) are still the storage path; we don't
+ * bump the version on disk — instead we evolve in place so we don't have
+ * to flush every device. If a future change is genuinely incompatible,
+ * bump to v2 keys + write a one-shot v1→v2 reader here.
+ */
+function migrateCoupon(raw: unknown): Coupon | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const c = raw as Partial<Coupon>;
+  if (typeof c.id !== 'string' || !Array.isArray(c.selections)) return null;
+  return {
+    id: c.id,
+    name: typeof c.name === 'string' ? c.name : 'Yeni Kupon',
+    createdAt: typeof c.createdAt === 'string' ? c.createdAt : new Date().toISOString(),
+    updatedAt: typeof c.updatedAt === 'string' ? c.updatedAt : new Date().toISOString(),
+    status: c.status ?? 'saved',
+    selections: c.selections.map(migrateSelection).filter((s): s is CouponSelection => s != null),
+  };
+}
+
+function migrateSelection(raw: unknown): CouponSelection | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const s = raw as Partial<CouponSelection>;
+  if (typeof s.id !== 'string' || typeof s.fixtureId !== 'number') return null;
+  if (typeof s.outcomeLabel !== 'string' || typeof s.oddValue !== 'number') return null;
+  return {
+    id: s.id,
+    fixtureId: s.fixtureId,
+    fixtureName: s.fixtureName ?? `Maç #${s.fixtureId}`,
+    startingAt: s.startingAt ?? null,
+    bookmakerId: s.bookmakerId ?? 2,
+    marketId: s.marketId ?? 0,
+    marketShort: s.marketShort ?? `M${s.marketId ?? 0}`,
+    outcomeLabel: s.outcomeLabel,
+    // outcomeDisplay is newer than the original schema — older coupons fall
+    // back to outcomeLabel via the consumer's nullish coalescing.
+    outcomeDisplay: s.outcomeDisplay,
+    total: s.total ?? null,
+    handicap: s.handicap ?? null,
+    oddValue: s.oddValue,
+    dso: s.dso ?? null,
+    vbet: s.vbet ?? null,
+    iko: s.iko ?? null,
+    sampleCount: s.sampleCount ?? null,
+    betWinning: s.betWinning,
+  };
+}
+
+function tryParseJson<T>(raw: string | null): T | null {
+  if (raw == null) return null;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return null;
+  }
+}
+
 async function hydrate() {
   if (state.hydrated) return;
   try {
@@ -55,11 +114,15 @@ async function hydrate() {
       AsyncStorage.getItem(DRAFT_KEY),
       AsyncStorage.getItem(SAVED_KEY),
     ]);
-    state = {
-      draft: draftRaw ? (JSON.parse(draftRaw) as Coupon) : emptyDraft(),
-      saved: savedRaw ? (JSON.parse(savedRaw) as Coupon[]) : [],
-      hydrated: true,
-    };
+    const parsedDraft = tryParseJson<unknown>(draftRaw);
+    const parsedSaved = tryParseJson<unknown[]>(savedRaw);
+    const draft = parsedDraft ? migrateCoupon(parsedDraft) ?? emptyDraft() : emptyDraft();
+    const saved = Array.isArray(parsedSaved)
+      ? parsedSaved
+          .map(migrateCoupon)
+          .filter((c): c is Coupon => c != null)
+      : [];
+    state = { draft, saved, hydrated: true };
   } catch {
     state = { draft: emptyDraft(), saved: [], hydrated: true };
   }
@@ -73,9 +136,11 @@ export function getState(): State {
   return state;
 }
 
-export function subscribe(l: Listener) {
+export function subscribe(l: Listener): () => void {
   listeners.add(l);
-  return () => listeners.delete(l);
+  return () => {
+    listeners.delete(l);
+  };
 }
 
 export function isInDraft(s: Pick<CouponSelection, 'fixtureId' | 'marketId' | 'outcomeLabel' | 'total' | 'handicap' | 'oddValue'>): boolean {
@@ -241,19 +306,28 @@ export function totalOdd(coupon: Coupon): number {
 }
 
 /**
- * React subscription to the coupon state. Re-renders any consumer when
- * draft / saved / hydration changes.
+ * React subscription to the coupon state. Re-renders any consumer when the
+ * selector's projection of state changes.
+ *
+ * Implementation note: the selector is held in a ref that's refreshed on
+ * every render, so a parent passing a new selector (e.g. one that closes
+ * over a prop) sees consistent values. This sidesteps the classic stale-
+ * closure bug where the original selector would be called against new
+ * state forever.
  */
 export function useCouponStore<T>(selector: (s: State) => T): T {
+  const selectorRef = useRef(selector);
+  selectorRef.current = selector;
   const [snapshot, setSnapshot] = useState<T>(() => selector(state));
   useEffect(() => {
-    const unsubscribe = subscribe(() => setSnapshot(selector(state)));
-    // Sync immediately in case state changed between render and subscribe.
-    setSnapshot(selector(state));
-    return () => {
-      unsubscribe();
+    const compute = () => {
+      const next = selectorRef.current(state);
+      setSnapshot((prev) => (Object.is(prev, next) ? prev : next));
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const unsubscribe = subscribe(compute);
+    // Sync immediately in case state changed between render and subscribe.
+    compute();
+    return unsubscribe;
   }, []);
   return snapshot;
 }
