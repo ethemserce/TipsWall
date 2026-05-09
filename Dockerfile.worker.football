@@ -1,4 +1,5 @@
 # SportMonks.Football.FootballWorker production image.
+# See Dockerfile.worker.core for the rationale behind the single COPY.
 
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
@@ -10,5 +11,8 @@ RUN dotnet publish PreOddsApi.Worker/SportMonks/SportMonks.Football.Fixture/Spor
 FROM mcr.microsoft.com/dotnet/runtime:8.0 AS runtime
 WORKDIR /app
 COPY --from=build /app/publish .
+
+USER $APP_UID
+
 ENV DOTNET_RUNNING_IN_CONTAINER=true
 ENTRYPOINT ["dotnet", "SportMonks.Football.FootballWorker.dll"]

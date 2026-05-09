@@ -3,14 +3,37 @@
 
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
-COPY . .
+
+# Copy csproj/sln only first so the `restore` layer is cached on
+# source-only changes. Without this every commit re-downloads NuGet
+# packages even when no dependency changed.
+COPY *.sln ./
+COPY PreOddsApi.WebApi/*.csproj PreOddsApi.WebApi/
+COPY PreOddsApi.BusinessLayer/*.csproj PreOddsApi.BusinessLayer/
+COPY PreOddsApi.BusinessLayer.Entities/*.csproj PreOddsApi.BusinessLayer.Entities/
+COPY PreOddsApi.Core/*.csproj PreOddsApi.Core/
+COPY PreOddsApi.Core.Data/*.csproj PreOddsApi.Core.Data/
+COPY PreOddsApi.Core.Data.EntityFramework/*.csproj PreOddsApi.Core.Data.EntityFramework/
+COPY PreOddsApi.DataLayer/*.csproj PreOddsApi.DataLayer/
+COPY PreOddsApi.Entities/*.csproj PreOddsApi.Entities/
+COPY PreOddsApi.ExternalApis/*.csproj PreOddsApi.ExternalApis/
+COPY PreOddsApi.Framework.Core/*.csproj PreOddsApi.Framework.Core/
+COPY PreOddsApi.Utils/*.csproj PreOddsApi.Utils/
 RUN dotnet restore PreOddsApi.WebApi/PreOddsApi.WebApi.csproj
+
+# Now bring in sources and publish.
+COPY . .
 RUN dotnet publish PreOddsApi.WebApi/PreOddsApi.WebApi.csproj \
     -c Release -o /app/publish --no-restore
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
 COPY --from=build /app/publish .
+
+# Run as the unprivileged `app` user shipped by the .NET 8 aspnet image.
+# Reduces blast radius if the process is exploited; the platform's
+# liveness/readiness probes still hit /health/live unchanged.
+USER $APP_UID
 
 ENV ASPNETCORE_URLS=http://+:8080 \
     ASPNETCORE_ENVIRONMENT=Production \
