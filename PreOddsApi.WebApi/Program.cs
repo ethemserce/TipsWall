@@ -14,6 +14,9 @@ using Newtonsoft.Json.Serialization;
 using PreOddsApi.BusinessLayer.DependencyInjection;
 using PreOddsApi.WebApi;
 using PreOddsApi.WebApi.V3.Helpers;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using Serilog;
 using System;
 using System.Globalization;
@@ -68,7 +71,14 @@ builder.Services.AddSingleton<PreOddsApi.WebApi.V3.Data.IAnalyticsReader,
 
 builder.Services.AddHealthChecks()
     .AddCheck<PreOddsApi.WebApi.V3.Health.PostgresHealthCheck>(
-        "postgres", tags: new[] { "ready" });
+        "postgres", tags: new[] { "ready" })
+    // Sync freshness is "ready"-tagged but degrades to non-failing on stale
+    // — we don't want a stuck worker to drop /ready and yank the load
+    // balancer; the read path is still live. Dashboards alert on Degraded.
+    .AddCheck<PreOddsApi.WebApi.V3.Health.SyncFreshnessHealthCheck>(
+        "sync_freshness",
+        failureStatus: Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Degraded,
+        tags: new[] { "ready", "data" });
 
 builder.Services.AddRateLimiter(options =>
 {
@@ -239,6 +249,33 @@ builder.Services.AddSignalR();
 builder.Services.AddSingleton<PreOddsApi.WebApi.V3.Hubs.ILiveBroadcaster,
                               PreOddsApi.WebApi.V3.Hubs.LiveBroadcaster>();
 
+// OpenTelemetry: ASP.NET Core, HttpClient, Npgsql, runtime + Prometheus
+// scrape endpoint at /metrics. Tracing spans are emitted to the same
+// pipeline; if you wire OTLP later, both metrics and traces flow through.
+const string ServiceName = "PreOddsApi.WebApi";
+var otelResource = ResourceBuilder.CreateDefault()
+    .AddService(ServiceName, serviceVersion: "1.0")
+    .AddAttributes(new[] { new System.Collections.Generic.KeyValuePair<string, object>(
+        "deployment.environment", builder.Environment.EnvironmentName) });
+
+builder.Services.AddOpenTelemetry()
+    .WithMetrics(m => m
+        .SetResourceBuilder(otelResource)
+        .AddAspNetCoreInstrumentation()
+        .AddHttpClientInstrumentation()
+        .AddRuntimeInstrumentation()
+        .AddMeter("Npgsql")
+        .AddPrometheusExporter())
+    .WithTracing(t => t
+        .SetResourceBuilder(otelResource)
+        .AddAspNetCoreInstrumentation()
+        .AddHttpClientInstrumentation()
+        // .AddNpgsql() collides with Npgsql.EntityFrameworkCore.PostgreSQL's
+        // identically-named extension transitively pulled by other projects
+        // in the solution. Subscribing to the source by name yields the
+        // same telemetry without the ambiguity.
+        .AddSource("Npgsql"));
+
 var app = builder.Build();
 IConfiguration configuration = app.Configuration;
 
@@ -287,9 +324,17 @@ app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.Health
     Predicate = check => check.Tags.Contains("ready")
 }).AllowAnonymous();
 
+// Prometheus scrape endpoint. Behind the same JWT-anonymous fence as
+// /health — locked down via reverse-proxy or network policy in prod.
+app.MapPrometheusScrapingEndpoint();
+
 app.MapControllers();
 app.MapHub<PreOddsApi.WebApi.V3.Hubs.LiveHub>("/hubs/live");
 
 app.Run();
+
+// Top-level statements compile into an internal Program class; tests
+// using WebApplicationFactory<Program> need a public surface.
+public partial class Program { }
 
 
