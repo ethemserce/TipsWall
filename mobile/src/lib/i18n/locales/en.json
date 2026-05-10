@@ -218,6 +218,35 @@
       "disclaimer": "This app does not place bets. It does not accept deposits, build coupons or link out to bookmakers. The prediction-tracking feature is for personal analysis only."
     }
   },
+  "marketOutcome": {
+    "ms_home": "Home team wins",
+    "ms_draw": "Match ends in a draw",
+    "ms_away": "Away team wins",
+    "dnb_home": "Home team wins (stake refunded on draw)",
+    "dnb_away": "Away team wins (stake refunded on draw)",
+    "btts_yes": "Both teams score",
+    "btts_no": "At least one team fails to score",
+    "over": "{{goals}} or more goals in the match",
+    "under": "At most {{goals}} goals in the match",
+    "iyms_1_1": "Home leads at half time and wins",
+    "iyms_1_x": "Home leads at half time, match ends in a draw",
+    "iyms_1_2": "Home leads at half time, away wins",
+    "iyms_x_1": "Draw at half time, home wins",
+    "iyms_x_x": "Draw at half time and full time",
+    "iyms_x_2": "Draw at half time, away wins",
+    "iyms_2_1": "Away leads at half time, home wins",
+    "iyms_2_x": "Away leads at half time, match ends in a draw",
+    "iyms_2_2": "Away leads at half time and wins",
+    "iy_home": "Home leads at half time",
+    "iy_draw": "First half ends level",
+    "iy_away": "Away leads at half time",
+    "y2_home": "Home wins the second half",
+    "y2_draw": "Second half ends level",
+    "y2_away": "Away wins the second half",
+    "odd_total": "Total goals end as an odd number",
+    "even_total": "Total goals end as an even number",
+    "fallback": "{{market}} · {{outcome}}"
+  },
   "home": {
     "filters": {
       "odds": "Odds"

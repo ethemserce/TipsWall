@@ -218,6 +218,35 @@
       "disclaimer": "Bu uygulama bahis oynatmaz. Para yatırma, kupon oluşturma veya bahis sitesine yönlendirme içermez. Tahmin takip özelliği yalnızca kişisel analiz amacıyla sunulur."
     }
   },
+  "marketOutcome": {
+    "ms_home": "Ev sahibi kazanır",
+    "ms_draw": "Berabere biter",
+    "ms_away": "Deplasman kazanır",
+    "dnb_home": "Ev sahibi kazanır (berabere iadeli)",
+    "dnb_away": "Deplasman kazanır (berabere iadeli)",
+    "btts_yes": "Her iki takım da gol atar",
+    "btts_no": "En az bir takım gol atamaz",
+    "over": "Maçta {{goals}} veya daha çok gol",
+    "under": "Maçta en fazla {{goals}} gol",
+    "iyms_1_1": "İlk yarı ev, maç sonu ev kazanır",
+    "iyms_1_x": "İlk yarı ev, maç sonu berabere",
+    "iyms_1_2": "İlk yarı ev, maç sonu deplasman kazanır",
+    "iyms_x_1": "İlk yarı berabere, maç sonu ev kazanır",
+    "iyms_x_x": "İki yarı da berabere biter",
+    "iyms_x_2": "İlk yarı berabere, maç sonu deplasman kazanır",
+    "iyms_2_1": "İlk yarı deplasman, maç sonu ev kazanır",
+    "iyms_2_x": "İlk yarı deplasman, maç sonu berabere",
+    "iyms_2_2": "İlk yarı deplasman, maç sonu deplasman kazanır",
+    "iy_home": "İlk yarıyı ev sahibi önde bitirir",
+    "iy_draw": "İlk yarı berabere biter",
+    "iy_away": "İlk yarıyı deplasman önde bitirir",
+    "y2_home": "İkinci yarıyı ev sahibi önde bitirir",
+    "y2_draw": "İkinci yarı berabere biter",
+    "y2_away": "İkinci yarıyı deplasman önde bitirir",
+    "odd_total": "Toplam gol tek sayı olur",
+    "even_total": "Toplam gol çift sayı olur",
+    "fallback": "{{market}} · {{outcome}}"
+  },
   "home": {
     "filters": {
       "odds": "Oranlar"

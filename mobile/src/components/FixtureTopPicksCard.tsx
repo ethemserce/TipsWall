@@ -6,6 +6,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { toggleSelection, useCouponStore } from '@/src/lib/coupons/store';
 import { marketShort, shortenOutcome } from '@/src/lib/marketShort';
+import { outcomeSentence } from '@/src/lib/marketSentence';
 import {
   formatOddValue,
   useOddsHidden,
@@ -219,8 +220,8 @@ function PickRow({
         },
       ]}>
       <View style={styles.pickInfo}>
-        <ThemedText style={[styles.pickTip, { color: c.brand }]} numberOfLines={1}>
-          {marketShort(pick.marketId, pick.marketName)} {pick.outcomeDisplay}
+        <ThemedText style={[styles.pickTip, { color: c.brand }]} numberOfLines={2}>
+          {outcomeSentence(t, pick.marketId, pick.outcomeLabel, pick.total, pick.handicap)}
         </ThemedText>
         <ThemedText style={[styles.pickStats, { color: c.textMuted }]}>
           {t('coupons.topPicks.stats', {
