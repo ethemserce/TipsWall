@@ -213,17 +213,20 @@ export function OddsRatesCard({
               accessibilityRole="button"
               accessibilityLabel={
                 inCoupon
-                  ? `${formatLabel(outcome)} listeden çıkar`
+                  ? `${formatLabel(outcome)} kaldır`
                   : tapDisabled
                     ? `${formatLabel(outcome)} eklenemez`
-                    : `${formatLabel(outcome)} listeye ekle`
+                    : `${formatLabel(outcome)} ekle`
               }
               accessibilityState={{ selected: inCoupon, disabled: tapDisabled && !inCoupon }}
               style={[
                 styles.cellLabel,
                 styles.tipPressable,
                 inCoupon && { backgroundColor: c.brandSoft, borderColor: c.brand },
-                tapDisabled && !inCoupon && { opacity: 0.4 },
+                // Only dim when another row in this card already holds the
+                // pick (one-pick-per-fixture). Live / finished matches stay
+                // at full opacity so the green/red coloured tip is readable.
+                fixtureTaken && !inCoupon && { opacity: 0.4 },
               ]}>
               <ThemedText
                 style={[

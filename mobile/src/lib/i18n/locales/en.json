@@ -74,7 +74,7 @@
       "headerMany": "TOP PICKS",
       "valueBadge": "VALUE",
       "stats": "HIT {{dso}}% · IMP {{iko}}% · sample {{sample}}",
-      "actionInBasket": "IN LIST",
+      "actionInBasket": "ADDED",
       "actionDisabled": "OFF",
       "actionAdd": "ADD"
     },

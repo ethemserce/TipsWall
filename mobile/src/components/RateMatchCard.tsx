@@ -282,7 +282,11 @@ export function RateMatchCard({
                 styles.cellLabel,
                 styles.tipPressable,
                 inCoupon && { backgroundColor: c.brandSoft, borderColor: c.brand },
-                tapDisabled && !inCoupon && { opacity: 0.4 },
+                // Only dim when the one-pick-per-fixture rule is blocking
+                // (another row in this card has been picked). Finished
+                // matches stay at full opacity so the historic tip + the
+                // green/red live colour stay readable.
+                fixtureTaken && !inCoupon && { opacity: 0.4 },
               ]}>
               <ThemedText
                 style={[

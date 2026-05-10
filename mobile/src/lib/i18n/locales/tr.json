@@ -22,8 +22,8 @@
   },
   "coupons": {
     "empty": {
-      "title": "Henüz tahmin listesi yok",
-      "body": "Bir tahmine dokunarak listene ekle. Liste dolunca buradan kaydedip takip edebilirsin.",
+      "title": "Henüz tahmin yok",
+      "body": "Bir tahmine dokunarak ekle. Tamamlandığında buradan kaydedip takip edebilirsin.",
       "hintAnalysisLabel": "Analiz",
       "hintAnalysisText": "HIT/ROI sıralı tahminler",
       "hintDetailLabel": "Detay",
@@ -33,7 +33,7 @@
       "today": "Bugün",
       "week": "Bu Hafta",
       "month": "Bu Ay",
-      "empty": "Bu aralıkta liste yok"
+      "empty": "Bu aralıkta tahmin yok"
     },
     "dateLabel": {
       "today": "Bugün",
@@ -46,7 +46,7 @@
     },
     "totalCount": "TAHMİN",
     "delete": {
-      "title": "Listeyi sil",
+      "title": "Tahmini sil",
       "body": "\"{{name}}\" silinsin mi? Bu işlem geri alınamaz.",
       "cancel": "İPTAL",
       "confirm": "SİL"
@@ -55,33 +55,33 @@
       "selectionsSettled": "{{count}} tahmin · {{settled}}/{{count}} sonuçlandı"
     },
     "a11y": {
-      "deleteCoupon": "{{name}} listesini sil",
+      "deleteCoupon": "{{name}} tahminini sil",
       "deleteCouponHint": "Onay penceresi açar",
-      "shareCoupon": "{{name}} listesini paylaş",
+      "shareCoupon": "{{name}} tahminini paylaş",
       "confirmCancel": "İptal",
       "confirmDelete": "Sil ve onayla"
     },
     "sheet": {
-      "title": "Listem ({{count}})",
+      "title": "Tahmin ({{count}})",
       "clear": "TEMİZLE",
-      "empty": "Liste boş. Bir tahmin seçince buraya eklenir.",
+      "empty": "Henüz tahmin yok. Bir maç tıklayınca buraya eklenir.",
       "suggestions": "TAMAMLAMAK İÇİN ÖNERİLER",
       "totalCount": "TOPLAM TAHMİN",
-      "save": "LİSTEYİ KAYDET"
+      "save": "TAHMİNİ KAYDET"
     },
     "topPicks": {
       "headerOne": "ÖNERİLEN TAHMİN",
       "headerMany": "ÖNERİLEN TAHMİNLER",
       "valueBadge": "DEĞER",
       "stats": "HIT {{dso}}% · IMP {{iko}}% · örnek {{sample}}",
-      "actionInBasket": "LİSTEDE",
+      "actionInBasket": "EKLENDİ",
       "actionDisabled": "KAPALI",
-      "actionAdd": "LİSTEYE EKLE"
+      "actionAdd": "EKLE"
     },
     "stats": {
       "title": "İstatistiklerim",
       "a11yShow": "İstatistikleri göster",
-      "kupon": "Liste",
+      "kupon": "Tahmin",
       "won": "İsabet",
       "hitRate": "Tutturma",
       "calibration": "KALİBRASYON ({{count}} tahmin)",
@@ -166,7 +166,7 @@
     "home": "Anasayfa",
     "analysis": "Analiz",
     "leagues": "Ligler",
-    "coupons": "Listem",
+    "coupons": "Tahmin",
     "settings": "Ayarlar",
     "winning": "Kazanma",
     "hot": "Sıcak",

@@ -55,7 +55,7 @@ export function FixtureTopPicksCard({
   const c = useTheme();
   const { t } = useTranslation();
   // Re-renders whenever the draft changes so the CTA can flip between
-  // "Listeye Ekle" / "Listede" / disabled (another pick on this fixture).
+  // "Ekle" / "Eklendi" / disabled (another pick on this fixture).
   const draftSelections = useCouponStore((s) => s.draft.selections);
 
   const fixtureAlreadyPicked = useMemo(
@@ -194,6 +194,10 @@ function PickRow({
       ? t('coupons.topPicks.actionDisabled')
       : t('coupons.topPicks.actionAdd');
 
+  // Only dim when the one-pick-per-fixture rule is the blocker. Finished
+  // / live matches stay full-opacity so the tip text + stats remain
+  // readable; the button itself still reflects the "KAPALI" state.
+  const dim = fixtureAlreadyPicked && !inCoupon;
   return (
     <Pressable
       onPress={handlePress}
@@ -203,7 +207,7 @@ function PickRow({
         {
           backgroundColor: pressed ? c.bg : 'transparent',
           borderTopColor: c.border,
-          opacity: disabled && !inCoupon ? 0.5 : 1,
+          opacity: dim ? 0.5 : 1,
         },
       ]}>
       <View style={styles.pickInfo}>

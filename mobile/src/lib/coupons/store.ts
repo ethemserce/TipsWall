@@ -18,7 +18,7 @@ function emptyDraft(): Coupon {
   const now = new Date().toISOString();
   return {
     id: cryptoRandom(),
-    name: 'Yeni Liste',
+    name: 'Yeni Tahmin',
     createdAt: now,
     updatedAt: now,
     status: 'draft',
@@ -72,21 +72,27 @@ function migrateCoupon(raw: unknown): Coupon | null {
 
 /**
  * Cleans betting-adjacent words out of legacy stored list names. Saved
- * coupons named "9 Mayıs Kuponu" / "Yeni Kupon" / "Cumartesi Kuponum"
+ * lists named "9 Mayıs Kuponu" / "9 Mayıs Listesi" / "Cumartesi Kuponum"
  * etc. get rewritten on load so the on-device vocabulary stays consistent
- * with the rest of the UI.
+ * with the rest of the UI. Trailing "Kuponu" / "Listesi" on date-style
+ * names is stripped entirely — "9 Mayıs Listesi" → "9 Mayıs".
  */
 function migrateCouponName(name: string | undefined): string {
-  if (name == null || name.trim().length === 0) return 'Yeni Liste';
+  if (name == null || name.trim().length === 0) return 'Yeni Tahmin';
   return name
-    .replace(/Kuponum/g, 'Listem')
-    .replace(/Kuponun/g, 'Listen')
-    .replace(/Kuponu/g, 'Listesi')
-    .replace(/Kupon/g, 'Liste')
-    .replace(/kuponum/g, 'listem')
-    .replace(/kuponun/g, 'listen')
-    .replace(/kuponu/g, 'listesi')
-    .replace(/kupon/g, 'liste');
+    .replace(/\s*Kuponum$/g, '')
+    .replace(/\s*Kuponun$/g, '')
+    .replace(/\s*Kuponu$/g, '')
+    .replace(/\s*Listesi$/g, '')
+    .replace(/Kuponum/g, 'Tahmin')
+    .replace(/Kuponun/g, 'Tahmin')
+    .replace(/Kuponu/g, 'Tahmin')
+    .replace(/Kupon/g, 'Tahmin')
+    .replace(/Listesi/g, 'Tahmin')
+    .replace(/Listem/g, 'Tahmin')
+    .replace(/Liste/g, 'Tahmin')
+    .replace(/\s+$/g, '')
+    .trim() || 'Yeni Tahmin';
 }
 
 function migrateSelection(raw: unknown): CouponSelection | null {
@@ -315,12 +321,12 @@ export function couponOutcome(coupon: Coupon): { state: CouponOutcome; settled: 
 
 function defaultCouponName(): string {
   const d = new Date();
-  // "9 Mayıs Listesi"
+  // "9 Mayıs" — just the date, no trailing noun.
   const months = [
     'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
     'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık',
   ];
-  return `${d.getDate()} ${months[d.getMonth()]} Listesi`;
+  return `${d.getDate()} ${months[d.getMonth()]}`;
 }
 
 export function totalOdd(coupon: Coupon): number {

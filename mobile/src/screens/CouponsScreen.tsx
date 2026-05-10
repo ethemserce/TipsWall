@@ -606,9 +606,6 @@ function CouponCard({
                   </ThemedText>
                 ) : null}
               </View>
-              <ThemedText style={[styles.tipLine, { color: c.brand }]}>
-                {s.marketShort} {s.outcomeDisplay ?? s.outcomeLabel}
-              </ThemedText>
             </View>
             <View
               style={[
@@ -907,10 +904,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     fontVariant: ['tabular-nums'],
     letterSpacing: 0.3,
-  },
-  tipLine: {
-    fontSize: 11,
-    fontWeight: '700',
   },
   oddPill: {
     paddingHorizontal: 9,
