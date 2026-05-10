@@ -23,10 +23,12 @@ namespace PreOddsApi.WebApi.V3.Data
             string windowCode,
             CancellationToken ct = default)
         {
-            // analytics.fixture_signals.outcome_key follows the snapshot
-            // convention "label:total:handicap:value(4dp)", whereas
-            // odds.prematch_odds_current.outcome_key is just the bare label.
-            // Reconstruct the rich key inline so the JOIN matches.
+            // Yol A: signals come from analytics.odd_analysis_snapshots —
+            // outcome_key already follows "label:total:handicap:value(4dp)",
+            // so we reconstruct the same key from current odds and JOIN on it.
+            // The snapshot table has no fixture_id; the per-fixture filter
+            // applies on the prematch_odds_current side and JOIN attaches the
+            // shared per-outcome stat.
             //
             // When `marketIds` is empty we fall back to "every market that
             // has_winning_calculations" — same filter the analytics pipeline
@@ -47,21 +49,21 @@ namespace PreOddsApi.WebApi.V3.Data
                        poc.winning,
                        fs.win_count,
                        fs.lost_count,
-                       fs.sample_count,
+                       (fs.win_count + fs.lost_count) as sample_count,
                        fs.winning_percent,
                        fs.earning_percent
                 from odds.prematch_odds_current poc
                 left join odds.markets m on m.id = poc.market_id
-                left join analytics.fixture_signals fs
-                    on fs.fixture_id    = poc.fixture_id
-                   and fs.bookmaker_id  = poc.bookmaker_id
+                left join analytics.odd_analysis_snapshots fs
+                    on fs.bookmaker_id  = poc.bookmaker_id
                    and fs.market_id     = poc.market_id
                    and fs.outcome_key   = lower(coalesce(poc.label, ''))
                                           || ':' || coalesce(nullif(poc.total, ''), '-')
                                           || ':' || coalesce(nullif(poc.handicap, ''), '-')
                                           || ':' || to_char(poc.value::numeric, 'FM99999990.0000')
                    and fs.window_code   = @window_code
-                   and fs.signal_type   = 'custom'
+                   and fs.feed_type     = coalesce(poc.feed_type, 'standard')
+                   and fs.as_of_date    = current_date
                 where poc.fixture_id   = @fixture_id
                   and poc.bookmaker_id = @bookmaker_id
                   {marketFilter}
