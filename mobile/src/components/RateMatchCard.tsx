@@ -108,81 +108,105 @@ export function RateMatchCard({
       ? `${homeNameForCoupon} - ${awayNameForCoupon}`
       : `Maç #${fixtureId}`;
 
+  // Left-edge accent strip color tracks match state — green for upcoming
+  // (the value-bet sweet spot), red while live, muted grey when finished.
+  // Gives the card identity at a glance inside the league section instead
+  // of relying on a flat grey background to do that job.
+  const accentColor = live ? c.live : finished ? c.textMuted : c.brand;
+  // Soft brand wash on the top strip when the match is still upcoming,
+  // tinted live red while in-play. Finished matches get a neutral header
+  // so the historic data underneath stays the focus.
+  const headerWash = live
+    ? 'rgba(217, 112, 112, 0.10)'
+    : finished
+      ? c.borderSoft
+      : c.brandSoft;
+
   return (
     <View
       style={[
         styles.card,
-        { backgroundColor: c.surface, borderColor: c.border },
+        c.shadowCard,
+        { backgroundColor: c.surfaceElevated, borderColor: c.borderSoft },
       ]}>
+      <View
+        style={[styles.accentStrip, { backgroundColor: accentColor, opacity: 0.45 }]}
+        pointerEvents="none"
+      />
       <Pressable
         onPress={() => router.push(`/fixture/${fixtureId}` as never)}
-        style={({ pressed }) => [styles.matchInfo, pressed && { opacity: 0.7 }]}>
-        {dateLine || timeLine ? (
-          <View style={styles.topRow}>
-            {dateLine ? (
-              <ThemedText style={[styles.date, { color: c.text }]}>
-                {dateLine}
+        style={({ pressed }) => [pressed && { opacity: 0.7 }]}>
+        <View style={[styles.metaStrip, { backgroundColor: headerWash }]}>
+          {dateLine ? (
+            <ThemedText style={[styles.metaDate, { color: c.text }]}>
+              {dateLine}
+            </ThemedText>
+          ) : <View />}
+          <View style={styles.starsRow}>
+            {Array.from({ length: 3 }).map((_, i) => (
+              <ThemedText
+                key={i}
+                style={[
+                  styles.star,
+                  { color: i < stars ? STAR_COLOR : c.border },
+                ]}>
+                ★
               </ThemedText>
-            ) : null}
-            {timeLine ? (
-              <ThemedText style={[styles.time, { color: c.textMuted }]}>
-                {timeLine}
-              </ThemedText>
-            ) : null}
+            ))}
           </View>
-        ) : null}
-
-        <View style={styles.teamsRow}>
-          <TeamColumn name={homeName} imagePath={homeImg} />
-          <View style={styles.scoreBlock}>
-            <View style={styles.starsRow}>
-              {Array.from({ length: 3 }).map((_, i) => (
-                <ThemedText
-                  key={i}
-                  style={[
-                    styles.star,
-                    { color: i < stars ? STAR_COLOR : c.border },
-                  ]}>
-                  ★
-                </ThemedText>
-              ))}
+          {timeLine && !showScore ? (
+            <ThemedText style={[styles.metaTime, { color: c.textMuted }]}>
+              {timeLine}
+            </ThemedText>
+          ) : live ? (
+            <View style={[styles.livePill, { backgroundColor: c.live }]}>
+              <View style={styles.liveDot} />
+              <ThemedText style={styles.livePillText}>
+                {liveMinute != null ? `${liveMinute}'` : 'CANLI'}
+              </ThemedText>
             </View>
-            {showScore ? (
-              <>
-                <ThemedText
+          ) : finished ? (
+            <ThemedText style={[styles.metaFt, { color: c.textMuted }]}>
+              {halfScore ? `İY ${halfScore.home}-${halfScore.away}` : 'FT'}
+            </ThemedText>
+          ) : <View />}
+        </View>
+
+        <View style={styles.matchInfo}>
+          <View style={styles.teamsRow}>
+            <TeamColumn name={homeName} imagePath={homeImg} />
+            <View style={styles.scoreBlock}>
+              {showScore ? (
+                <View
                   style={[
-                    styles.scoreText,
-                    { color: live ? c.live : c.text },
+                    styles.scorePill,
+                    {
+                      backgroundColor: live ? 'rgba(217, 112, 112, 0.12)' : c.bg,
+                      borderColor: live ? c.live : c.borderSoft,
+                    },
                   ]}>
-                  {homeScore}
-                  <ThemedText style={[styles.scoreSep, { color: c.textMuted }]}>
-                    {' - '}
+                  <ThemedText
+                    style={[
+                      styles.scoreText,
+                      { color: live ? c.live : c.text },
+                    ]}>
+                    {homeScore}
+                    <ThemedText style={[styles.scoreSep, { color: c.textMuted }]}>
+                      {' - '}
+                    </ThemedText>
+                    {awayScore}
                   </ThemedText>
-                  {awayScore}
-                </ThemedText>
-                <ThemedText
-                  style={[
-                    styles.scoreFt,
-                    { color: live ? c.live : c.textMuted },
-                  ]}>
-                  {live
-                    ? liveMinute != null
-                      ? `${liveMinute}'`
-                      : 'CANLI'
-                    : halfScore
-                      ? `İY ${halfScore.home}-${halfScore.away}`
-                      : 'FT'}
-                </ThemedText>
-              </>
-            ) : (
-              <ThemedText style={[styles.vs, { color: c.text }]}>VS</ThemedText>
-            )}
+                </View>
+              ) : (
+                <ThemedText style={[styles.vs, { color: c.textMuted }]}>VS</ThemedText>
+              )}
+            </View>
+            <TeamColumn name={awayName} imagePath={awayImg} />
           </View>
-          <TeamColumn name={awayName} imagePath={awayImg} />
         </View>
       </Pressable>
 
-      <View style={[styles.divider, { backgroundColor: c.border }]} />
+      <View style={[styles.divider, { backgroundColor: c.borderSoft }]} />
 
       <View style={styles.headerRow}>
         <ThemedText
@@ -450,14 +474,71 @@ const styles = StyleSheet.create({
   card: {
     marginHorizontal: 12,
     marginTop: 12,
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: 'hidden',
+  },
+  // 3px state-coloured accent strip on the left edge — kept at 0.45
+  // opacity (applied inline) so it whispers rather than shouts. Solid
+  // colour read as a hard alert badge; faded reads as a soft border.
+  accentStrip: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 3,
+    zIndex: 1,
+  },
+  // Top header strip: date · stars · time-or-state pill. Brand-tinted
+  // background gives the card identity vs. the older flat layout.
+  metaStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingLeft: 16,
+    paddingRight: 12,
+    paddingVertical: 7,
+    gap: 8,
+  },
+  metaDate: {
+    fontSize: 11,
+    fontWeight: '700',
+    fontVariant: ['tabular-nums'],
+    letterSpacing: 0.3,
+  },
+  metaTime: {
+    fontSize: 11,
+    fontWeight: '600',
+    fontVariant: ['tabular-nums'],
+  },
+  metaFt: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  livePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 999,
+  },
+  liveDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: '#ffffff',
+  },
+  livePillText: {
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 0.6,
+    color: '#ffffff',
   },
   starsRow: {
     flexDirection: 'row',
     gap: 3,
-    marginBottom: 4,
   },
   star: {
     fontSize: 13,
@@ -466,31 +547,14 @@ const styles = StyleSheet.create({
     height: StyleSheet.hairlineWidth,
   },
   matchInfo: {
-    paddingTop: 8,
+    paddingTop: 12,
     paddingBottom: 10,
     paddingHorizontal: 12,
-  },
-  topRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  date: {
-    fontSize: 12,
-    fontWeight: '600',
-    fontVariant: ['tabular-nums'],
-  },
-  time: {
-    fontSize: 12,
-    fontWeight: '500',
-    fontVariant: ['tabular-nums'],
   },
   teamsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     width: '100%',
-    marginTop: 6,
   },
   teamColumn: {
     flex: 1,
@@ -498,12 +562,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   teamLogo: {
-    width: 56,
-    height: 56,
+    width: 52,
+    height: 52,
   },
   teamLogoPlaceholder: {
-    width: 56,
-    height: 56,
+    width: 52,
+    height: 52,
     borderRadius: 8,
   },
   teamName: {
@@ -513,23 +577,31 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   vs: {
-    fontSize: 14,
-    fontWeight: '700',
-    letterSpacing: 1,
-    paddingHorizontal: 8,
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 1.5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
   },
   scoreBlock: {
     paddingHorizontal: 8,
     alignItems: 'center',
-    gap: 2,
+    justifyContent: 'center',
+    minHeight: 52,
+  },
+  scorePill: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 10,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   scoreText: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '800',
     fontVariant: ['tabular-nums'],
   },
   scoreSep: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '500',
   },
   scoreFt: {
