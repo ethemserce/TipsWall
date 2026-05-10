@@ -5,8 +5,28 @@ import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Slider } from '@/src/components/Slider';
-import type { WindowCode, RateBound } from '@/src/components/RateFilterBar';
+import type { WindowCode } from '@/src/components/RateFilterBar';
 import { useTheme } from '@/src/lib/useTheme';
+
+/**
+ * User-facing risk category. The backend still filters by min/max rate
+ * (it's the only thing the snapshots key on), but the user never sees the
+ * raw number — they pick a risk tier and the screen translates it.
+ *
+ * - low (Düşük):    maxRate 1.8 — favourites only, frequent hits
+ * - mid (Dengeli):  1.8 ≤ rate ≤ 3.0 — middle of the spread
+ * - high (Cüretkâr): minRate 3.0 — long shots, rare but big
+ */
+export type RiskCategory = 'low' | 'mid' | 'high';
+
+export const RISK_THRESHOLDS: Record<
+  RiskCategory,
+  { minRate?: number; maxRate?: number }
+> = {
+  low: { maxRate: 1.8 },
+  mid: { minRate: 1.8, maxRate: 3.0 },
+  high: { minRate: 3.0 },
+};
 
 export interface AnalysisFilterState {
   // Numeric thresholds: 0 means "off" / no filter (handled by the screen
@@ -19,8 +39,7 @@ export interface AnalysisFilterState {
   // by the active sort. Defaults to 3 so the list stays digestible on open.
   topPerFixture: number | null;
   window: WindowCode;
-  rateValue: number | null;
-  rateBound: RateBound;
+  riskCategory: RiskCategory | null;
 }
 
 export const DEFAULT_FILTERS: AnalysisFilterState = {
@@ -30,8 +49,7 @@ export const DEFAULT_FILTERS: AnalysisFilterState = {
   valueOnly: false,
   topPerFixture: 3,
   window: 'all',
-  rateValue: null,
-  rateBound: 'min',
+  riskCategory: null,
 };
 
 /**
@@ -53,8 +71,7 @@ export const PRESETS: Record<StrategyPreset, { filters: AnalysisFilterState }> =
       kzMin: 5,
       valueOnly: true,
       window: '6m',
-      rateValue: 1.8,
-      rateBound: 'max',
+      riskCategory: 'low',
     },
   },
   value: {
@@ -73,8 +90,7 @@ export const PRESETS: Record<StrategyPreset, { filters: AnalysisFilterState }> =
       kzMin: 3,
       valueOnly: true,
       window: 'all',
-      rateValue: 2.5,
-      rateBound: 'min',
+      riskCategory: 'high',
     },
   },
 };
@@ -87,8 +103,7 @@ function filtersEqual(a: AnalysisFilterState, b: AnalysisFilterState): boolean {
     a.valueOnly === b.valueOnly &&
     a.topPerFixture === b.topPerFixture &&
     a.window === b.window &&
-    a.rateValue === b.rateValue &&
-    a.rateBound === b.rateBound
+    a.riskCategory === b.riskCategory
   );
 }
 
@@ -112,7 +127,7 @@ interface AnalysisFiltersSheetProps {
 // component so the active language wins on re-render.
 const WINDOW_KEYS: WindowCode[] = ['1m', '3m', '6m', '1y', 'all'];
 
-const RATE_VALUES: number[] = [1.5, 1.8, 2.5, 4.0, 10.0];
+const RISK_CATEGORIES: RiskCategory[] = ['low', 'mid', 'high'];
 
 export function AnalysisFiltersSheet({
   visible,
@@ -386,69 +401,46 @@ export function AnalysisFiltersSheet({
               </View>
             </View>
 
-            {/* Oran */}
+            {/* Risk kategorisi — the user-visible replacement for the old
+                min/max oran chips. Each option maps to a min/max rate range
+                on the wire (see RISK_THRESHOLDS) without ever surfacing the
+                raw oran number. */}
             <View style={styles.group}>
-              <View style={styles.oranHeader}>
-                <ThemedText style={[styles.groupLabel, { color: c.textMuted }]}>
-                  {t('filters.rate')}
-                </ThemedText>
-                <View style={[styles.boundToggle, { borderColor: c.border }]}>
-                  {(['min', 'max'] as const).map((bound) => {
-                    const active = draft.rateBound === bound;
-                    return (
-                      <Pressable
-                        key={bound}
-                        onPress={() => set('rateBound', bound)}
-                        style={[
-                          styles.boundPill,
-                          active && { backgroundColor: c.brand },
-                        ]}>
-                        <ThemedText
-                          style={[
-                            styles.boundText,
-                            { color: active ? c.textInverse : c.text },
-                          ]}>
-                          {bound === 'min'
-                            ? t('filters.rateMin')
-                            : t('filters.rateMax')}
-                        </ThemedText>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              </View>
-              <View style={styles.rateChips}>
+              <ThemedText style={[styles.groupLabel, { color: c.textMuted }]}>
+                {t('filters.risk.header')}
+              </ThemedText>
+              <View style={styles.riskRow}>
                 <Pressable
-                  onPress={() => set('rateValue', null)}
+                  onPress={() => set('riskCategory', null)}
                   style={[
-                    styles.rateChip,
+                    styles.riskChip,
                     { borderColor: c.border },
-                    draft.rateValue == null && {
+                    draft.riskCategory == null && {
                       backgroundColor: c.brand,
                       borderColor: c.brand,
                     },
                   ]}>
                   <ThemedText
                     style={[
-                      styles.rateChipText,
+                      styles.riskLabel,
                       {
                         color:
-                          draft.rateValue == null
+                          draft.riskCategory == null
                             ? c.textInverse
                             : c.text,
                       },
                     ]}>
-                    {t('filters.all')}
+                    {t('filters.risk.all.label')}
                   </ThemedText>
                 </Pressable>
-                {RATE_VALUES.map((v) => {
-                  const active = draft.rateValue === v;
+                {RISK_CATEGORIES.map((key) => {
+                  const active = draft.riskCategory === key;
                   return (
                     <Pressable
-                      key={v}
-                      onPress={() => set('rateValue', v)}
+                      key={key}
+                      onPress={() => set('riskCategory', key)}
                       style={[
-                        styles.rateChip,
+                        styles.riskChip,
                         { borderColor: c.border },
                         active && {
                           backgroundColor: c.brand,
@@ -457,10 +449,20 @@ export function AnalysisFiltersSheet({
                       ]}>
                       <ThemedText
                         style={[
-                          styles.rateChipText,
+                          styles.riskLabel,
                           { color: active ? c.textInverse : c.text },
                         ]}>
-                        {v.toFixed(2)}
+                        {t(`filters.risk.${key}.label`)}
+                      </ThemedText>
+                      <ThemedText
+                        style={[
+                          styles.riskHint,
+                          {
+                            color: active ? c.textInverse : c.textMuted,
+                          },
+                        ]}
+                        numberOfLines={1}>
+                        {t(`filters.risk.${key}.hint`)}
                       </ThemedText>
                     </Pressable>
                   );
@@ -539,7 +541,7 @@ export function countActiveFilters(f: AnalysisFilterState): number {
   if (f.kzMin !== DEFAULT_FILTERS.kzMin) n++;
   if (f.topPerFixture !== DEFAULT_FILTERS.topPerFixture) n++;
   if (f.window !== DEFAULT_FILTERS.window) n++;
-  if (f.rateValue != null) n++;
+  if (f.riskCategory != null) n++;
   return n;
 }
 
@@ -658,44 +660,31 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.3,
   },
-  oranHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  boundToggle: {
-    flexDirection: 'row',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 999,
-    padding: 1,
-  },
-  boundPill: {
-    paddingHorizontal: 9,
-    paddingVertical: 3,
-    borderRadius: 999,
-  },
-  boundText: {
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  rateChips: {
+  riskRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
+    marginTop: 4,
   },
-  rateChip: {
+  riskChip: {
+    flexGrow: 1,
+    flexBasis: 0,
+    minWidth: 80,
     paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
+    paddingVertical: 8,
+    borderRadius: 10,
     borderWidth: StyleSheet.hairlineWidth,
-    minWidth: 48,
     alignItems: 'center',
+    gap: 2,
   },
-  rateChipText: {
-    fontSize: 11,
-    fontWeight: '700',
-    fontVariant: ['tabular-nums'],
+  riskLabel: {
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+  riskHint: {
+    fontSize: 9,
+    fontWeight: '500',
   },
   presetRow: {
     flexDirection: 'row',

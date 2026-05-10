@@ -127,10 +127,13 @@
       "off": "kapalı"
     },
     "period": "PERİYOT",
-    "rate": "ORAN",
-    "rateMin": "≥ MIN",
-    "rateMax": "≤ MAX",
-    "all": "Tümü"
+    "risk": {
+      "header": "RİSK KATEGORİSİ",
+      "all": { "label": "Tümü", "hint": "Her aralık" },
+      "low": { "label": "Düşük", "hint": "Sık isabet, küçük katkı" },
+      "mid": { "label": "Dengeli", "hint": "Orta yol" },
+      "high": { "label": "Cüretkâr", "hint": "Az isabet, büyük katkı" }
+    }
   },
   "legend": {
     "title": "Açıklamalar",

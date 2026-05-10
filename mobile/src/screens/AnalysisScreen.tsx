@@ -18,6 +18,7 @@ import {
   AnalysisFiltersSheet,
   countActiveFilters,
   DEFAULT_FILTERS,
+  RISK_THRESHOLDS,
   type AnalysisFilterState,
 } from '@/src/components/AnalysisFiltersSheet';
 import { AppBrand } from '@/src/components/AppBrand';
@@ -78,20 +79,20 @@ export function AnalysisScreen() {
     });
   }, []);
 
+  // Risk category → backend min/max rate. The user never sees the raw oran
+  // number, but the snapshots still key on it, so the screen translates.
+  const riskBounds =
+    filters.riskCategory != null
+      ? RISK_THRESHOLDS[filters.riskCategory]
+      : null;
   const { data, isLoading, isFetching, isError, error, refetch } = useSignals({
     bookmakerId: BOOKMAKER_ID,
     fixtureDate: format(selectedDate, 'yyyy-MM-dd'),
     window: filters.window,
     sort: FIXED_SORT,
     sortDir: FIXED_SORT_DIR,
-    minRate:
-      filters.rateValue != null && filters.rateBound === 'min'
-        ? filters.rateValue
-        : undefined,
-    maxRate:
-      filters.rateValue != null && filters.rateBound === 'max'
-        ? filters.rateValue
-        : undefined,
+    minRate: riskBounds?.minRate,
+    maxRate: riskBounds?.maxRate,
     minWinningPercent: filters.dsoMin > 0 ? filters.dsoMin : undefined,
     minEarningPercent: filters.vbetMin > 0 ? filters.vbetMin : undefined,
     minSampleCount: filters.kzMin,

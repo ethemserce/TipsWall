@@ -127,10 +127,13 @@
       "off": "off"
     },
     "period": "PERIOD",
-    "rate": "ODD",
-    "rateMin": "≥ MIN",
-    "rateMax": "≤ MAX",
-    "all": "All"
+    "risk": {
+      "header": "RISK CATEGORY",
+      "all": { "label": "All", "hint": "Every tier" },
+      "low": { "label": "Safe", "hint": "Frequent hits, small upside" },
+      "mid": { "label": "Balanced", "hint": "Middle ground" },
+      "high": { "label": "Bold", "hint": "Rare hits, large upside" }
+    }
   },
   "legend": {
     "title": "Legend",
