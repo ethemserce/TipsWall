@@ -214,10 +214,10 @@ export function OddsRatesCard({
               accessibilityRole="button"
               accessibilityLabel={
                 inCoupon
-                  ? `${formatLabel(outcome)} sepetten çıkar`
+                  ? `${formatLabel(outcome)} listeden çıkar`
                   : tapDisabled
                     ? `${formatLabel(outcome)} eklenemez`
-                    : `${formatLabel(outcome)} sepete ekle`
+                    : `${formatLabel(outcome)} listeye ekle`
               }
               accessibilityState={{ selected: inCoupon, disabled: tapDisabled && !inCoupon }}
               style={[

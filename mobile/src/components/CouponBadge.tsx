@@ -8,8 +8,8 @@ import { useCouponStore } from '@/src/lib/coupons/store';
 import { useTheme } from '@/src/lib/useTheme';
 
 /**
- * Floating "Sepetim" pill anchored above the bottom tab bar. Visible only
- * when the draft has at least one selection. Tap to open CouponSheet.
+ * Floating "Listem" pill anchored above the bottom tab bar. Visible only
+ * when the draft has at least one selection. Tap to open the list sheet.
  */
 export function CouponBadge() {
   const c = useTheme();
@@ -36,7 +36,7 @@ export function CouponBadge() {
             color={c.textInverse}
           />
           <ThemedText style={[styles.text, { color: c.textInverse }]}>
-            Sepetim · {draft.selections.length}
+            Listem · {draft.selections.length}
           </ThemedText>
         </Pressable>
       </View>

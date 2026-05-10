@@ -22,10 +22,10 @@
   },
   "coupons": {
     "empty": {
-      "title": "Henüz kupon yok",
-      "body": "Bir tipin üstüne dokunarak sepete ekle. Sepet dolunca buradan kaydedip takip edebilirsin.",
+      "title": "Henüz tahmin listesi yok",
+      "body": "Bir tahmine dokunarak listene ekle. Liste dolunca buradan kaydedip takip edebilirsin.",
       "hintAnalysisLabel": "Analiz",
-      "hintAnalysisText": "HIT/ROI sıralı tipler",
+      "hintAnalysisText": "HIT/ROI sıralı tahminler",
       "hintDetailLabel": "Detay",
       "hintDetailText": "Maç sayfasında öneriler"
     },
@@ -33,63 +33,57 @@
       "today": "Bugün",
       "week": "Bu Hafta",
       "month": "Bu Ay",
-      "empty": "Bu aralıkta kupon yok"
+      "empty": "Bu aralıkta liste yok"
     },
     "dateLabel": {
       "today": "Bugün",
       "yesterday": "Dün"
     },
     "status": {
-      "won": "KAZANDI",
-      "lost": "KAYBETTİ",
+      "won": "İSABET",
+      "lost": "ISKA",
       "pending": "BEKLEMEDE"
     },
-    "totalLabel": "TOPLAM",
-    "parlay": {
-      "fairOdd": "FAIR ORAN",
-      "vig": "BAHİS VİG",
-      "expectedReturn": "BEKL. GETİRİ"
-    },
+    "totalCount": "TAHMİN",
     "delete": {
-      "title": "Kuponu sil",
+      "title": "Listeyi sil",
       "body": "\"{{name}}\" silinsin mi? Bu işlem geri alınamaz.",
       "cancel": "İPTAL",
       "confirm": "SİL"
     },
     "summary": {
-      "selectionsSettled": "{{count}} seçim · {{settled}}/{{count}} sonuçlandı"
+      "selectionsSettled": "{{count}} tahmin · {{settled}}/{{count}} sonuçlandı"
     },
     "a11y": {
-      "deleteCoupon": "{{name}} kuponunu sil",
+      "deleteCoupon": "{{name}} listesini sil",
       "deleteCouponHint": "Onay penceresi açar",
-      "shareCoupon": "{{name}} kuponunu paylaş",
+      "shareCoupon": "{{name}} listesini paylaş",
       "confirmCancel": "İptal",
       "confirmDelete": "Sil ve onayla"
     },
     "sheet": {
-      "title": "Sepetim ({{count}})",
+      "title": "Listem ({{count}})",
       "clear": "TEMİZLE",
-      "empty": "Sepetin boş. Bir oran seçince buraya eklenir.",
+      "empty": "Liste boş. Bir tahmin seçince buraya eklenir.",
       "suggestions": "TAMAMLAMAK İÇİN ÖNERİLER",
-      "totalOdd": "TOPLAM ORAN",
-      "save": "KUPONU KAYDET"
+      "totalCount": "TOPLAM TAHMİN",
+      "save": "LİSTEYİ KAYDET"
     },
     "topPicks": {
-      "headerOne": "ÖNERİLEN SEÇİM",
-      "headerMany": "ÖNERİLEN SEÇİMLER",
+      "headerOne": "ÖNERİLEN TAHMİN",
+      "headerMany": "ÖNERİLEN TAHMİNLER",
       "valueBadge": "DEĞER",
       "stats": "HIT {{dso}}% · IMP {{iko}}% · örnek {{sample}}",
-      "actionInBasket": "SEPETTE",
+      "actionInBasket": "LİSTEDE",
       "actionDisabled": "KAPALI",
-      "actionAdd": "SEPETE EKLE"
+      "actionAdd": "LİSTEYE EKLE"
     },
     "stats": {
       "title": "İstatistiklerim",
       "a11yShow": "İstatistikleri göster",
-      "kupon": "Kupon",
-      "won": "Tutan",
+      "kupon": "Liste",
+      "won": "İsabet",
       "hitRate": "Tutturma",
-      "avgOdd": "Ort. Oran",
       "calibration": "KALİBRASYON ({{count}} tahmin)",
       "calibrationSystem": "Sistem",
       "calibrationUser": "Sen",
@@ -109,7 +103,7 @@
     "strategy": "STRATEJİ",
     "presets": {
       "banker": { "label": "Banker", "description": "Düşük oran, yüksek isabet — sağlam ayak" },
-      "value": { "label": "Değer", "description": "Bahisçi düşük fiyatlamış — matematik avantajı" },
+      "value": { "label": "Değer", "description": "Sistem değerli buluyor — HIT IMP'den yüksek" },
       "longshot": { "label": "Yüksek Oran", "description": "Az tutmuş ama tuttuğunda büyük katkı" }
     },
     "topPerFixture": {
@@ -146,11 +140,11 @@
       },
       "vbet": {
         "long": "Beklenen Getiri (ROI)",
-        "description": "100 birim oynanmış olsa beklenen net kâr/zarar. Pozitif değer bahisçinin oranı düşük fiyatladığını gösterir."
+        "description": "Geçmiş örneklemde bu tahminin sistemce ölçülen verimi. Pozitif değer sistem tarafından değerli olarak işaretlenir."
       },
       "iko": {
-        "long": "Bahisçi Olasılığı (IMP)",
-        "description": "Bahisçinin oranlardan çıkardığı, marj temizlenmiş olasılık. Aynı market içinde tüm sonuçlar 100'e tamamlanır. HIT, IMP'den büyükse değer vardır."
+        "long": "Sistem Olasılığı (IMP)",
+        "description": "Marj temizlenmiş olasılık tahmini. Aynı market içinde tüm sonuçlar 100'e tamamlanır. HIT, IMP'den büyükse değer vardır."
       },
       "kzky": {
         "long": "Kazanan / Kaybeden",
@@ -172,7 +166,7 @@
     "home": "Anasayfa",
     "analysis": "Analiz",
     "leagues": "Ligler",
-    "coupons": "Kuponlarım",
+    "coupons": "Listem",
     "settings": "Ayarlar",
     "winning": "Kazanma",
     "hot": "Sıcak",
@@ -199,11 +193,6 @@
         "light": "Açık",
         "dark": "Koyu"
       }
-    },
-    "privacy": {
-      "header": "Gizlilik",
-      "oddsHidden": "Oranları gizle",
-      "oddsHiddenHint": "Tüm bahis oranları yerine ‘••’ gösterilir"
     },
     "language": {
       "header": "Dil",
@@ -251,9 +240,6 @@
     "fallback": "{{market}} · {{outcome}}"
   },
   "home": {
-    "filters": {
-      "odds": "Oranlar"
-    },
     "noFixturesForFilter": "Bu filtreyle eşleşen maç yok.",
     "search": {
       "placeholder": "Takım veya lig ara",
@@ -348,7 +334,7 @@
       },
       "10": {
         "title": "Beraberlikte İade",
-        "blurb": "Maç berabere biterse bahis iade edilir; aksi halde tahmin kazanır ya da kaybeder.",
+        "blurb": "Maç berabere biterse tahmin nötr sayılır; aksi halde tahmin kazanır ya da kaybeder.",
         "outcomes": [
           { "key": "1", "meaning": "Ev sahibi galip" },
           { "key": "2", "meaning": "Deplasman galip" }
@@ -529,9 +515,9 @@
     "noResults": "Bu filtreyle sonuç bulunamadı.",
     "couldNotLoad": "{{title}} yüklenemedi",
     "titles": {
-      "hot": "Sıcak Bahisler",
-      "winning": "Kazanan Bahisler",
-      "earning": "Kârlı Bahisler"
+      "hot": "Sıcak Tahminler",
+      "winning": "Kazanan Tahminler",
+      "earning": "Kârlı Tahminler"
     }
   }
 }

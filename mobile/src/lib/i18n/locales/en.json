@@ -22,8 +22,8 @@
   },
   "coupons": {
     "empty": {
-      "title": "No coupons yet",
-      "body": "Tap a tip to drop it into your basket. Save the basket here once you've filled it.",
+      "title": "No prediction lists yet",
+      "body": "Tap a tip to add it to your list. Save the list here once you've filled it.",
       "hintAnalysisLabel": "Analysis",
       "hintAnalysisText": "HIT/ROI-ranked tips",
       "hintDetailLabel": "Detail",
@@ -33,25 +33,20 @@
       "today": "Today",
       "week": "This Week",
       "month": "This Month",
-      "empty": "No coupons in this range"
+      "empty": "No lists in this range"
     },
     "dateLabel": {
       "today": "Today",
       "yesterday": "Yesterday"
     },
     "status": {
-      "won": "WON",
-      "lost": "LOST",
+      "won": "HIT",
+      "lost": "MISS",
       "pending": "PENDING"
     },
-    "totalLabel": "TOTAL",
-    "parlay": {
-      "fairOdd": "FAIR ODD",
-      "vig": "BOOK VIG",
-      "expectedReturn": "EXP. RETURN"
-    },
+    "totalCount": "PICKS",
     "delete": {
-      "title": "Delete coupon",
+      "title": "Delete list",
       "body": "Delete \"{{name}}\"? This can't be undone.",
       "cancel": "CANCEL",
       "confirm": "DELETE"
@@ -60,36 +55,35 @@
       "selectionsSettled": "{{count}} picks · {{settled}}/{{count}} settled"
     },
     "a11y": {
-      "deleteCoupon": "Delete coupon {{name}}",
+      "deleteCoupon": "Delete list {{name}}",
       "deleteCouponHint": "Opens a confirmation dialog",
-      "shareCoupon": "Share coupon {{name}}",
+      "shareCoupon": "Share list {{name}}",
       "confirmCancel": "Cancel",
       "confirmDelete": "Confirm delete"
     },
     "sheet": {
-      "title": "My basket ({{count}})",
+      "title": "My list ({{count}})",
       "clear": "CLEAR",
-      "empty": "Basket is empty. Tap an odd to add it here.",
+      "empty": "List is empty. Tap a tip to add it here.",
       "suggestions": "PICKS TO COMPLETE",
-      "totalOdd": "TOTAL ODD",
-      "save": "SAVE COUPON"
+      "totalCount": "TOTAL PICKS",
+      "save": "SAVE LIST"
     },
     "topPicks": {
       "headerOne": "TOP PICK",
       "headerMany": "TOP PICKS",
       "valueBadge": "VALUE",
       "stats": "HIT {{dso}}% · IMP {{iko}}% · sample {{sample}}",
-      "actionInBasket": "IN BASKET",
+      "actionInBasket": "IN LIST",
       "actionDisabled": "OFF",
       "actionAdd": "ADD"
     },
     "stats": {
       "title": "My stats",
       "a11yShow": "Show stats",
-      "kupon": "Coupons",
-      "won": "Won",
+      "kupon": "Lists",
+      "won": "Hit",
       "hitRate": "Hit rate",
-      "avgOdd": "Avg odd",
       "calibration": "CALIBRATION ({{count}} picks)",
       "calibrationSystem": "System",
       "calibrationUser": "You",
@@ -172,7 +166,7 @@
     "home": "Home",
     "analysis": "Analysis",
     "leagues": "Leagues",
-    "coupons": "Coupons",
+    "coupons": "My list",
     "settings": "Settings",
     "winning": "Winning",
     "hot": "Hot",
@@ -199,11 +193,6 @@
         "light": "Light",
         "dark": "Dark"
       }
-    },
-    "privacy": {
-      "header": "Privacy",
-      "oddsHidden": "Hide odds",
-      "oddsHiddenHint": "Replaces every betting odd with ‘••’"
     },
     "language": {
       "header": "Language",
@@ -251,9 +240,6 @@
     "fallback": "{{market}} · {{outcome}}"
   },
   "home": {
-    "filters": {
-      "odds": "Odds"
-    },
     "noFixturesForFilter": "No fixtures match this filter.",
     "search": {
       "placeholder": "Search team or league",

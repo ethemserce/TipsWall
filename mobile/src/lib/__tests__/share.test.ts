@@ -89,16 +89,16 @@ describe('shareFixture', () => {
 });
 
 describe('shareCoupon', () => {
-  test('emits one line per leg with market + outcome + odd', async () => {
+  test('emits one line per pick with market + outcome (no odd)', async () => {
     await shareCoupon(baseCoupon);
     expect(shareSpy).toHaveBeenCalledTimes(1);
     const message = shareSpy.mock.calls[0][0].message as string;
-    // First leg: MS 1 @ 1.85
-    expect(message).toContain('MS 1 @ 1.85');
-    // Second leg: KG Var (translated outcomeDisplay) @ 1.60
-    expect(message).toContain('KG Var @ 1.60');
-    // Total odd is 1.85 × 1.6 = 2.96
-    expect(message).toContain('Toplam: 2.96');
+    // First pick: MS 1
+    expect(message).toContain('MS 1');
+    // Second pick: KG Var (translated outcomeDisplay)
+    expect(message).toContain('KG Var');
+    // Pick count summary
+    expect(message).toContain('Toplam 2 tahmin');
     expect(shareSpy.mock.calls[0][0].title).toBe('Cumartesi Kuponum');
   });
 
@@ -115,6 +115,6 @@ describe('shareCoupon', () => {
     };
     await shareCoupon(coupon);
     const message = shareSpy.mock.calls[0][0].message as string;
-    expect(message).toContain('MS Home @ 1.85');
+    expect(message).toContain('MS Home');
   });
 });

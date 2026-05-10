@@ -1,7 +1,6 @@
 import * as Linking from 'expo-linking';
 import { Share } from 'react-native';
 
-import { totalOdd } from '@/src/lib/coupons/store';
 import type { Coupon } from '@/src/lib/coupons/types';
 
 /**
@@ -35,22 +34,21 @@ export async function shareFixture(
 }
 
 /**
- * Share-friendly summary of a saved coupon. Each leg on its own line plus
- * the combined odd. No deep-link to a specific coupon yet (server-side
- * shared coupons are a future feature) — just the picks for now.
+ * Share-friendly summary of a saved prediction list. Each pick on its own
+ * line. No deep-link to a specific list yet (server-side shared lists are
+ * a future feature) — just the tips for now.
  */
 export async function shareCoupon(coupon: Coupon): Promise<void> {
   const lines = coupon.selections.map((s) => {
     const tip = `${s.marketShort} ${s.outcomeDisplay ?? s.outcomeLabel}`;
-    return `• ${s.fixtureName} — ${tip} @ ${s.oddValue.toFixed(2)}`;
+    return `• ${s.fixtureName} — ${tip}`;
   });
-  const totalOddText = totalOdd(coupon).toFixed(2);
   await Share.share({
     title: coupon.name,
     message: [
       coupon.name,
       ...lines,
-      `Toplam: ${totalOddText}`,
+      `Toplam ${coupon.selections.length} tahmin`,
       '',
       'TipsWall ile takip ediyorum.',
     ].join('\n'),

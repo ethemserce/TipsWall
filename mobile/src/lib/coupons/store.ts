@@ -18,7 +18,7 @@ function emptyDraft(): Coupon {
   const now = new Date().toISOString();
   return {
     id: cryptoRandom(),
-    name: 'Yeni Kupon',
+    name: 'Yeni Liste',
     createdAt: now,
     updatedAt: now,
     status: 'draft',
@@ -62,7 +62,7 @@ function migrateCoupon(raw: unknown): Coupon | null {
   if (typeof c.id !== 'string' || !Array.isArray(c.selections)) return null;
   return {
     id: c.id,
-    name: typeof c.name === 'string' ? c.name : 'Yeni Kupon',
+    name: typeof c.name === 'string' ? c.name : 'Yeni Liste',
     createdAt: typeof c.createdAt === 'string' ? c.createdAt : new Date().toISOString(),
     updatedAt: typeof c.updatedAt === 'string' ? c.updatedAt : new Date().toISOString(),
     status: c.status ?? 'saved',
@@ -293,12 +293,12 @@ export function couponOutcome(coupon: Coupon): { state: CouponOutcome; settled: 
 
 function defaultCouponName(): string {
   const d = new Date();
-  // "9 Mayıs Kuponu"
+  // "9 Mayıs Listesi"
   const months = [
     'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
     'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık',
   ];
-  return `${d.getDate()} ${months[d.getMonth()]} Kuponu`;
+  return `${d.getDate()} ${months[d.getMonth()]} Listesi`;
 }
 
 export function totalOdd(coupon: Coupon): number {

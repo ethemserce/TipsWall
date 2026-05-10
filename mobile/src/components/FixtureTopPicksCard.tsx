@@ -55,7 +55,7 @@ export function FixtureTopPicksCard({
   const c = useTheme();
   const { t } = useTranslation();
   // Re-renders whenever the draft changes so the CTA can flip between
-  // "Sepete Ekle" / "Sepette" / disabled (another pick on this fixture).
+  // "Listeye Ekle" / "Listede" / disabled (another pick on this fixture).
   const draftSelections = useCouponStore((s) => s.draft.selections);
 
   const fixtureAlreadyPicked = useMemo(
