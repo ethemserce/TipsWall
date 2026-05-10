@@ -81,7 +81,7 @@
     "stats": {
       "title": "My stats",
       "a11yShow": "Show stats",
-      "kupon": "Lists",
+      "kupon": "Picks",
       "won": "Hit",
       "hitRate": "Hit rate",
       "calibration": "CALIBRATION ({{count}} picks)",
@@ -102,9 +102,9 @@
     "apply": "APPLY",
     "strategy": "STRATEGY",
     "presets": {
-      "banker": { "label": "Banker", "description": "Low odds, high hit rate — solid leg" },
-      "value": { "label": "Value", "description": "Bookmaker mispriced — math edge" },
-      "longshot": { "label": "Long shot", "description": "Rare but high-payout when it lands" }
+      "banker": { "label": "Banker", "description": "Safe pick, high hit rate — solid leg" },
+      "value": { "label": "Value", "description": "System sees value — math edge" },
+      "longshot": { "label": "Long shot", "description": "Rare but high-reward when it lands" }
     },
     "topPerFixture": {
       "title": "Best 3 per match",
@@ -140,11 +140,11 @@
       },
       "vbet": {
         "long": "Expected Return (ROI)",
-        "description": "Net P/L if 100 units were staked. Positive = bookmaker priced too low."
+        "description": "Average return on this pick across the sample. Positive = system sees it as undervalued."
       },
       "iko": {
         "long": "Implied Probability (IMP)",
-        "description": "Bookmaker's no-vig implied probability. Outcomes within a market sum to 100. HIT > IMP = value."
+        "description": "Implied probability with the market margin stripped. Outcomes within a market sum to 100. HIT > IMP = value."
       },
       "kzky": {
         "long": "Won / Lost",
@@ -153,7 +153,7 @@
     },
     "markets": {
       "MS": "Match Result",
-      "DNB": "Draw No Bet",
+      "DNB": "Draw Refund",
       "KG": "Both Teams To Score",
       "EV": "Home Exact Goals",
       "DEP": "Away Exact Goals",
@@ -217,8 +217,8 @@
     "ms_home": "Home team wins",
     "ms_draw": "Match ends in a draw",
     "ms_away": "Away team wins",
-    "dnb_home": "Home team wins (stake refunded on draw)",
-    "dnb_away": "Away team wins (stake refunded on draw)",
+    "dnb_home": "Home team wins (draw counts as neutral)",
+    "dnb_away": "Away team wins (draw counts as neutral)",
     "btts_yes": "Both teams score",
     "btts_no": "At least one team fails to score",
     "over": "{{goals}} or more goals in the match",
@@ -336,8 +336,8 @@
         ]
       },
       "10": {
-        "title": "Draw No Bet",
-        "blurb": "If the match ends in a draw the stake is refunded; otherwise the pick wins or loses.",
+        "title": "Draw Refund",
+        "blurb": "If the match ends in a draw the pick counts as neutral; otherwise it wins or loses.",
         "outcomes": [
           { "key": "1", "meaning": "Home team wins" },
           { "key": "2", "meaning": "Away team wins" }
@@ -528,7 +528,7 @@
       "notAvailable": "No previous matches between these teams yet."
     },
     "odds": {
-      "noOdds": "No odds available for this match yet."
+      "noOdds": "No analysis available for this match yet."
     },
     "standings": {
       "team": "Team",
@@ -539,7 +539,7 @@
   "rate": {
     "filters": {
       "period": "Period",
-      "minOdd": "Min Odd",
+      "minOdd": "Min Value",
       "status": "Status",
       "notStartedOnly": "Upcoming only",
       "all": "All",
@@ -564,7 +564,7 @@
     },
     "summary": {
       "signals": "Signals",
-      "avgOdd": "Avg Odd",
+      "avgOdd": "Avg Value",
       "avgWin": "Avg Win %",
       "avgRoi": "Avg ROI %",
       "verification": "Verified",

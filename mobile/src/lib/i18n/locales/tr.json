@@ -102,9 +102,9 @@
     "apply": "UYGULA",
     "strategy": "STRATEJİ",
     "presets": {
-      "banker": { "label": "Banker", "description": "Düşük oran, yüksek isabet — sağlam ayak" },
+      "banker": { "label": "Banker", "description": "Düşük risk, yüksek isabet — sağlam tahmin" },
       "value": { "label": "Değer", "description": "Sistem değerli buluyor — HIT IMP'den yüksek" },
-      "longshot": { "label": "Yüksek Oran", "description": "Az tutmuş ama tuttuğunda büyük katkı" }
+      "longshot": { "label": "Cüretkâr", "description": "Az tutmuş ama tuttuğunda büyük katkı" }
     },
     "topPerFixture": {
       "title": "Maç başına en iyi 3",
@@ -135,7 +135,7 @@
     "marketsHeader": "MARKET KISALTMALARI",
     "metrics": {
       "dso": {
-        "long": "Tutturma Oranı (HIT)",
+        "long": "Tutturma Yüzdesi (HIT)",
         "description": "Geçmiş örneklemde bu tahminin tutma yüzdesi. 5 maçtan 3'ünde tuttuysa %60."
       },
       "vbet": {
@@ -153,7 +153,7 @@
     },
     "markets": {
       "MS": "Maç Sonucu",
-      "DNB": "Beraberlikte iade (Draw No Bet)",
+      "DNB": "Beraberlikte İade",
       "KG": "Karşılıklı Gol",
       "EV": "Ev Sahibi Tam Skor",
       "DEP": "Deplasman Tam Skor",
@@ -217,8 +217,8 @@
     "ms_home": "Ev sahibi kazanır",
     "ms_draw": "Berabere biter",
     "ms_away": "Deplasman kazanır",
-    "dnb_home": "Ev sahibi kazanır (berabere iadeli)",
-    "dnb_away": "Deplasman kazanır (berabere iadeli)",
+    "dnb_home": "Ev sahibi kazanır (berabere nötr sayılır)",
+    "dnb_away": "Deplasman kazanır (berabere nötr sayılır)",
     "btts_yes": "Her iki takım da gol atar",
     "btts_no": "En az bir takım gol atamaz",
     "over": "Maçta {{goals}} veya daha çok gol",
@@ -528,7 +528,7 @@
       "notAvailable": "Bu iki takım arasında henüz oynanmış maç yok."
     },
     "odds": {
-      "noOdds": "Bu maç için henüz oran yok."
+      "noOdds": "Bu maç için henüz analiz yok."
     },
     "standings": {
       "team": "Takım",
@@ -539,7 +539,7 @@
   "rate": {
     "filters": {
       "period": "Periyot",
-      "minOdd": "Min Oran",
+      "minOdd": "Min Değer",
       "status": "Durum",
       "notStartedOnly": "Sadece Başlamayan",
       "all": "Tümü",
@@ -564,7 +564,7 @@
     },
     "summary": {
       "signals": "Sinyal",
-      "avgOdd": "Ort. Oran",
+      "avgOdd": "Ort. Değer",
       "avgWin": "Ort. % Kazanma",
       "avgRoi": "Ort. % ROI",
       "verification": "Doğrulama",
