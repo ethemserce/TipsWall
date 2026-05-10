@@ -741,18 +741,14 @@ namespace SportMonks.Football.FixtureWorker.Services
                 fromDate,
                 toDate);
 
-            for (var date = fromDate; date <= toDate; date = date.AddDays(1))
-                await ExecuteFixturesByDate(date, timezone, label, cancellationToken);
-        }
+            // SportMonks `fixtures/between/{from}/{to}` returns the whole window
+            // in one paginated call, so a 16-day backlog goes from 16 outbound
+            // requests down to 1 (+pagination follow-ups). The previous per-day
+            // loop is preserved in git history as 4c4b042's parent.
+            var fromValue = fromDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            var toValue = toDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            var endpoint = $"{GetFixtureByDateRangeEndpoint().TrimEnd('/')}/{fromValue}/{toValue}";
 
-        private async Task ExecuteFixturesByDate(
-            DateOnly date,
-            string? timezone,
-            string label,
-            CancellationToken cancellationToken)
-        {
-            var dateValue = date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-            var endpoint = $"{GetFixtureByDateEndpoint().TrimEnd('/')}/{dateValue}";
             var request = SportMonksApiRequest.Create(endpoint)
                 .WithInclude(BuildFixtureSyncIncludes().ToArray());
 
@@ -761,9 +757,9 @@ namespace SportMonks.Football.FixtureWorker.Services
 
             var fixtures = (await _syncRunner.GetAllAsync<Fixture>(
                 SportMonksSyncJobDefinition.Create(
-                    "sportmonks.football.fixtures.by-date",
+                    "sportmonks.football.fixtures.by-date-range",
                     "football.fixture",
-                    "Sync SportMonks football fixtures with participants, scores, and periods."),
+                    "Sync SportMonks football fixtures across a date window."),
                 request,
                 cursorKey: endpoint,
                 cancellationToken: cancellationToken)).ToList();
@@ -1013,9 +1009,9 @@ namespace SportMonks.Football.FixtureWorker.Services
             _scheduler.RecordRun(ScheduleKey.Analytics);
         }
 
-        private string GetFixtureByDateEndpoint()
+        private string GetFixtureByDateRangeEndpoint()
         {
-            return NullIfWhiteSpace(_configuration["SportMonksUrls:fixtureByDate"]) ?? "fixtures/date/";
+            return NullIfWhiteSpace(_configuration["SportMonksUrls:fixtureByDateRange"]) ?? "fixtures/between/";
         }
 
         private string GetConfiguredEndpoint(string key, string defaultValue)
