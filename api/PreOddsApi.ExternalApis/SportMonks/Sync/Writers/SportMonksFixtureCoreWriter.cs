@@ -308,7 +308,6 @@ namespace PreOddsApi.ExternalApis.SportMonks.Sync.Writers
             var seasonId = ResolveOptionalId(fixture.SeasonId, fixture.Season?.Id);
             var stageId = ResolveOptionalId(fixture.StageId, fixture.Stage?.Id);
             var groupId = ResolveOptionalId(fixture.GroupId, fixture.Group?.Id);
-            var aggregateId = ResolveOptionalId(fixture.AggregateId, fixture.Aggregate?.Id);
             var roundId = ResolveOptionalId(fixture.RoundId, fixture.Round?.Id);
             var stateId = ResolveOptionalId(fixture.StateId, fixture.State?.Id);
             var venueId = ResolveOptionalId(fixture.VenueId, fixture.Venue?.Id);
@@ -326,7 +325,6 @@ namespace PreOddsApi.ExternalApis.SportMonks.Sync.Writers
                     season_id,
                     stage_id,
                     group_id,
-                    aggregate_id,
                     round_id,
                     state_id,
                     venue_id,
@@ -348,7 +346,6 @@ namespace PreOddsApi.ExternalApis.SportMonks.Sync.Writers
                     (select id from competition.seasons where id = @season_id),
                     (select id from competition.stages where id = @stage_id),
                     (select id from competition.groups where id = @group_id),
-                    (select id from competition.aggregates where id = @aggregate_id),
                     (select id from competition.rounds where id = @round_id),
                     (select id from catalog.states where id = @state_id),
                     (select id from football.venues where id = @venue_id),
@@ -369,7 +366,6 @@ namespace PreOddsApi.ExternalApis.SportMonks.Sync.Writers
                     season_id = excluded.season_id,
                     stage_id = excluded.stage_id,
                     group_id = excluded.group_id,
-                    aggregate_id = excluded.aggregate_id,
                     round_id = excluded.round_id,
                     state_id = excluded.state_id,
                     venue_id = excluded.venue_id,
@@ -392,7 +388,6 @@ namespace PreOddsApi.ExternalApis.SportMonks.Sync.Writers
             command.Parameters.Add(BigIntParameter("season_id", seasonId));
             command.Parameters.Add(BigIntParameter("stage_id", stageId));
             command.Parameters.Add(BigIntParameter("group_id", groupId));
-            command.Parameters.Add(BigIntParameter("aggregate_id", aggregateId));
             command.Parameters.Add(BigIntParameter("round_id", roundId));
             command.Parameters.Add(BigIntParameter("state_id", stateId));
             command.Parameters.Add(BigIntParameter("venue_id", venueId));

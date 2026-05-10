@@ -1010,9 +1010,6 @@ namespace SportMonks.Football.FixtureWorker.Services
             if (GetBoolean("AnalyticsSync:RunFixtureSignals", true))
                 await _analyticsEngine.RunFixtureSignalsAsync(cancellationToken);
 
-            if (GetBoolean("AnalyticsSync:RunRateResults", true))
-                await _analyticsEngine.RunRateResultsAsync(cancellationToken);
-
             _scheduler.RecordRun(ScheduleKey.Analytics);
         }
 

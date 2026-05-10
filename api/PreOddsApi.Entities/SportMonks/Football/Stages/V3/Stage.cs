@@ -67,9 +67,6 @@ namespace PreOddsApi.Entities.SportMonks.Football.V3
         [JsonProperty("fixture")] // if add to Query Params "include=fixture"
         public List<Fixture> Fixtures { get; set; }
 
-        [JsonProperty("aggregates")] // if add to Query Params "include=aggregates"
-        public List<Aggregate> Aggregates { get; set; }
-
         [JsonProperty("topscorers")] // if add to Query Params "include=topscorers"
         public List<TopScorer> TopScorers { get; set; }
 

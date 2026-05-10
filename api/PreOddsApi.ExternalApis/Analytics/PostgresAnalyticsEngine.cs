@@ -275,25 +275,6 @@ namespace PreOddsApi.ExternalApis.Analytics
             return rows;
         }
 
-        public async Task<int> RunRateResultsAsync(CancellationToken cancellationToken = default)
-        {
-            // No-op: legacy three-tier rate tables are no longer consumed.
-            // /signals reads fixture_signals directly. We still truncate here
-            // to keep the tables empty until the next deploy drops them.
-            const string sql = """
-                delete from analytics.hot_rate_results;
-                delete from analytics.winning_rate_results;
-                delete from analytics.earning_rate_results;
-                """;
-
-            await using var connection = await OpenAsync(cancellationToken);
-            await using var command = new NpgsqlCommand(sql, connection);
-            var rows = await command.ExecuteNonQueryAsync(cancellationToken);
-
-            _logger.LogInformation("Analytics rate_results refresh affected {Rows} rows.", rows);
-            return rows;
-        }
-
         private async Task<NpgsqlConnection> OpenAsync(CancellationToken cancellationToken)
         {
             if (string.IsNullOrWhiteSpace(_connectionString))

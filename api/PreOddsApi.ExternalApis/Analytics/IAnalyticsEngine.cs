@@ -9,7 +9,5 @@ namespace PreOddsApi.ExternalApis.Analytics
         Task<int> RunOddAnalysisSnapshotsAsync(CancellationToken cancellationToken = default);
 
         Task<int> RunFixtureSignalsAsync(CancellationToken cancellationToken = default);
-
-        Task<int> RunRateResultsAsync(CancellationToken cancellationToken = default);
     }
 }
