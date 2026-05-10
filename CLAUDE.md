@@ -129,7 +129,8 @@ fresh networks; `New-NetFirewallRule` once per port.
 ## Pending business decisions
 
 - **SportMonks subscription**: user planned to purchase Starter (€29) +
-  Odds & Predictions (€15) + 3× Extra Leagues (€12) ≈ €56/month. Once
-  active, update worker `AllowedLeagueIds` config for the chosen 5–8
-  leagues. Recommended top-5: TR Süper Lig + EN PL + ES La Liga + IT
-  Serie A + DE Bundesliga.
+  Odds & Predictions (€15) + 3× Extra Leagues (€12) ≈ €56/month. The
+  subscription itself gates which leagues SportMonks returns — there is
+  no app-side league filter (and no `AllowedLeagueIds` config; an earlier
+  plan referenced one but it was never implemented). Recommended top-5:
+  TR Süper Lig + EN PL + ES La Liga + IT Serie A + DE Bundesliga.

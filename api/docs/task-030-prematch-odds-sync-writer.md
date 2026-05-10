@@ -22,7 +22,6 @@ fixture date-window endpoint already used by the football worker.
 - Add `SportMonksPrematchOddsWriter` writing to:
   - `odds.prematch_odds_current` — upsert on `(feed_type, fixture_id, bookmaker_id, market_id, outcome_key)`.
   - `odds.prematch_odds_history` — insert when `value` changes vs. the current row.
-  - `odds.bookmaker_fixture_mappings` — upsert when bookmaker event data is present.
 - Register the writer in SportMonks DI.
 - Extend `Fixture` includes in `FootballWorkerService` with `odds` when `SportMonksPrematchOddsSync:Enabled=true`.
 - Add a `MaybeRunPrematchOddsAsync` group to `FootballWorkerService` for the `odds/latest` polling path.

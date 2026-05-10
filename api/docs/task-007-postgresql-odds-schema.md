@@ -24,7 +24,6 @@ It covers bookmaker and market reference data, pre-match odds, in-play odds, odd
 
 - `odds.bookmakers`
 - `odds.markets`
-- `odds.bookmaker_fixture_mappings`
 - `odds.prematch_odds_current`
 - `odds.prematch_odds_history`
 - `odds.inplay_odds_current`
@@ -40,7 +39,6 @@ It covers bookmaker and market reference data, pre-match odds, in-play odds, odd
 - History tables are for future SportMonks sync snapshots and premium historical odds. They are not a legacy data migration path.
 - Premium historical odds can arrive with only `odd_id` and price fields, so `prematch_odds_history` keeps fixture, bookmaker, market, and outcome fields nullable for later enrichment.
 - Odds values and probabilities are stored in parsed numeric fields, while text fields such as `probability_text` and `american_text` preserve original API formatting.
-- `bookmaker_fixture_mappings` stores SportMonks bookmaker event IDs and URLs for future deep links to bookmaker fixture pages.
 
 ## Script
 
