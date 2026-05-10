@@ -406,6 +406,14 @@ namespace PreOddsApi.ExternalApis.SportMonks.Sync.Writers
 
             await using var command = connection.CreateCommand();
             command.Transaction = transaction;
+            // ON CONFLICT keys on the business UNIQUE (fixture_id, sidelined_id)
+            // because SportMonks can return the same player twice within a
+            // fixture's sidelined list (e.g. once via sidelined.Player and once
+            // via sidelined.Sideline.Player) — same sidelined_id, sometimes
+            // different SportMonks ids. Conflicting on (id) used to leak the
+            // duplicate through and 23505 the whole tick. The id column stays
+            // at whatever the first INSERT wrote, so the row identity is
+            // stable across re-runs.
             command.CommandText = """
                 insert into football.fixture_sidelined (
                     id,
@@ -421,9 +429,7 @@ namespace PreOddsApi.ExternalApis.SportMonks.Sync.Writers
                     now()
                 where exists (select 1 from football.fixtures where id = @fixture_id)
                   and exists (select 1 from football.sidelined_players where id = @sidelined_id)
-                on conflict (id) do update set
-                    fixture_id = excluded.fixture_id,
-                    sidelined_id = excluded.sidelined_id,
+                on conflict (fixture_id, sidelined_id) do update set
                     participant_id = coalesce(excluded.participant_id, football.fixture_sidelined.participant_id),
                     last_synced_at = now(),
                     updated_at = now();
