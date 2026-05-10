@@ -386,7 +386,7 @@ namespace SportMonks.Football.FixtureWorker.Services
 
             const string endpoint = "livescores/latest";
             var request = SportMonksApiRequest.Create(endpoint)
-                .WithInclude(BuildFixtureSyncIncludes().ToArray());
+                .WithInclude(BuildFixtureSyncIncludes(allowOddsInclude: false).ToArray());
 
             var timezone = NullIfWhiteSpace(_configuration["SportMonksFixtureLiveSync:Timezone"])
                 ?? NullIfWhiteSpace(_configuration["SportMonksFixtureSync:Timezone"]);
@@ -880,7 +880,7 @@ namespace SportMonks.Football.FixtureWorker.Services
             }
         }
 
-        private IEnumerable<string> BuildFixtureSyncIncludes()
+        private IEnumerable<string> BuildFixtureSyncIncludes(bool allowOddsInclude = true)
         {
             foreach (var include in FixtureSyncIncludes)
                 yield return include;
@@ -898,8 +898,12 @@ namespace SportMonks.Football.FixtureWorker.Services
             foreach (var include in BuildFixtureNewsIncludes())
                 yield return include;
 
-            foreach (var include in BuildFixtureOddsIncludes())
-                yield return include;
+            // /livescores/latest rejects the `odds` family with 422 even when
+            // the subscription grants odds elsewhere — odds are reserved for
+            // the standalone /odds/* endpoints and the fixtures/between path.
+            if (allowOddsInclude)
+                foreach (var include in BuildFixtureOddsIncludes())
+                    yield return include;
         }
 
         private bool ShouldSyncFixtureSidelined()
@@ -1157,7 +1161,7 @@ namespace SportMonks.Football.FixtureWorker.Services
                         "sportmonks.football.odds.prematch.latest",
                         "odds.prematch_odds_current",
                         "Sync latest updated SportMonks pre-match odds."),
-                    SportMonksApiRequest.Create("odds/latest"),
+                    SportMonksApiRequest.Create("odds/pre-match/latest"),
                     cancellationToken: cancellationToken)).ToList();
 
                 if (odds.Count > 0)
@@ -1167,8 +1171,27 @@ namespace SportMonks.Football.FixtureWorker.Services
                         .GroupBy(o => o.FixtureId);
 
                     foreach (var group in byFixture)
-                        await _prematchOddsWriter.UpsertPrematchOddsForFixtureAsync(
-                            group.Key, group, cancellationToken);
+                    {
+                        try
+                        {
+                            await _prematchOddsWriter.UpsertPrematchOddsForFixtureAsync(
+                                group.Key, group, cancellationToken);
+                        }
+                        catch (Exception exc)
+                        {
+                            // /odds/pre-match/latest returns odds for every
+                            // fixture in our subscription window, including
+                            // ones our fixtures table hasn't seen yet (FK
+                            // violation 23503). Skip them — the next backlog
+                            // tick brings the fixture row in, then the next
+                            // pulse picks the odds back up.
+                            _logger.LogWarning(
+                                exc,
+                                "Skipped prematch-odds upsert for fixture {FixtureId}: {Message}",
+                                group.Key,
+                                exc.Message);
+                        }
+                    }
                 }
             }
             catch (SportMonksApiException ex)
@@ -1215,8 +1238,21 @@ namespace SportMonks.Football.FixtureWorker.Services
                         .GroupBy(o => o.FixtureId);
 
                     foreach (var group in byFixture)
-                        await _inplayOddsWriter.UpsertInplayOddsForFixtureAsync(
-                            group.Key, group, cancellationToken);
+                    {
+                        try
+                        {
+                            await _inplayOddsWriter.UpsertInplayOddsForFixtureAsync(
+                                group.Key, group, cancellationToken);
+                        }
+                        catch (Exception exc)
+                        {
+                            _logger.LogWarning(
+                                exc,
+                                "Skipped inplay-odds upsert for fixture {FixtureId}: {Message}",
+                                group.Key,
+                                exc.Message);
+                        }
+                    }
                 }
             }
             catch (SportMonksApiException ex)
