@@ -18,7 +18,12 @@ namespace SportMonks.Football.FixtureWorker.Services
             public const string Transfers = "worker.football.transfers";
             public const string TvStations = "worker.football.tv-stations";
             public const string News = "worker.football.news";
+            // FixtureLive: livescores/latest tick (only fixtures changed in the
+            // last few seconds). FixtureToday: full today-window fetch that
+            // discovers fixtures whose state hasn't changed yet (kickoff in 30
+            // min, etc.) — runs in the pulse tier rather than every live tick.
             public const string FixtureLive = "worker.football.fixture.live";
+            public const string FixtureToday = "worker.football.fixture.today";
             public const string FixtureBacklog = "worker.football.fixture.backlog";
             public const string PrematchOdds = "worker.football.prematch-odds";
             public const string InplayOdds = "worker.football.inplay-odds";
@@ -253,14 +258,19 @@ namespace SportMonks.Football.FixtureWorker.Services
 
         private async Task RunLiveTickAsync(CancellationToken cancellationToken)
         {
-            // Tight loop while there is something live or about to start.
-            await MaybeRunFixtureLiveAsync(cancellationToken);
+            // Tight loop driven by livescores/latest — only fixtures whose state
+            // changed in the last few seconds come back, so the per-tick payload
+            // stays small even with a wide league portfolio.
+            await MaybeRunLivescoresLatestAsync(cancellationToken);
             await MaybeRunLatestInplayOddsAsync(cancellationToken);
         }
 
         private async Task RunPulseTickAsync(CancellationToken cancellationToken)
         {
-            // Mid-frequency catch-up — odds drift, fresh news, settled standings.
+            // Mid-frequency catch-up. Fixture-today picks up brand-new fixtures
+            // and ones that haven't ticked yet (kickoff in 30 min, etc.) — the
+            // live tier above only sees fixtures with a recent state change.
+            await MaybeRunFixtureTodayAsync(cancellationToken);
             await MaybeRunNewsAsync(cancellationToken);
             await MaybeRunStandingsAsync(cancellationToken);
             await MaybeRunLatestPrematchOddsAsync(cancellationToken);
@@ -352,10 +362,11 @@ namespace SportMonks.Football.FixtureWorker.Services
             _scheduler.RecordRun(ScheduleKey.News);
         }
 
-        private async Task MaybeRunFixtureLiveAsync(CancellationToken cancellationToken)
+        private async Task MaybeRunLivescoresLatestAsync(CancellationToken cancellationToken)
         {
-            // Today (and a small ±day buffer) every live tick. Falls back to the
-            // legacy SportMonksFixtureSync block when the live block is missing.
+            // /livescores/latest returns just the fixtures that changed state in
+            // the last few seconds. Cheap enough to run on a 30s cadence even
+            // across a wide league portfolio.
             if (!GetBoolean("SportMonksFixtureLiveSync:Enabled",
                     GetBoolean("SportMonksFixtureSync:Enabled", false)))
                 return;
@@ -364,13 +375,51 @@ namespace SportMonks.Football.FixtureWorker.Services
             if (!_scheduler.ShouldRun(ScheduleKey.FixtureLive, interval))
                 return;
 
+            const string endpoint = "livescores/latest";
+            var request = SportMonksApiRequest.Create(endpoint)
+                .WithInclude(BuildFixtureSyncIncludes().ToArray());
+
+            var timezone = NullIfWhiteSpace(_configuration["SportMonksFixtureLiveSync:Timezone"])
+                ?? NullIfWhiteSpace(_configuration["SportMonksFixtureSync:Timezone"]);
+            if (timezone != null)
+                request.WithTimezone(timezone);
+
+            var fixtures = (await _syncRunner.GetAllAsync<Fixture>(
+                SportMonksSyncJobDefinition.Create(
+                    "sportmonks.football.livescores.latest",
+                    "football.fixture",
+                    "Sync SportMonks fixtures whose state changed in the last few seconds."),
+                request,
+                cursorKey: endpoint,
+                cancellationToken: cancellationToken)).ToList();
+
+            if (fixtures.Count > 0)
+                await ProcessFixturesAsync(fixtures, "live", cancellationToken);
+
+            _scheduler.RecordRun(ScheduleKey.FixtureLive);
+        }
+
+        private async Task MaybeRunFixtureTodayAsync(CancellationToken cancellationToken)
+        {
+            // Today's full fixture list (with the configurable ± buffer). Pulse
+            // tier owns this so brand-new fixtures and ones still 30 min from
+            // kickoff get discovered without spamming SportMonks every live
+            // tick. Falls back to the legacy SportMonksFixtureSync block.
+            if (!GetBoolean("SportMonksFixtureLiveSync:Enabled",
+                    GetBoolean("SportMonksFixtureSync:Enabled", false)))
+                return;
+
+            var interval = GetInteger("SportMonksWorkerSettings:FixtureTodayIntervalSeconds", 1800);
+            if (!_scheduler.ShouldRun(ScheduleKey.FixtureToday, interval))
+                return;
+
             var daysBack = Math.Max(0, GetInteger("SportMonksFixtureLiveSync:DaysBack", 0));
             var daysForward = Math.Max(0, GetInteger("SportMonksFixtureLiveSync:DaysForward", 0));
             var timezone = NullIfWhiteSpace(_configuration["SportMonksFixtureLiveSync:Timezone"])
                 ?? NullIfWhiteSpace(_configuration["SportMonksFixtureSync:Timezone"]);
 
-            await ExecuteFixtureWindow(daysBack, daysForward, timezone, "live", cancellationToken);
-            _scheduler.RecordRun(ScheduleKey.FixtureLive);
+            await ExecuteFixtureWindow(daysBack, daysForward, timezone, "today", cancellationToken);
+            _scheduler.RecordRun(ScheduleKey.FixtureToday);
         }
 
         private async Task MaybeRunFixtureBacklogAsync(CancellationToken cancellationToken)
@@ -764,6 +813,14 @@ namespace SportMonks.Football.FixtureWorker.Services
                 cursorKey: endpoint,
                 cancellationToken: cancellationToken)).ToList();
 
+            await ProcessFixturesAsync(fixtures, label, cancellationToken);
+        }
+
+        private async Task ProcessFixturesAsync(
+            IReadOnlyList<Fixture> fixtures,
+            string label,
+            CancellationToken cancellationToken)
+        {
             await _fixtureCoreWriter.UpsertFixturesAsync(fixtures, cancellationToken);
             await _fixtureRefereeWriter.UpsertFixtureRefereesAsync(fixtures, cancellationToken);
             await _fixtureEventStatisticWriter.UpsertEventsAndStatisticsAsync(fixtures, cancellationToken);
@@ -784,9 +841,9 @@ namespace SportMonks.Football.FixtureWorker.Services
             if (ShouldSyncFixtureOdds())
                 await _prematchOddsWriter.UpsertPrematchOddsAsync(fixtures, cancellationToken);
 
-            // Live tier broadcasts a SignalR push per fixture so subscribed
-            // mobile clients refresh without polling. Backlog tier stays quiet
-            // (waking up sleeping mobile clients for week-old data is noise).
+            // Live label broadcasts a SignalR push per fixture so subscribed
+            // mobile clients refresh without polling. Today/backlog stay quiet
+            // (waking up sleeping mobile clients for catch-up data is noise).
             if (string.Equals(label, "live", StringComparison.OrdinalIgnoreCase))
             {
                 foreach (var fixture in fixtures)
