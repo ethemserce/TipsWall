@@ -148,6 +148,7 @@ namespace SportMonks.Football.FixtureWorker.Services
         private readonly ISportMonksNewsWriter _newsWriter;
         private readonly ISportMonksPrematchOddsWriter _prematchOddsWriter;
         private readonly ISportMonksInplayOddsWriter _inplayOddsWriter;
+        private readonly ISportMonksPredictionsWriter _predictionsWriter;
         private readonly IAnalyticsEngine _analyticsEngine;
         private readonly IFixtureLiveBridge _liveBridge;
 
@@ -172,6 +173,7 @@ namespace SportMonks.Football.FixtureWorker.Services
             ISportMonksNewsWriter newsWriter,
             ISportMonksPrematchOddsWriter prematchOddsWriter,
             ISportMonksInplayOddsWriter inplayOddsWriter,
+            ISportMonksPredictionsWriter predictionsWriter,
             IAnalyticsEngine analyticsEngine,
             IFixtureLiveBridge liveBridge)
         {
@@ -193,6 +195,7 @@ namespace SportMonks.Football.FixtureWorker.Services
             _newsWriter = newsWriter;
             _prematchOddsWriter = prematchOddsWriter;
             _inplayOddsWriter = inplayOddsWriter;
+            _predictionsWriter = predictionsWriter;
             _analyticsEngine = analyticsEngine;
             _liveBridge = liveBridge;
         }
@@ -841,6 +844,9 @@ namespace SportMonks.Football.FixtureWorker.Services
             if (ShouldSyncFixtureOdds())
                 await _prematchOddsWriter.UpsertPrematchOddsAsync(fixtures, cancellationToken);
 
+            if (ShouldSyncFixturePredictions(label))
+                await UpsertPredictionsForFixturesAsync(fixtures, cancellationToken);
+
             // Live label broadcasts a SignalR push per fixture so subscribed
             // mobile clients refresh without polling. Today/backlog stay quiet
             // (waking up sleeping mobile clients for catch-up data is noise).
@@ -973,6 +979,78 @@ namespace SportMonks.Football.FixtureWorker.Services
         {
             return GetBoolean("SportMonksPrematchOddsSync:Enabled", false) &&
                    GetBoolean("SportMonksPrematchOddsSync:SyncFixtureOdds", true);
+        }
+
+        private bool ShouldSyncFixturePredictions(string label)
+        {
+            // Predictions are pulled per-fixture, so we only run them on the
+            // pulse-tier "today" sweep (and backlog, for finished-match
+            // probability snapshots) — not every 30s livescores tick.
+            if (!GetBoolean("SportMonksPredictionsSync:Enabled", false) ||
+                !GetBoolean("SportMonksPredictionsSync:SyncFixtureProbabilities", true))
+                return false;
+
+            return string.Equals(label, "today", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(label, "backlog", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private async Task UpsertPredictionsForFixturesAsync(
+            IReadOnlyList<Fixture> fixtures,
+            CancellationToken cancellationToken)
+        {
+            // Probabilities are stable until kickoff and refresh slowly after,
+            // so an upcoming-or-recent filter keeps the per-fixture call count
+            // predictable. Fixtures more than a day old are skipped — their
+            // probability rows are already settled in our DB.
+            var now = DateTimeOffset.UtcNow;
+            var window = TimeSpan.FromDays(1);
+            var targets = fixtures
+                .Where(fixture => fixture != null && fixture.Id > 0)
+                .Where(fixture =>
+                {
+                    if (fixture.StartingAt == null) return false;
+                    var startsAt = new DateTimeOffset(fixture.StartingAt.Value, TimeSpan.Zero);
+                    return startsAt > now - window;
+                })
+                .ToList();
+
+            if (targets.Count == 0)
+                return;
+
+            foreach (var fixture in targets)
+            {
+                try
+                {
+                    var endpoint = $"predictions/probabilities/fixtures/{fixture.Id}";
+                    var predictions = (await _syncRunner.GetAllAsync<PreMatchPrediction>(
+                        SportMonksSyncJobDefinition.Create(
+                            "sportmonks.football.predictions.probabilities",
+                            "analytics.sportmonks_predictions",
+                            "Sync SportMonks fixture probability predictions."),
+                        SportMonksApiRequest.Create(endpoint),
+                        cursorKey: endpoint,
+                        cancellationToken: cancellationToken)).ToList();
+
+                    if (predictions.Count > 0)
+                    {
+                        await _predictionsWriter.UpsertPredictionsForFixtureAsync(
+                            fixture.Id,
+                            predictions,
+                            cancellationToken);
+                    }
+                }
+                catch (Exception exc)
+                {
+                    // Predictions can 404 on unsupported fixtures (insufficient
+                    // data) — log and keep going so a single bad fixture doesn't
+                    // tank the whole pulse tick.
+                    _logger.LogWarning(
+                        exc,
+                        "Predictions sync failed for fixture {FixtureId}: {Message}",
+                        fixture.Id,
+                        exc.Message);
+                }
+            }
         }
 
         private async Task MaybeRunLatestPrematchOddsAsync(CancellationToken cancellationToken)
