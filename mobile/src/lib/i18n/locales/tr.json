@@ -211,6 +211,11 @@
         "en": "İngilizce",
         "tr": "Türkçe"
       }
+    },
+    "about": {
+      "header": "Hakkında",
+      "title": "Kişisel tahmin takip uygulaması",
+      "disclaimer": "Bu uygulama bahis oynatmaz. Para yatırma, kupon oluşturma veya bahis sitesine yönlendirme içermez. Tahmin takip özelliği yalnızca kişisel analiz amacıyla sunulur."
     }
   },
   "home": {

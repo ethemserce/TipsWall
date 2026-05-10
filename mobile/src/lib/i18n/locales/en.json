@@ -211,6 +211,11 @@
         "en": "English",
         "tr": "Turkish"
       }
+    },
+    "about": {
+      "header": "About",
+      "title": "Personal prediction tracker",
+      "disclaimer": "This app does not place bets. It does not accept deposits, build coupons or link out to bookmakers. The prediction-tracking feature is for personal analysis only."
     }
   },
   "home": {

@@ -156,6 +156,25 @@ export function SettingsScreen() {
             />
           </View>
         </View>
+
+        {/* About — positioning disclaimer. The app is a prediction
+            tracker, not a betting client; this section is the canonical
+            place where that statement lives. */}
+        <SectionHeader label={t('settings.about.header')} />
+        <View
+          style={[
+            styles.card,
+            { backgroundColor: c.surfaceElevated, borderColor: c.borderSoft },
+          ]}>
+          <View style={styles.rowHeader}>
+            <ThemedText style={[styles.rowTitle, { color: c.text }]}>
+              {t('settings.about.title')}
+            </ThemedText>
+            <ThemedText style={[styles.rowHint, { color: c.textMuted }]}>
+              {t('settings.about.disclaimer')}
+            </ThemedText>
+          </View>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
