@@ -70,6 +70,18 @@ namespace PreOddsApi.ExternalApis.SportMonks
             return response.Data;
         }
 
+        public async Task<string> GetRawAsync(
+            SportMonksApiRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            // Some endpoints (notably /my/usage) return JSON whose top-level
+            // shape doesn't match SportMonksBase<TData> (extra siblings like
+            // `subscription`). Callers can JObject-parse this raw payload.
+            _options.EnsureValidForRequest();
+            var uri = BuildUri(request);
+            return await SendGetAsync(uri, cancellationToken);
+        }
+
         public async Task<IReadOnlyList<TItem>> GetAllAsync<TItem>(
             SportMonksApiRequest request,
             CancellationToken cancellationToken = default)

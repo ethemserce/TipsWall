@@ -1,5 +1,6 @@
 using System.Globalization;
 using Microsoft.Extensions.Configuration;
+using Newtonsoft.Json.Linq;
 using PreOddsApi.Entities.SportMonks.Core.V3;
 using PreOddsApi.ExternalApis.SportMonks;
 using PreOddsApi.ExternalApis.SportMonks.Sync;
@@ -10,11 +11,13 @@ namespace SportMonks.Core.Worker.WorkerServices
     public class CoreWorkerService : BackgroundService
     {
         private const string CoreReferenceKey = "worker.core.reference";
+        private const string UsageKey = "worker.core.usage";
 
         private readonly ILogger<CoreWorkerService> _logger;
         private readonly IConfiguration _configuration;
         private readonly ISyncJobScheduler _scheduler;
         private readonly ISportMonksSyncRunner _syncRunner;
+        private readonly ISportMonksApiClient _apiClient;
         private readonly ISportMonksCatalogReferenceWriter _catalogReferenceWriter;
 
         public CoreWorkerService(
@@ -22,12 +25,14 @@ namespace SportMonks.Core.Worker.WorkerServices
             IConfiguration configuration,
             ISyncJobScheduler scheduler,
             ISportMonksSyncRunner syncRunner,
+            ISportMonksApiClient apiClient,
             ISportMonksCatalogReferenceWriter catalogReferenceWriter)
         {
             _logger = logger;
             _configuration = configuration;
             _scheduler = scheduler;
             _syncRunner = syncRunner;
+            _apiClient = apiClient;
             _catalogReferenceWriter = catalogReferenceWriter;
         }
 
@@ -42,6 +47,7 @@ namespace SportMonks.Core.Worker.WorkerServices
 
                 try
                 {
+                    await MaybeRunSubscriptionUsageAsync(stoppingToken);
                     await MaybeRunCoreReferenceAsync(stoppingToken);
                 }
                 catch (Exception exc)
@@ -50,6 +56,62 @@ namespace SportMonks.Core.Worker.WorkerServices
                 }
 
                 await Task.Delay(pollingInterval, stoppingToken);
+            }
+        }
+
+        private async Task MaybeRunSubscriptionUsageAsync(CancellationToken cancellationToken)
+        {
+            var interval = GetInteger("SportMonksCoreWorkerSettings:UsageIntervalSeconds", 86400);
+            if (!_scheduler.ShouldRun(UsageKey, interval))
+                return;
+
+            try
+            {
+                // `/v3/my/usage` lives outside the per-sport namespace (no
+                // `core/` or `football/` prefix). The URL builder passes through
+                // any endpoint that already starts with "v3/".
+                var request = SportMonksApiRequest.Create("v3/my/usage")
+                    .WithoutDefaultPagination();
+                var raw = await _apiClient.GetRawAsync(request, cancellationToken);
+                var json = JObject.Parse(raw);
+
+                var planNames = (json["subscription"] as JArray ?? new JArray())
+                    .SelectMany(sub => sub["plans"] as JArray ?? new JArray())
+                    .Select(plan => plan["plan"]?.Value<string>())
+                    .Where(name => !string.IsNullOrWhiteSpace(name))
+                    .ToList();
+                var addOns = (json["subscription"] as JArray ?? new JArray())
+                    .SelectMany(sub => sub["add_ons"] as JArray ?? new JArray())
+                    .Select(addon => addon["name"]?.Value<string>() ?? addon.ToString())
+                    .Where(name => !string.IsNullOrWhiteSpace(name))
+                    .ToList();
+                var remaining = json["rate_limit"]?["remaining"]?.Value<int?>();
+                var resetsIn = json["rate_limit"]?["resets_in_seconds"]?.Value<int?>();
+
+                _logger.LogInformation(
+                    "SportMonks subscription: plans=[{Plans}] add_ons=[{AddOns}] rate_limit_remaining={Remaining} resets_in={ResetsIn}s",
+                    planNames.Count == 0 ? "(none)" : string.Join(" | ", planNames),
+                    addOns.Count == 0 ? "(none)" : string.Join(" | ", addOns),
+                    remaining,
+                    resetsIn);
+
+                if (remaining is < 600)
+                {
+                    _logger.LogWarning(
+                        "SportMonks rate limit running low: {Remaining} requests remain until reset in {ResetsIn}s.",
+                        remaining,
+                        resetsIn);
+                }
+
+                _scheduler.RecordRun(UsageKey);
+            }
+            catch (Exception exc)
+            {
+                // Telemetry must not block the rest of the worker; log and move on.
+                _logger.LogWarning(
+                    exc,
+                    "SportMonks subscription usage probe failed: {Message}",
+                    exc.Message);
             }
         }
 

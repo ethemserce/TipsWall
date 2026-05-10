@@ -15,5 +15,9 @@ namespace PreOddsApi.ExternalApis.SportMonks
         Task<IReadOnlyList<TItem>> GetAllAsync<TItem>(
             SportMonksApiRequest request,
             CancellationToken cancellationToken = default);
+
+        Task<string> GetRawAsync(
+            SportMonksApiRequest request,
+            CancellationToken cancellationToken = default);
     }
 }
