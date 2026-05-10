@@ -41,7 +41,6 @@ namespace PreOddsApi.WebApi.V3.Data
                 select m.id as market_id,
                        m.name as market_name,
                        poc.label,
-                       poc.value,
                        poc.total,
                        poc.handicap,
                        poc.participants,
@@ -100,7 +99,6 @@ namespace PreOddsApi.WebApi.V3.Data
                 bucket.Outcomes.Add(new FixtureOddOutcomeDto
                 {
                     Label = reader.GetString(reader.GetOrdinal("label")),
-                    Value = ReadNullableDecimal(reader, "value"),
                     Total = ReadNullableString(reader, "total"),
                     Handicap = ReadNullableString(reader, "handicap"),
                     Participants = ReadNullableString(reader, "participants"),

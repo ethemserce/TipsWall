@@ -342,11 +342,9 @@ namespace PreOddsApi.WebApi.V3.Data
                         TotalSamples = (int)(ReadNullableLong(reader, "total_samples") ?? 0),
                         AvgWinningPercent = ReadNullableDecimal(reader, "avg_winning_percent"),
                         AvgEarningPercent = ReadNullableDecimal(reader, "avg_earning_percent"),
-                        AvgOddValue = ReadNullableDecimal(reader, "avg_odd_value"),
                         SuccessCount = (int)success,
                         FailCount = (int)fail,
                         BetTotal = (int)(success + fail),
-                        EarningTotal = ReadNullableDecimal(reader, "earning_total"),
                     };
                     asOfDate = ReadNullableDate(reader, "as_of_date_max");
                     firstRow = false;
@@ -362,7 +360,6 @@ namespace PreOddsApi.WebApi.V3.Data
                     WindowCode = reader.GetString(reader.GetOrdinal("window_code")),
                     OutcomeKey = reader.GetString(reader.GetOrdinal("outcome_key")),
                     Label = reader.GetString(reader.GetOrdinal("label")),
-                    OddValue = ReadNullableDecimal(reader, "odd_value"),
                     Total = ReadNullableString(reader, "total"),
                     Handicap = ReadNullableString(reader, "handicap"),
                     WinCount = reader.GetInt32(reader.GetOrdinal("win_count")),

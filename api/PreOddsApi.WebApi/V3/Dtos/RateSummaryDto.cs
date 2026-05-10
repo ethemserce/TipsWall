@@ -17,16 +17,12 @@ namespace PreOddsApi.WebApi.V3.Dtos
 
         public decimal? AvgEarningPercent { get; init; }
 
-        public decimal? AvgOddValue { get; init; }
-
         // Outcome verification (only matches that have actually settled count).
         public int BetTotal { get; init; }
 
         public int SuccessCount { get; init; }
 
         public int FailCount { get; init; }
-
-        public decimal? EarningTotal { get; init; }
     }
 
     /// <summary>

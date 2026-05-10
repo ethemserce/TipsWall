@@ -16,8 +16,6 @@ namespace PreOddsApi.WebApi.V3.Dtos
     {
         public string Label { get; init; } = string.Empty;
 
-        public decimal? Value { get; init; }
-
         public string? Total { get; init; }
 
         public string? Handicap { get; init; }
