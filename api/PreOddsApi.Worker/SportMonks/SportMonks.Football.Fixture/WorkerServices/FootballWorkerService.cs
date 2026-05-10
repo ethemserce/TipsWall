@@ -149,6 +149,7 @@ namespace SportMonks.Football.FixtureWorker.Services
         private readonly ISportMonksPrematchOddsWriter _prematchOddsWriter;
         private readonly ISportMonksInplayOddsWriter _inplayOddsWriter;
         private readonly ISportMonksPredictionsWriter _predictionsWriter;
+        private readonly ISportMonksValueBetsWriter _valueBetsWriter;
         private readonly ISportMonksMatchFactsWriter _matchFactsWriter;
         private readonly IAnalyticsEngine _analyticsEngine;
         private readonly IFixtureLiveBridge _liveBridge;
@@ -175,6 +176,7 @@ namespace SportMonks.Football.FixtureWorker.Services
             ISportMonksPrematchOddsWriter prematchOddsWriter,
             ISportMonksInplayOddsWriter inplayOddsWriter,
             ISportMonksPredictionsWriter predictionsWriter,
+            ISportMonksValueBetsWriter valueBetsWriter,
             ISportMonksMatchFactsWriter matchFactsWriter,
             IAnalyticsEngine analyticsEngine,
             IFixtureLiveBridge liveBridge)
@@ -198,6 +200,7 @@ namespace SportMonks.Football.FixtureWorker.Services
             _prematchOddsWriter = prematchOddsWriter;
             _inplayOddsWriter = inplayOddsWriter;
             _predictionsWriter = predictionsWriter;
+            _valueBetsWriter = valueBetsWriter;
             _matchFactsWriter = matchFactsWriter;
             _analyticsEngine = analyticsEngine;
             _liveBridge = liveBridge;
@@ -862,6 +865,9 @@ namespace SportMonks.Football.FixtureWorker.Services
             if (ShouldSyncFixturePredictions(label))
                 await UpsertPredictionsForFixturesAsync(fixtures, cancellationToken);
 
+            if (ShouldSyncFixtureValueBets(label))
+                await UpsertValueBetsForFixturesAsync(fixtures, cancellationToken);
+
             if (ShouldSyncFixtureMatchFacts(label))
                 await UpsertMatchFactsForFixturesAsync(fixtures, cancellationToken);
 
@@ -1014,6 +1020,74 @@ namespace SportMonks.Football.FixtureWorker.Services
 
             return string.Equals(label, "today", StringComparison.OrdinalIgnoreCase) ||
                    string.Equals(label, "backlog", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private bool ShouldSyncFixtureValueBets(string label)
+        {
+            // Same window/cadence as fixture probabilities (Track D1) —
+            // value-bets ride the Odds & Predictions bundle and refresh on
+            // the same schedule.
+            if (!GetBoolean("SportMonksPredictionsSync:Enabled", false) ||
+                !GetBoolean("SportMonksPredictionsSync:SyncValueBets", false))
+                return false;
+
+            return string.Equals(label, "today", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(label, "backlog", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private async Task UpsertValueBetsForFixturesAsync(
+            IReadOnlyList<Fixture> fixtures,
+            CancellationToken cancellationToken)
+        {
+            // Same upcoming-or-recent window as predictions — value-bet
+            // recommendations are pre-match by definition and meaningless
+            // after kickoff.
+            var now = DateTimeOffset.UtcNow;
+            var window = TimeSpan.FromDays(1);
+            var targets = fixtures
+                .Where(fixture => fixture != null && fixture.Id > 0)
+                .Where(fixture =>
+                {
+                    if (fixture.StartingAt == null) return false;
+                    var startsAt = new DateTimeOffset(fixture.StartingAt.Value, TimeSpan.Zero);
+                    return startsAt > now - window;
+                })
+                .ToList();
+
+            if (targets.Count == 0)
+                return;
+
+            foreach (var fixture in targets)
+            {
+                try
+                {
+                    var endpoint = $"predictions/value-bets/fixtures/{fixture.Id}";
+                    var valueBets = (await _syncRunner.GetAllAsync<ValueBet>(
+                        SportMonksSyncJobDefinition.Create(
+                            "sportmonks.football.predictions.value-bets",
+                            "analytics.sportmonks_value_bets",
+                            "Sync SportMonks fixture value-bet recommendations."),
+                        SportMonksApiRequest.Create(endpoint),
+                        cursorKey: endpoint,
+                        cancellationToken: cancellationToken)).ToList();
+
+                    if (valueBets.Count > 0)
+                    {
+                        await _valueBetsWriter.UpsertValueBetsForFixtureAsync(
+                            fixture.Id,
+                            valueBets,
+                            cancellationToken);
+                    }
+                }
+                catch (Exception exc)
+                {
+                    _logger.LogWarning(
+                        exc,
+                        "Value-bets sync failed for fixture {FixtureId}: {Message}",
+                        fixture.Id,
+                        exc.Message);
+                }
+            }
         }
 
         private bool ShouldSyncFixtureMatchFacts(string label)
