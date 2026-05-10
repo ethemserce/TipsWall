@@ -149,6 +149,7 @@ namespace SportMonks.Football.FixtureWorker.Services
         private readonly ISportMonksPrematchOddsWriter _prematchOddsWriter;
         private readonly ISportMonksInplayOddsWriter _inplayOddsWriter;
         private readonly ISportMonksPredictionsWriter _predictionsWriter;
+        private readonly ISportMonksMatchFactsWriter _matchFactsWriter;
         private readonly IAnalyticsEngine _analyticsEngine;
         private readonly IFixtureLiveBridge _liveBridge;
 
@@ -174,6 +175,7 @@ namespace SportMonks.Football.FixtureWorker.Services
             ISportMonksPrematchOddsWriter prematchOddsWriter,
             ISportMonksInplayOddsWriter inplayOddsWriter,
             ISportMonksPredictionsWriter predictionsWriter,
+            ISportMonksMatchFactsWriter matchFactsWriter,
             IAnalyticsEngine analyticsEngine,
             IFixtureLiveBridge liveBridge)
         {
@@ -196,6 +198,7 @@ namespace SportMonks.Football.FixtureWorker.Services
             _prematchOddsWriter = prematchOddsWriter;
             _inplayOddsWriter = inplayOddsWriter;
             _predictionsWriter = predictionsWriter;
+            _matchFactsWriter = matchFactsWriter;
             _analyticsEngine = analyticsEngine;
             _liveBridge = liveBridge;
         }
@@ -847,6 +850,9 @@ namespace SportMonks.Football.FixtureWorker.Services
             if (ShouldSyncFixturePredictions(label))
                 await UpsertPredictionsForFixturesAsync(fixtures, cancellationToken);
 
+            if (ShouldSyncFixtureMatchFacts(label))
+                await UpsertMatchFactsForFixturesAsync(fixtures, cancellationToken);
+
             // Live label broadcasts a SignalR push per fixture so subscribed
             // mobile clients refresh without polling. Today/backlog stay quiet
             // (waking up sleeping mobile clients for catch-up data is noise).
@@ -992,6 +998,75 @@ namespace SportMonks.Football.FixtureWorker.Services
 
             return string.Equals(label, "today", StringComparison.OrdinalIgnoreCase) ||
                    string.Equals(label, "backlog", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private bool ShouldSyncFixtureMatchFacts(string label)
+        {
+            // Match facts are pre-match narrative stats (h2h streaks, form,
+            // etc.) — they change slowly, so the today/backlog sweep is
+            // enough; no need for the 30s livescores tick.
+            if (!GetBoolean("SportMonksMatchFactsSync:Enabled", false) ||
+                !GetBoolean("SportMonksMatchFactsSync:SyncFixtureMatchFacts", true))
+                return false;
+
+            return string.Equals(label, "today", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(label, "backlog", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private async Task UpsertMatchFactsForFixturesAsync(
+            IReadOnlyList<Fixture> fixtures,
+            CancellationToken cancellationToken)
+        {
+            // Pre-match facts are most valuable while the fixture hasn't
+            // kicked off yet (their primary use is the match-detail preview).
+            // Skip anything older than a day so historical re-runs don't
+            // hammer the endpoint for matches that are already done.
+            var now = DateTimeOffset.UtcNow;
+            var window = TimeSpan.FromDays(1);
+            var targets = fixtures
+                .Where(fixture => fixture != null && fixture.Id > 0)
+                .Where(fixture =>
+                {
+                    if (fixture.StartingAt == null) return false;
+                    var startsAt = new DateTimeOffset(fixture.StartingAt.Value, TimeSpan.Zero);
+                    return startsAt > now - window;
+                })
+                .ToList();
+
+            if (targets.Count == 0)
+                return;
+
+            foreach (var fixture in targets)
+            {
+                try
+                {
+                    var endpoint = $"match-facts/{fixture.Id}";
+                    var facts = (await _syncRunner.GetAllAsync<MatchFact>(
+                        SportMonksSyncJobDefinition.Create(
+                            "sportmonks.football.match-facts",
+                            "football.fixture_match_facts",
+                            "Sync SportMonks match facts (BETA) per fixture."),
+                        SportMonksApiRequest.Create(endpoint),
+                        cursorKey: endpoint,
+                        cancellationToken: cancellationToken)).ToList();
+
+                    if (facts.Count > 0)
+                    {
+                        await _matchFactsWriter.UpsertMatchFactsForFixtureAsync(
+                            fixture.Id,
+                            facts,
+                            cancellationToken);
+                    }
+                }
+                catch (Exception exc)
+                {
+                    _logger.LogWarning(
+                        exc,
+                        "Match facts sync failed for fixture {FixtureId}: {Message}",
+                        fixture.Id,
+                        exc.Message);
+                }
+            }
         }
 
         private async Task UpsertPredictionsForFixturesAsync(
