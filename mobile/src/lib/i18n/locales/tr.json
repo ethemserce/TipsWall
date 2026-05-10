@@ -175,6 +175,9 @@
   "leagues": {
     "searchPlaceholder": "Lig adı ara",
     "unknownCountry": "Diğer",
+    "headerHint_one": "{{count}} lig",
+    "headerHint_other": "{{count}} lig",
+    "headerHint": "{{count}} lig",
     "empty": {
       "title": "Henüz lig yok",
       "body": "Veri kaynağından henüz lig çekilmedi.",

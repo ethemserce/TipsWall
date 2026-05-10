@@ -306,20 +306,38 @@ export function LeaguesScreen() {
                 style={({ pressed }) => [
                   styles.sectionHeader,
                   {
-                    backgroundColor: pressed ? c.brandSoft : c.bg,
+                    backgroundColor: pressed
+                      ? c.brandSoft
+                      : c.surfaceElevated,
+                    borderColor: c.borderSoft,
                   },
                 ]}>
-                {section.countryImage ? (
-                  <Image
-                    source={{ uri: section.countryImage }}
-                    style={styles.flag}
-                    contentFit="cover"
-                  />
-                ) : null}
-                <ThemedText
-                  style={[styles.sectionHeaderText, { color: c.textMuted }]}>
-                  {section.title.toLocaleUpperCase('tr-TR')}
-                </ThemedText>
+                <View style={[styles.flagWrap, { backgroundColor: c.bg, borderColor: c.borderSoft }]}>
+                  {section.countryImage ? (
+                    <Image
+                      source={{ uri: section.countryImage }}
+                      style={styles.flag}
+                      contentFit="cover"
+                    />
+                  ) : (
+                    <MaterialCommunityIcons
+                      name="earth"
+                      size={18}
+                      color={c.textMuted}
+                    />
+                  )}
+                </View>
+                <View style={styles.sectionHeaderBody}>
+                  <ThemedText
+                    style={[styles.sectionHeaderText, { color: c.text }]}
+                    numberOfLines={1}>
+                    {section.title}
+                  </ThemedText>
+                  <ThemedText
+                    style={[styles.sectionHeaderHint, { color: c.textMuted }]}>
+                    {t('leagues.headerHint', { count: groupCount })}
+                  </ThemedText>
+                </View>
                 <View style={[styles.countBadge, { backgroundColor: c.brandSoft }]}>
                   <ThemedText style={[styles.countText, { color: c.brand }]}>
                     {groupCount}
@@ -327,7 +345,7 @@ export function LeaguesScreen() {
                 </View>
                 <MaterialCommunityIcons
                   name={isCollapsed ? 'chevron-down' : 'chevron-up'}
-                  size={18}
+                  size={20}
                   color={c.textMuted}
                 />
               </Pressable>
@@ -432,32 +450,51 @@ const styles = StyleSheet.create({
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 6,
-    paddingTop: 16,
-    paddingBottom: 8,
-    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginTop: 10,
+    gap: 12,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  flagWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: StyleSheet.hairlineWidth,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
   },
   flag: {
-    width: 18,
-    height: 14,
+    width: 28,
+    height: 20,
     borderRadius: 2,
   },
+  sectionHeaderBody: {
+    flex: 1,
+    gap: 1,
+  },
   sectionHeaderText: {
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 0.7,
-    flexShrink: 1,
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+  sectionHeaderHint: {
+    fontSize: 10,
+    fontWeight: '500',
+    letterSpacing: 0.2,
   },
   countBadge: {
-    minWidth: 20,
-    height: 18,
-    paddingHorizontal: 6,
-    borderRadius: 9,
+    minWidth: 24,
+    height: 22,
+    paddingHorizontal: 7,
+    borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
   },
   countText: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '800',
     fontVariant: ['tabular-nums'],
   },

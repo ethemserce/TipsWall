@@ -175,6 +175,9 @@
   "leagues": {
     "searchPlaceholder": "Search league",
     "unknownCountry": "Other",
+    "headerHint_one": "{{count}} league",
+    "headerHint_other": "{{count}} leagues",
+    "headerHint": "{{count}} leagues",
     "empty": {
       "title": "No leagues yet",
       "body": "Nothing has been pulled from the upstream feed.",
