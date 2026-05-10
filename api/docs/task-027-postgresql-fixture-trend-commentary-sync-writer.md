@@ -57,7 +57,6 @@ Fixture commentaries are collected through the fixture `comments` include. Trend
 
 ## Out of Scope
 
-- `football.fixture_comments`, which is reserved for legacy/comment-like rows if still needed.
 - Video highlights.
 - Prematch/postmatch news and news lines.
 - Pressure-specific analytics calculations.

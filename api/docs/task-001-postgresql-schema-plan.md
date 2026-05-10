@@ -222,9 +222,9 @@ Examples:
 | --- | --- |
 | `analytics.odd_analysis_snapshots` | Normalized win/earning stats by date, bookmaker, market, outcome, window |
 | `analytics.fixture_signals` | Derived fixture-level analysis signals |
-| `analytics.hot_rate_results` | Materialized/read model for hot rate UI |
-| `analytics.winning_rate_results` | Materialized/read model for winning rate UI |
-| `analytics.earning_rate_results` | Materialized/read model for earning rate UI |
+| `analytics.hot_rate_results` | Dropped (migration 015) — `/signals` reads `analytics.fixture_signals` directly |
+| `analytics.winning_rate_results` | Dropped (migration 015) |
+| `analytics.earning_rate_results` | Dropped (migration 015) |
 | `analytics.season_team_stats` | Season/team aggregate statistics |
 
 ### app
@@ -433,26 +433,26 @@ create index ix_raw_payloads_payload_gin on sync.raw_payloads using gin (payload
 
 | Current table/entity | Target table/view | Action |
 | --- | --- | --- |
-| `aggregate` | `competition.aggregates` | Keep, rename |
+| `aggregate` | `competition.aggregates` | Dropped (migration 015) |
 | `assistscorer` | `football.fixture_assist_scorers` or event projection | Prefer event/stat projection; keep table only if API needs it |
 | `bench` | `football.fixture_lineups` | Merge with lineup using `is_starter=false` |
 | `bookmaker` | `odds.bookmakers` | Keep with `legacy_id` |
 | `cardscorer` | `football.fixture_card_scorers` or event projection | Prefer event projection |
 | `city` | `catalog.cities` | Keep, rename |
 | `coach` | `football.coaches` | Keep, rename |
-| `comment` | `football.fixture_comments` | Keep only if still used by API |
+| `comment` | `football.fixture_comments` | Dropped (migration 015) |
 | `commentary` | `football.fixture_commentaries` | Keep, rename |
 | `continent` | `catalog.continents` | Keep, rename |
-| `continent_locale` | `catalog.continent_translations` | Keep, rename |
+| `continent_locale` | `catalog.continent_translations` | Dropped (migration 015) |
 | `corner` | `football.fixture_statistics` | Replace with typed statistic rows |
 | `country` | `catalog.countries` | Keep, rename |
-| `country_locale` | `catalog.country_translations` | Keep, rename |
+| `country_locale` | `catalog.country_translations` | Dropped (migration 015) |
 | `events` | `football.fixture_events` | Keep, rename |
 | `fixture` | `football.fixtures` plus child tables | Split participants/scores/periods/stats out |
 | `formation` | `football.fixture_formations` | Keep, rename |
 | `goalscorer` | `football.fixture_goal_scorers` or event projection | Prefer event projection |
 | `group` | `competition.groups` | Keep, rename |
-| `highlight` | `football.fixture_highlights` | Keep if product uses video/highlights |
+| `highlight` | `football.fixture_highlights` | Dropped (migration 015) |
 | `league` | `competition.leagues` | Keep, rename |
 | `lineup` | `football.fixture_lineups` | Keep, merge with bench |
 | `market` | `odds.markets` | Keep with `legacy_id` |

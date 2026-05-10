@@ -72,7 +72,6 @@ SportMonks exposes `fixture`, `league`, and `lines` includes for news. This task
 ## Out of Scope
 
 - Season-specific news endpoints, because they are more likely to be used for historical backfill.
-- `football.fixture_comments`, which remains reserved for legacy comment-style rows if still needed.
 - Video highlights, because SportMonks currently documents video highlights as removed due to service availability.
 - Web/mobile read API changes.
 
