@@ -130,7 +130,7 @@ export function RateMatchCard({
         { backgroundColor: c.surfaceElevated, borderColor: c.borderSoft },
       ]}>
       <View
-        style={[styles.accentStrip, { backgroundColor: accentColor }]}
+        style={[styles.accentStrip, { backgroundColor: accentColor, opacity: 0.45 }]}
         pointerEvents="none"
       />
       <Pressable
@@ -478,14 +478,15 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     overflow: 'hidden',
   },
-  // 4px state-coloured accent strip on the left edge — green/red/grey
-  // depending on whether the fixture is upcoming/live/finished.
+  // 3px state-coloured accent strip on the left edge — kept at 0.45
+  // opacity (applied inline) so it whispers rather than shouts. Solid
+  // colour read as a hard alert badge; faded reads as a soft border.
   accentStrip: {
     position: 'absolute',
     left: 0,
     top: 0,
     bottom: 0,
-    width: 4,
+    width: 3,
     zIndex: 1,
   },
   // Top header strip: date · stars · time-or-state pill. Brand-tinted
