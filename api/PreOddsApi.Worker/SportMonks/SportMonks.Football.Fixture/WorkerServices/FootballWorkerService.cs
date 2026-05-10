@@ -25,6 +25,11 @@ namespace SportMonks.Football.FixtureWorker.Services
             public const string FixtureLive = "worker.football.fixture.live";
             public const string FixtureToday = "worker.football.fixture.today";
             public const string FixtureBacklog = "worker.football.fixture.backlog";
+            // PlayerReference: bulk player/coach/rival pull is 800+ paginated
+            // requests against the `player` rate-limit bucket. Gating it on a
+            // weekly interval keeps the rest of the nightly tier inside the
+            // 3000/hour budget.
+            public const string PlayerReference = "worker.football.player-reference";
             public const string PrematchOdds = "worker.football.prematch-odds";
             public const string InplayOdds = "worker.football.inplay-odds";
             public const string Analytics = "worker.football.analytics";
@@ -538,6 +543,17 @@ namespace SportMonks.Football.FixtureWorker.Services
             if (!GetBoolean("SportMonksPlayerReferenceSync:Enabled", false))
                 return;
 
+            // Bulk /players is 800+ paginated calls against the `player`
+            // rate-limit entity (3000/hour). Coaches + rivals add a few
+            // hundred more on their respective entities. Gate the whole
+            // group on a weekly cadence so the nightly tier stays inside
+            // the budget; reference data here is slow-changing.
+            var interval = GetInteger(
+                "SportMonksWorkerSettings:PlayerReferenceIntervalSeconds",
+                604800);
+            if (!_scheduler.ShouldRun(ScheduleKey.PlayerReference, interval))
+                return;
+
             if (GetBoolean("SportMonksPlayerReferenceSync:SyncPlayers", true))
             {
                 var players = (await _syncRunner.GetAllAsync<Player>(
@@ -546,7 +562,8 @@ namespace SportMonks.Football.FixtureWorker.Services
                         "football.player",
                         "Sync SportMonks football player reference data."),
                     SportMonksApiRequest.Create("players")
-                        .WithInclude(PlayerReferenceIncludes),
+                        .WithInclude(PlayerReferenceIncludes)
+                        .WithQueryParameter("per_page", "50"),
                     cancellationToken: cancellationToken)).ToList();
 
                 await _playerCoachSquadRivalWriter.UpsertPlayersAsync(players, cancellationToken);
@@ -560,7 +577,8 @@ namespace SportMonks.Football.FixtureWorker.Services
                         "football.coach",
                         "Sync SportMonks football coach reference data."),
                     SportMonksApiRequest.Create("coaches")
-                        .WithInclude(CoachReferenceIncludes),
+                        .WithInclude(CoachReferenceIncludes)
+                        .WithQueryParameter("per_page", "50"),
                     cancellationToken: cancellationToken)).ToList();
 
                 await _playerCoachSquadRivalWriter.UpsertCoachesAsync(coaches, cancellationToken);
@@ -574,7 +592,8 @@ namespace SportMonks.Football.FixtureWorker.Services
                         "football.team_rival",
                         "Sync SportMonks football team rival reference data."),
                     SportMonksApiRequest.Create("rivals")
-                        .WithInclude(RivalReferenceIncludes),
+                        .WithInclude(RivalReferenceIncludes)
+                        .WithQueryParameter("per_page", "50"),
                     cancellationToken: cancellationToken)).ToList();
 
                 await _playerCoachSquadRivalWriter.UpsertTeamRivalsAsync(rivals, cancellationToken);
@@ -582,6 +601,8 @@ namespace SportMonks.Football.FixtureWorker.Services
 
             if (GetBoolean("SportMonksPlayerReferenceSync:SyncTeamSquads", false))
                 await ExecuteTeamSquads(teams, cancellationToken);
+
+            _scheduler.RecordRun(ScheduleKey.PlayerReference);
         }
 
         private async Task ExecuteTeamSquads(
