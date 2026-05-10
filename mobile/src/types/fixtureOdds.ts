@@ -1,6 +1,5 @@
 export interface FixtureOddOutcome {
   label: string;
-  value: number | null;
   total: string | null;
   handicap: string | null;
   participants: string | null;
@@ -10,6 +9,7 @@ export interface FixtureOddOutcome {
   sample_count: number;
   winning_percent: number | null;
   earning_percent: number | null;
+  iko: number | null;
   winning?: boolean | null;
 }
 

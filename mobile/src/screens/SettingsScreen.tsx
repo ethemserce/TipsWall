@@ -4,7 +4,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Switch,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,7 +12,6 @@ import { ThemedText } from '@/components/themed-text';
 import { AppBrand } from '@/src/components/AppBrand';
 import {
   setLanguageMode,
-  setOddsHidden,
   setThemeMode,
   useSettings,
   type LanguageMode,
@@ -36,7 +34,7 @@ const LANGUAGE_MODES: { mode: LanguageMode }[] = [
 export function SettingsScreen() {
   const c = useTheme();
   const { t } = useTranslation();
-  const { themeMode, languageMode, oddsHidden } = useSettings();
+  const { themeMode, languageMode } = useSettings();
 
   return (
     <SafeAreaView style={[styles.flex, { backgroundColor: c.bg }]} edges={['top']}>
@@ -132,31 +130,6 @@ export function SettingsScreen() {
           </View>
         </View>
 
-        {/* Privacy — odds visibility */}
-        <SectionHeader label={t('settings.privacy.header')} />
-        <View
-          style={[
-            styles.card,
-            { backgroundColor: c.surfaceElevated, borderColor: c.borderSoft },
-          ]}>
-          <View style={styles.toggleRow}>
-            <View style={styles.toggleText}>
-              <ThemedText style={[styles.rowTitle, { color: c.text }]}>
-                {t('settings.privacy.oddsHidden')}
-              </ThemedText>
-              <ThemedText style={[styles.rowHint, { color: c.textMuted }]}>
-                {t('settings.privacy.oddsHiddenHint')}
-              </ThemedText>
-            </View>
-            <Switch
-              value={oddsHidden}
-              onValueChange={setOddsHidden}
-              trackColor={{ false: c.border, true: c.brand }}
-              thumbColor={c.textInverse}
-            />
-          </View>
-        </View>
-
         {/* About — positioning disclaimer. The app is a prediction
             tracker, not a betting client; this section is the canonical
             place where that statement lives. */}
@@ -246,14 +219,5 @@ const styles = StyleSheet.create({
   segmentText: {
     fontSize: 12,
     fontWeight: '600',
-  },
-  toggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  toggleText: {
-    flex: 1,
-    gap: 2,
   },
 });

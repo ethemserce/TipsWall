@@ -7,10 +7,6 @@ import { ThemedText } from '@/components/themed-text';
 import { toggleSelection, useCouponStore } from '@/src/lib/coupons/store';
 import { marketShort, shortenOutcome } from '@/src/lib/marketShort';
 import { outcomeSentence } from '@/src/lib/marketSentence';
-import {
-  formatOddValue,
-  useOddsHidden,
-} from '@/src/lib/settings/settingsStore';
 import { useTheme } from '@/src/lib/useTheme';
 import type { FixtureOddsMarket } from '@/src/types/fixtureOdds';
 
@@ -31,7 +27,6 @@ interface Pick {
   marketName: string | null;
   outcomeLabel: string;
   outcomeDisplay: string;
-  oddValue: number;
   total: string | null;
   handicap: string | null;
   dso: number;
@@ -71,28 +66,21 @@ export function FixtureTopPicksCard({
   const picks = useMemo<Pick[]>(() => {
     const all: Pick[] = [];
     for (const market of markets) {
-      const totalImplied = market.outcomes.reduce(
-        (a, o) => (o.value && o.value > 0 ? a + 1 / o.value : a),
-        0,
-      );
-      if (totalImplied <= 0) continue;
       for (const o of market.outcomes) {
         const sample = o.win_count + o.lost_count;
         if (sample < MIN_SAMPLE) continue;
-        if (o.value == null || o.value <= 0) continue;
+        if (o.iko == null) continue;
         if (o.winning_percent == null) continue;
-        const iko = (1 / o.value / totalImplied) * 100;
-        if (o.winning_percent <= iko) continue;
+        if (o.winning_percent <= o.iko) continue;
         all.push({
           marketId: market.market_id,
           marketName: market.market_name,
           outcomeLabel: o.label,
           outcomeDisplay: shortenOutcome(o.label, market.market_id),
-          oddValue: o.value,
           total: o.total,
           handicap: o.handicap,
           dso: o.winning_percent,
-          iko,
+          iko: o.iko,
           vbet: o.earning_percent,
           sampleCount: sample,
         });
@@ -166,7 +154,6 @@ function PickRow({
 }) {
   const c = useTheme();
   const { t } = useTranslation();
-  const oddsHidden = useOddsHidden();
   const draftSelections = useCouponStore((s) => s.draft.selections);
   const inCoupon = draftSelections.some(
     (s) =>
@@ -193,7 +180,7 @@ function PickRow({
       outcomeDisplay: pick.outcomeDisplay,
       total: pick.total,
       handicap: pick.handicap,
-      oddValue: pick.oddValue,
+      oddValue: 0,
       dso: pick.dso,
       vbet: pick.vbet,
       iko: pick.iko,
@@ -234,9 +221,7 @@ function PickRow({
       <ThemedText
         style={[styles.pickOdd, { color: c.text }]}
         numberOfLines={1}>
-        {oddsHidden
-          ? `${marketShort(pick.marketId, pick.marketName)} ${pick.outcomeDisplay}`
-          : formatOddValue(pick.oddValue, oddsHidden)}
+        {`${marketShort(pick.marketId, pick.marketName)} ${pick.outcomeDisplay}`}
       </ThemedText>
       <View
         style={[

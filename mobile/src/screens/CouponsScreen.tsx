@@ -17,22 +17,16 @@ import { CouponStatsCard } from '@/src/components/CouponStatsCard';
 import { MarketLegendButton } from '@/src/components/MarketLegendButton';
 import { useFixtureLookup } from '@/src/hooks/useFixtureLookup';
 import { useLiveTicker } from '@/src/hooks/useLiveTicker';
-import { computeParlayMath } from '@/src/lib/coupons/stats';
 import { shareCoupon } from '@/src/lib/share';
 import {
   couponOutcome,
   deleteSavedCoupon,
   selectionStarted,
-  totalOdd,
   useCouponStore,
 } from '@/src/lib/coupons/store';
 import type { Coupon } from '@/src/lib/coupons/types';
 import { getStateBucket } from '@/src/lib/fixtureState';
 import { outcomeLiveStatus, type LiveScore } from '@/src/lib/liveOutcome';
-import {
-  formatOddValue,
-  useOddsHidden,
-} from '@/src/lib/settings/settingsStore';
 import { useTheme } from '@/src/lib/useTheme';
 import type { FixtureDetail } from '@/src/types/fixtureDetail';
 
@@ -344,69 +338,6 @@ function DeleteConfirmModal({
   );
 }
 
-/**
- * Compact "fair odd vs your odd" pill below the coupon header. Communicates
- * the bookmaker's vig at the parlay level so the user can see whether
- * stacking legs is amplifying their edge or just compounding the book's
- * margin. Hidden when any leg is missing iko (older coupons).
- */
-function ParlayMathRow({ coupon }: { coupon: Coupon }) {
-  const c = useTheme();
-  const { t } = useTranslation();
-  const oddsHidden = useOddsHidden();
-  const math = useMemo(() => computeParlayMath(coupon), [coupon]);
-  if (!math) return null;
-  // Whole row is odd-derived (fair odd, vig, expected return) — opting out
-  // of the column-hide rule by leaving any of these visible would defeat
-  // the user's "hide odds entirely" intent.
-  if (oddsHidden) return null;
-
-  const edgePositive = math.edgePercent >= 0;
-  const edgeColor = edgePositive ? c.success : c.danger;
-  const edgeBg = edgePositive ? c.successSoft : c.dangerSoft;
-
-  return (
-    <View
-      style={[
-        parlayStyles.row,
-        { backgroundColor: c.bg, borderTopColor: c.borderSoft },
-      ]}>
-      <View style={parlayStyles.cell}>
-        <ThemedText style={[parlayStyles.label, { color: c.textMuted }]}>
-          {t('coupons.parlay.fairOdd')}
-        </ThemedText>
-        <ThemedText style={[parlayStyles.value, { color: c.text }]}>
-          {formatOddValue(math.fairOdd, oddsHidden)}
-        </ThemedText>
-      </View>
-      <View style={[parlayStyles.cellDivider, { backgroundColor: c.borderSoft }]} />
-      <View style={parlayStyles.cell}>
-        <ThemedText style={[parlayStyles.label, { color: c.textMuted }]}>
-          {t('coupons.parlay.vig')}
-        </ThemedText>
-        <ThemedText style={[parlayStyles.value, { color: c.text }]}>
-          %{math.vigPercent.toFixed(1)}
-        </ThemedText>
-      </View>
-      <View style={[parlayStyles.cellDivider, { backgroundColor: c.borderSoft }]} />
-      <View
-        style={[
-          parlayStyles.cell,
-          parlayStyles.edgeCell,
-          { backgroundColor: edgeBg },
-        ]}>
-        <ThemedText style={[parlayStyles.label, { color: edgeColor }]}>
-          {t('coupons.parlay.expectedReturn')}
-        </ThemedText>
-        <ThemedText style={[parlayStyles.value, { color: edgeColor }]}>
-          {edgePositive ? '+' : ''}
-          {math.edgePercent.toFixed(1)}%
-        </ThemedText>
-      </View>
-    </View>
-  );
-}
-
 function EmptyHint({
   icon,
   label,
@@ -447,12 +378,10 @@ function CouponCard({
 }) {
   const c = useTheme();
   const { t } = useTranslation();
-  const oddsHidden = useOddsHidden();
   // Cards default closed — users almost always want a quick scroll over
   // their history; expanding shows the full leg-by-leg breakdown.
   const [expanded, setExpanded] = useState(false);
   const created = format(parseISO(coupon.createdAt), 'dd.MM.yyyy HH:mm');
-  const odd = formatOddValue(totalOdd(coupon), oddsHidden);
   const outcome = couponOutcome(coupon);
   // Delete is allowed while the coupon's outcome is still pending — that
   // covers everything from "no match started yet" to "some matches in
@@ -499,7 +428,7 @@ function CouponCard({
       <Pressable
         onPress={() => setExpanded((v) => !v)}
         accessibilityRole="button"
-        accessibilityLabel={`${coupon.name}, ${statusLabel}, ${odd}`}
+        accessibilityLabel={`${coupon.name}, ${statusLabel}`}
         accessibilityState={{ expanded }}
         style={({ pressed }) => [
           styles.cardHeader,
@@ -532,25 +461,6 @@ function CouponCard({
               {statusLabel}
             </ThemedText>
           </View>
-        </View>
-        <View style={styles.cardOdds}>
-          <ThemedText style={[styles.oddLabel, { color: c.textMuted }]}>
-            {t('coupons.totalLabel')}
-          </ThemedText>
-          <ThemedText
-            style={[
-              styles.oddValue,
-              {
-                color:
-                  outcome.state === 'won'
-                    ? c.success
-                    : outcome.state === 'lost'
-                      ? c.danger
-                      : c.brand,
-              },
-            ]}>
-            {odd}
-          </ThemedText>
         </View>
         <MaterialCommunityIcons
           name={expanded ? 'chevron-up' : 'chevron-down'}
@@ -603,7 +513,6 @@ function CouponCard({
               </Pressable>
             ) : null}
           </View>
-          <ParlayMathRow coupon={coupon} />
           <View style={styles.divider} />
         </>
       ) : null}
@@ -726,9 +635,7 @@ function CouponCard({
                   },
                 ]}
                 numberOfLines={1}>
-                {oddsHidden
-                  ? `${s.marketShort} ${s.outcomeDisplay ?? s.outcomeLabel}`
-                  : formatOddValue(s.oddValue, oddsHidden)}
+                {`${s.marketShort} ${s.outcomeDisplay ?? s.outcomeLabel}`}
               </ThemedText>
             </View>
           </View>
@@ -928,20 +835,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '500',
   },
-  cardOdds: {
-    alignItems: 'flex-end',
-    gap: 1,
-  },
-  oddLabel: {
-    fontSize: 9,
-    fontWeight: '700',
-    letterSpacing: 0.6,
-  },
-  oddValue: {
-    fontSize: 18,
-    fontWeight: '800',
-    fontVariant: ['tabular-nums'],
-  },
   deleteBtn: {
     width: 32,
     height: 32,
@@ -1071,40 +964,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
     letterSpacing: 0.6,
-  },
-});
-
-const parlayStyles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
-  cell: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 4,
-    gap: 2,
-  },
-  edgeCell: {
-    borderRadius: 6,
-    marginHorizontal: 2,
-  },
-  cellDivider: {
-    width: StyleSheet.hairlineWidth,
-    marginVertical: 2,
-  },
-  label: {
-    fontSize: 9,
-    fontWeight: '700',
-    letterSpacing: 0.6,
-  },
-  value: {
-    fontSize: 13,
-    fontWeight: '800',
-    fontVariant: ['tabular-nums'],
   },
 });

@@ -35,6 +35,13 @@ namespace PreOddsApi.WebApi.V3.Dtos
         public decimal? EarningPercent { get; init; }
 
         /// <summary>
+        /// No-vig implied probability — bookmaker's view of the chance after
+        /// stripping the vig. Computed server-side now that the raw odd value
+        /// is no longer exposed; mobile cards render it as the IMP gauge.
+        /// </summary>
+        public decimal? Iko { get; init; }
+
+        /// <summary>
         /// Whether SportMonks has settled this outcome as winning. Null when
         /// the match isn't finished or the market isn't auto-graded — the
         /// mobile UI uses this as a fallback when score-based grading can't

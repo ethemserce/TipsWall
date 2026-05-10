@@ -7,10 +7,6 @@ import { MarketInfoButton } from '@/src/components/MarketInfoButton';
 import { toggleSelection, useCouponStore } from '@/src/lib/coupons/store';
 import { outcomeLiveStatus, type LiveScore } from '@/src/lib/liveOutcome';
 import { marketShort, shortenOutcome } from '@/src/lib/marketShort';
-import {
-  formatOddValue,
-  useOddsHidden,
-} from '@/src/lib/settings/settingsStore';
 import { useTheme } from '@/src/lib/useTheme';
 import type {
   FixtureOddOutcome,
@@ -37,11 +33,6 @@ interface OddsRatesCardProps {
 const WIN_COLOR = '#4ade80';
 const LOSS_COLOR = '#f87171';
 
-interface DerivedRow {
-  outcome: FixtureOddOutcome;
-  iko: number | null;
-}
-
 const VBET_COLOR = '#f59e0b'; // amber
 const DSO_COLOR = '#22c55e'; // green
 const IKO_COLOR = '#3b82f6'; // blue
@@ -55,10 +46,9 @@ export function OddsRatesCard({
   liveScore,
 }: OddsRatesCardProps) {
   const c = useTheme();
-  const oddsHidden = useOddsHidden();
 
   // Track which outcomes from this market are already in the draft so the
-  // odd cell can render a "selected" state.
+  // tip cell can render a "selected" state.
   const draftSelections = useCouponStore((s) => s.draft.selections);
   const draftKeys = useMemo(() => {
     return new Set(
@@ -69,7 +59,6 @@ export function OddsRatesCard({
           sel.outcomeLabel.toLowerCase(),
           sel.total ?? '-',
           sel.handicap ?? '-',
-          sel.oddValue.toFixed(4),
         ].join('|'),
       ),
     );
@@ -88,21 +77,7 @@ export function OddsRatesCard({
   // its presence equals "match is no longer upcoming".
   const couponLocked = liveScore != null;
 
-  const rows = useMemo<DerivedRow[]>(() => {
-    const totalImplied = market.outcomes.reduce((acc, o) => {
-      if (o.value && o.value > 0) return acc + 1 / o.value;
-      return acc;
-    }, 0);
-    return market.outcomes.map((o) => ({
-      outcome: o,
-      iko:
-        o.value && o.value > 0 && totalImplied > 0
-          ? (1 / o.value / totalImplied) * 100
-          : null,
-    }));
-  }, [market.outcomes]);
-
-  if (rows.length === 0) return null;
+  if (market.outcomes.length === 0) return null;
 
   return (
     <View
@@ -130,13 +105,8 @@ export function OddsRatesCard({
             styles.headerLabelLeft,
             { color: c.textMuted },
           ]}>
-          TİP
+          TAHMİN
         </ThemedText>
-        {!oddsHidden ? (
-          <ThemedText style={[styles.headerCell, styles.cellNumber, { color: c.textMuted }]}>
-            ORAN
-          </ThemedText>
-        ) : null}
         <ThemedText style={[styles.headerCell, styles.cellGauge, { color: c.textMuted }]}>
           ROI
         </ThemedText>
@@ -154,7 +124,8 @@ export function OddsRatesCard({
         </ThemedText>
       </View>
 
-      {rows.map(({ outcome, iko }) => {
+      {market.outcomes.map((outcome) => {
+        const iko = outcome.iko;
         const sample = outcome.win_count + outcome.lost_count;
         const hasSample = sample > 0;
         // Value bet = DSO > İKO, i.e. historical hit rate beats the
@@ -182,25 +153,21 @@ export function OddsRatesCard({
         const status = live ?? settled;
         const liveColor =
           status === 'win' ? WIN_COLOR : status === 'loss' ? LOSS_COLOR : null;
-        // Coupon membership for this row → odd cell becomes a toggle.
-        const oddKey =
-          outcome.value != null
-            ? [
-                fixtureId,
-                market.market_id,
-                outcome.label.toLowerCase(),
-                outcome.total ?? '-',
-                outcome.handicap ?? '-',
-                outcome.value.toFixed(4),
-              ].join('|')
-            : null;
-        const inCoupon = oddKey != null && draftKeys.has(oddKey);
+        // Coupon membership for this row — keyed by the tip identity, not the
+        // odd value (which we no longer surface).
+        const oddKey = [
+          fixtureId,
+          market.market_id,
+          outcome.label.toLowerCase(),
+          outcome.total ?? '-',
+          outcome.handicap ?? '-',
+        ].join('|');
+        const inCoupon = draftKeys.has(oddKey);
         // One pick per fixture — any other outcome here is blocked while a
         // selection from this fixture is in the draft. Removing the existing
         // selection re-opens all of them.
         const tapDisabled = couponLocked || (fixtureTaken && !inCoupon);
         const handleAddToCoupon = () => {
-          if (outcome.value == null) return;
           if (tapDisabled) return;
           const rawLabel = outcome.label || '';
           toggleSelection({
@@ -214,7 +181,7 @@ export function OddsRatesCard({
             outcomeDisplay: shortenOutcome(rawLabel, market.market_id),
             total: outcome.total,
             handicap: outcome.handicap,
-            oddValue: outcome.value,
+            oddValue: 0,
             dso: outcome.winning_percent,
             vbet: outcome.earning_percent,
             iko,
@@ -224,7 +191,7 @@ export function OddsRatesCard({
 
         return (
           <View
-            key={`${outcome.label}-${outcome.total ?? ''}-${outcome.handicap ?? ''}-${outcome.value ?? ''}`}
+            key={`${outcome.label}-${outcome.total ?? ''}-${outcome.handicap ?? ''}`}
             style={[
               styles.row,
               { borderTopColor: c.border },
@@ -263,35 +230,17 @@ export function OddsRatesCard({
                 style={[
                   styles.cell,
                   {
-                    color: inCoupon ? c.brand : isValueBet ? c.brand : c.text,
-                    fontWeight: inCoupon || isValueBet ? '700' : '500',
+                    color:
+                      liveColor ??
+                      (inCoupon ? c.brand : isValueBet ? c.brand : c.text),
+                    fontWeight: inCoupon || isValueBet || liveColor ? '700' : '500',
                   },
                 ]}
-                numberOfLines={1}>
+                numberOfLines={2}>
                 {inCoupon ? '✓ ' : isValueBet ? '★ ' : ''}
                 {formatLabel(outcome)}
               </ThemedText>
             </Pressable>
-            {!oddsHidden ? (
-              <View
-                style={[
-                  styles.cellNumber,
-                  styles.oddCell,
-                  { borderColor: c.border },
-                ]}>
-                <ThemedText
-                  style={[
-                    styles.cell,
-                    styles.numberValue,
-                    {
-                      color: liveColor ?? c.text,
-                      fontWeight: liveColor ? '700' : '600',
-                    },
-                  ]}>
-                  {formatOddValue(outcome.value, oddsHidden)}
-                </ThemedText>
-              </View>
-            ) : null}
             <View style={styles.cellGauge}>
               <CircularGauge
                 value={hasSample ? outcome.earning_percent : null}
@@ -378,7 +327,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   cellLabel: {
-    flex: 1.2,
+    flex: 2.4,
     fontWeight: '500',
     paddingLeft: 6,
   },
@@ -391,18 +340,6 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'transparent',
     justifyContent: 'center',
-  },
-  cellNumber: {
-    flex: 0.7,
-    textAlign: 'center',
-  },
-  oddCell: {
-    paddingVertical: 4,
-    borderRadius: 6,
-    borderWidth: StyleSheet.hairlineWidth,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginHorizontal: 2,
   },
   valueAccent: {
     position: 'absolute',

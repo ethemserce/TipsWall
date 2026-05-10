@@ -7,7 +7,6 @@ export interface RateResult {
   window_code: string;
   outcome_key: string;
   label: string;
-  odd_value: number | null;
   total: string | null;
   handicap: string | null;
   win_count: number;
@@ -27,11 +26,9 @@ export interface RateSummary {
   total_samples: number;
   avg_winning_percent: number | null;
   avg_earning_percent: number | null;
-  avg_odd_value: number | null;
   bet_total: number;
   success_count: number;
   fail_count: number;
-  earning_total: number | null;
 }
 
 export interface RateListResponse {

@@ -18,7 +18,6 @@ export interface DraftSuggestion {
   marketShort: string;
   outcomeLabel: string; // raw — for the store / matching
   outcomeDisplay: string; // shortened — for UI
-  oddValue: number;
 }
 
 /**
@@ -62,7 +61,6 @@ export function useDraftSuggestions(
     for (const s of data.data.items) {
       if (seen.has(s.fixture_id)) continue;
       if (draftFixtureIds.has(s.fixture_id)) continue;
-      if (s.odd_value == null) continue;
       seen.add(s.fixture_id);
       out.push(s);
       if (out.length >= SUGGESTION_LIMIT) break;
@@ -93,7 +91,6 @@ export function useDraftSuggestions(
         marketShort: marketShort(s.market_id),
         outcomeLabel: s.label,
         outcomeDisplay: shortenOutcome(s.label, s.market_id),
-        oddValue: s.odd_value as number,
       };
     });
   }, [candidates, lookup]);

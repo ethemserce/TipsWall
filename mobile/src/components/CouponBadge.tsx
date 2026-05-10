@@ -4,11 +4,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { CouponSheet } from '@/src/components/CouponSheet';
-import { totalOdd, useCouponStore } from '@/src/lib/coupons/store';
-import {
-  formatOddValue,
-  useOddsHidden,
-} from '@/src/lib/settings/settingsStore';
+import { useCouponStore } from '@/src/lib/coupons/store';
 import { useTheme } from '@/src/lib/useTheme';
 
 /**
@@ -17,13 +13,10 @@ import { useTheme } from '@/src/lib/useTheme';
  */
 export function CouponBadge() {
   const c = useTheme();
-  const oddsHidden = useOddsHidden();
   const [open, setOpen] = useState(false);
   const draft = useCouponStore((s) => s.draft);
 
   if (draft.selections.length === 0) return null;
-
-  const oddText = formatOddValue(totalOdd(draft), oddsHidden);
 
   return (
     <>
@@ -44,15 +37,6 @@ export function CouponBadge() {
           />
           <ThemedText style={[styles.text, { color: c.textInverse }]}>
             Sepetim · {draft.selections.length}
-            {oddsHidden ? null : (
-              <ThemedText
-                style={[
-                  styles.subText,
-                  { color: c.textInverse, opacity: 0.85 },
-                ]}>
-                {' '}· {oddText}
-              </ThemedText>
-            )}
           </ThemedText>
         </Pressable>
       </View>
@@ -89,10 +73,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     letterSpacing: 0.3,
-  },
-  subText: {
-    fontSize: 13,
-    fontWeight: '500',
-    fontVariant: ['tabular-nums'],
   },
 });

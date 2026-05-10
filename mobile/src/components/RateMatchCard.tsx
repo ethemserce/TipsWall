@@ -6,16 +6,11 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { CircularGauge } from '@/src/components/CircularGauge';
 import {
-  isInDraft,
   toggleSelection,
   useCouponStore,
 } from '@/src/lib/coupons/store';
 import { getStateBucket } from '@/src/lib/fixtureState';
 import { outcomeLiveStatus } from '@/src/lib/liveOutcome';
-import {
-  formatOddValue,
-  useOddsHidden,
-} from '@/src/lib/settings/settingsStore';
 import { useTheme } from '@/src/lib/useTheme';
 import type { FixtureDetail } from '@/src/types/fixtureDetail';
 import type { Market } from '@/src/types/market';
@@ -48,7 +43,6 @@ export function RateMatchCard({
   primaryMetric,
 }: RateMatchCardProps) {
   const c = useTheme();
-  const oddsHidden = useOddsHidden();
   const router = useRouter();
 
   const homeName = fixture?.fixture.home_team_name ?? null;
@@ -85,10 +79,9 @@ export function RateMatchCard({
 
   const stars = computeStars(signals, primaryMetric);
 
-  // Compute per-signal İKO across the same market (no-vig probability).
-  const ikoByMarket = computeIkoByMarket(signals);
-
   // Draft selections — a Set for O(1) "is this signal already in the basket?"
+  // Keyed by the tip identity (fixture/market/label/total/handicap) since
+  // we no longer surface the odd value.
   const draftSelections = useCouponStore((s) => s.draft.selections);
   const draftKeys = new Set(
     draftSelections.map((sel) =>
@@ -98,7 +91,6 @@ export function RateMatchCard({
         sel.outcomeLabel.toLowerCase(),
         sel.total ?? '-',
         sel.handicap ?? '-',
-        sel.oddValue.toFixed(4),
       ].join('|'),
     ),
   );
@@ -200,13 +192,8 @@ export function RateMatchCard({
             styles.headerLabelLeft,
             { color: c.textMuted },
           ]}>
-          TİP
+          TAHMİN
         </ThemedText>
-        {!oddsHidden ? (
-          <ThemedText style={[styles.headerCell, styles.cellNumber, { color: c.textMuted }]}>
-            ORAN
-          </ThemedText>
-        ) : null}
         <ThemedText style={[styles.headerCell, styles.cellGauge, { color: c.textMuted }]}>
           ROI
         </ThemedText>
@@ -226,15 +213,9 @@ export function RateMatchCard({
 
       {signals.map((s) => {
         const market = marketLookup.get(s.market_id);
-        // Prefer the server-computed İKO when available — it sees the full
-        // market context (Σ(1/oran) over every outcome the bookmaker offers
-        // on this line). Client-side compute is a fallback for older API
-        // responses; once visible signals are capped (top-N per fixture) it
-        // produces wrong values because it only sees the surviving outcomes.
-        const iko =
-          s.iko != null
-            ? s.iko
-            : ikoByMarket.get(s.market_id)?.get(s.id) ?? null;
+        // Server-side İKO — already computed against the full market
+        // context (Σ(1/oran) over every outcome on this line).
+        const iko = s.iko ?? null;
         const sample = s.win_count + s.lost_count;
         const hasSample = sample > 0;
         // Win/loss colour only applies once a match is in-play or finished.
@@ -248,28 +229,23 @@ export function RateMatchCard({
           : null;
         const won = upcoming ? false : status ? status === 'win' : s.bet_winning === true;
         const lost = upcoming ? false : status ? status === 'loss' : s.bet_winning === false;
-        // Tip stays neutral so the row stays calm; only the odd value
-        // carries the win/loss colour.
-        const oddColor = won ? WIN_COLOR : lost ? LOSS_COLOR : c.textMuted;
+        // With the ORAN column gone, the win/loss colour now lives on the
+        // tip text itself.
+        const tipLiveColor = won ? WIN_COLOR : lost ? LOSS_COLOR : null;
 
-        // Coupon membership — odd cell becomes a toggle.
-        const oddKey =
-          s.odd_value != null
-            ? [
-                fixtureId,
-                s.market_id,
-                s.label.toLowerCase(),
-                s.total ?? '-',
-                s.handicap ?? '-',
-                s.odd_value.toFixed(4),
-              ].join('|')
-            : null;
-        const inCoupon = oddKey != null && draftKeys.has(oddKey);
+        // Coupon membership — keyed by tip identity (no odd value).
+        const oddKey = [
+          fixtureId,
+          s.market_id,
+          s.label.toLowerCase(),
+          s.total ?? '-',
+          s.handicap ?? '-',
+        ].join('|');
+        const inCoupon = draftKeys.has(oddKey);
         // Another outcome from this fixture already in the basket → block
         // (one pick per fixture). Untapping the existing one re-opens the rest.
         const tapDisabled = couponLocked || (fixtureTaken && !inCoupon);
         const handleAddToCoupon = () => {
-          if (s.odd_value == null) return;
           if (tapDisabled) return;
           const rawLabel = s.label || '';
           toggleSelection({
@@ -285,7 +261,7 @@ export function RateMatchCard({
             outcomeDisplay: shortenOutcome(rawLabel, s.market_id),
             total: s.total,
             handicap: s.handicap,
-            oddValue: s.odd_value,
+            oddValue: 0,
             dso: s.winning_percent,
             vbet: s.earning_percent,
             iko: iko,
@@ -312,35 +288,15 @@ export function RateMatchCard({
                 style={[
                   styles.label,
                   {
-                    color: inCoupon ? c.brand : c.text,
-                    fontWeight: inCoupon ? '700' : '500',
+                    color: tipLiveColor ?? (inCoupon ? c.brand : c.text),
+                    fontWeight: inCoupon || tipLiveColor ? '700' : '500',
                   },
                 ]}
-                numberOfLines={1}>
+                numberOfLines={2}>
                 {inCoupon ? '✓ ' : ''}
                 {formatLabel(s, market)}
               </ThemedText>
             </Pressable>
-            {!oddsHidden ? (
-              <View
-                style={[
-                  styles.cellNumber,
-                  styles.oddCell,
-                  { borderColor: c.border },
-                ]}>
-                <ThemedText
-                  style={[
-                    styles.cell,
-                    styles.numberValue,
-                    {
-                      color: oddColor,
-                      fontWeight: won || lost ? '700' : '600',
-                    },
-                  ]}>
-                  {formatOddValue(s.odd_value, oddsHidden)}
-                </ThemedText>
-              </View>
-            ) : null}
             <View style={styles.cellGauge}>
               <CircularGauge
                 value={hasSample ? s.earning_percent : null}
@@ -486,31 +442,6 @@ function findHalfScore(
   return { home: home.goals, away: away.goals };
 }
 
-function computeIkoByMarket(signals: RateResult[]) {
-  // Group signals by market and compute no-vig implied probability per row.
-  const byMarket = new Map<number, RateResult[]>();
-  for (const s of signals) {
-    const list = byMarket.get(s.market_id);
-    if (list) list.push(s);
-    else byMarket.set(s.market_id, [s]);
-  }
-  const out = new Map<number, Map<string, number>>();
-  for (const [marketId, list] of byMarket.entries()) {
-    const totalImplied = list.reduce(
-      (acc, s) => (s.odd_value && s.odd_value > 0 ? acc + 1 / s.odd_value : acc),
-      0,
-    );
-    const inner = new Map<string, number>();
-    for (const s of list) {
-      if (s.odd_value && s.odd_value > 0 && totalImplied > 0) {
-        inner.set(s.id, (1 / s.odd_value / totalImplied) * 100);
-      }
-    }
-    out.set(marketId, inner);
-  }
-  return out;
-}
-
 const styles = StyleSheet.create({
   card: {
     marginHorizontal: 12,
@@ -629,7 +560,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   cellLabel: {
-    flex: 1.3,
+    flex: 2.4,
     paddingLeft: 6,
   },
   // Tip cell doubles as the coupon add/remove tap target now (was the odd
@@ -645,18 +576,6 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 12,
     fontWeight: '600',
-  },
-  cellNumber: {
-    flex: 0.7,
-    textAlign: 'center',
-  },
-  oddCell: {
-    paddingVertical: 4,
-    borderRadius: 6,
-    borderWidth: StyleSheet.hairlineWidth,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginHorizontal: 2,
   },
   cellGauge: {
     flex: 1,

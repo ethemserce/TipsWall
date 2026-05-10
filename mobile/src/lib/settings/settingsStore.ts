@@ -7,7 +7,6 @@ export type LanguageMode = 'system' | 'en' | 'tr';
 export interface SettingsSnapshot {
   themeMode: ThemeMode;
   languageMode: LanguageMode;
-  oddsHidden: boolean;
   hydrated: boolean;
 }
 
@@ -18,7 +17,6 @@ const STORAGE_KEY = 'preodds.settings.v1';
 const DEFAULTS: Omit<SettingsSnapshot, 'hydrated'> = {
   themeMode: 'system',
   languageMode: 'system',
-  oddsHidden: false,
 };
 
 let state: SettingsSnapshot = { ...DEFAULTS, hydrated: false };
@@ -30,10 +28,10 @@ function emit() {
 
 async function persist() {
   try {
-    const { themeMode, languageMode, oddsHidden } = state;
+    const { themeMode, languageMode } = state;
     await AsyncStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify({ themeMode, languageMode, oddsHidden }),
+      JSON.stringify({ themeMode, languageMode }),
     );
   } catch {
     // Persistence is best-effort; an in-memory miss is fine — defaults reload.
@@ -59,10 +57,6 @@ async function hydrate() {
           parsed.languageMode === 'system'
             ? parsed.languageMode
             : DEFAULTS.languageMode,
-        oddsHidden:
-          typeof parsed.oddsHidden === 'boolean'
-            ? parsed.oddsHidden
-            : DEFAULTS.oddsHidden,
         hydrated: true,
       };
     } else {
@@ -101,13 +95,6 @@ export function setLanguageMode(mode: LanguageMode): void {
   void persist();
 }
 
-export function setOddsHidden(hidden: boolean): void {
-  if (state.oddsHidden === hidden) return;
-  state = { ...state, oddsHidden: hidden };
-  emit();
-  void persist();
-}
-
 export function useSettings(): SettingsSnapshot {
   const [snapshot, setSnapshot] = useState<SettingsSnapshot>(state);
   useEffect(() => {
@@ -116,10 +103,6 @@ export function useSettings(): SettingsSnapshot {
     return unsubscribe;
   }, []);
   return snapshot;
-}
-
-export function useOddsHidden(): boolean {
-  return useSettings().oddsHidden;
 }
 
 export function useThemeMode(): ThemeMode {
@@ -139,18 +122,4 @@ export function resolveScheme(
 ): 'light' | 'dark' {
   if (mode === 'light' || mode === 'dark') return mode;
   return device === 'dark' ? 'dark' : 'light';
-}
-
-
-// Single source of truth for rendering a betting odd. Returns the formatted
-// value, or a discreet placeholder when the user has hidden odds. Callers
-// should use this everywhere a raw oddValue / parlayOdd / fairOdd surfaces.
-export function formatOddValue(
-  value: number | null | undefined,
-  hidden: boolean,
-  fractionDigits: number = 2,
-): string {
-  if (hidden) return '••';
-  if (value == null || !Number.isFinite(value)) return '–';
-  return value.toFixed(fractionDigits);
 }

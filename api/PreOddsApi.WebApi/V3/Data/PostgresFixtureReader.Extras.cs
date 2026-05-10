@@ -37,7 +37,30 @@ namespace PreOddsApi.WebApi.V3.Data
                 ? "and poc.market_id    = any(@market_ids)"
                 : "and coalesce(m.has_winning_calculations, false) = true";
 
+            // İKO sits on a per-(market, total-line, handicap) inverse-sum
+            // so Over/Under 2.5 doesn't mix with Over/Under 3.5. The window
+            // function runs over the same partition that defines a "betting
+            // line" so each outcome gets its own no-vig probability.
             var sql = $"""
+                with poc_with_iko as (
+                    select poc.*,
+                           round(
+                               100.0 * (1.0 / poc.value::numeric) / nullif(
+                                   sum(1.0 / poc.value::numeric) over (
+                                       partition by poc.fixture_id, poc.bookmaker_id,
+                                                    poc.market_id,
+                                                    coalesce(nullif(poc.total, ''), '-'),
+                                                    coalesce(nullif(poc.handicap, ''), '-')
+                                   ),
+                                   0
+                               ),
+                               4
+                           ) as iko
+                    from odds.prematch_odds_current poc
+                    where poc.fixture_id   = @fixture_id
+                      and poc.bookmaker_id = @bookmaker_id
+                      and poc.value::numeric > 0
+                )
                 select m.id as market_id,
                        m.name as market_name,
                        poc.label,
@@ -46,12 +69,13 @@ namespace PreOddsApi.WebApi.V3.Data
                        poc.participants,
                        poc.sort_order,
                        poc.winning,
+                       poc.iko,
                        fs.win_count,
                        fs.lost_count,
                        (fs.win_count + fs.lost_count) as sample_count,
                        fs.winning_percent,
                        fs.earning_percent
-                from odds.prematch_odds_current poc
+                from poc_with_iko poc
                 left join odds.markets m on m.id = poc.market_id
                 left join analytics.odd_analysis_snapshots fs
                     on fs.bookmaker_id  = poc.bookmaker_id
@@ -63,8 +87,7 @@ namespace PreOddsApi.WebApi.V3.Data
                    and fs.window_code   = @window_code
                    and fs.feed_type     = coalesce(poc.feed_type, 'standard')
                    and fs.as_of_date    = current_date
-                where poc.fixture_id   = @fixture_id
-                  and poc.bookmaker_id = @bookmaker_id
+                where 1 = 1
                   {marketFilter}
                 order by poc.market_id, poc.sort_order nulls last, poc.label;
                 """;
@@ -104,6 +127,7 @@ namespace PreOddsApi.WebApi.V3.Data
                     Participants = ReadNullableString(reader, "participants"),
                     SortOrder = ReadNullableInt(reader, "sort_order"),
                     Winning = ReadNullableBool(reader, "winning"),
+                    Iko = ReadNullableDecimal(reader, "iko"),
                     WinCount = winCount,
                     LostCount = lostCount,
                     SampleCount = ReadNullableInt(reader, "sample_count") ?? (winCount + lostCount),

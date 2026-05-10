@@ -2,10 +2,6 @@ import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import {
-  formatOddValue,
-  useOddsHidden,
-} from '@/src/lib/settings/settingsStore';
 import { useTheme } from '@/src/lib/useTheme';
 import type { RateSummary } from '@/src/types/rateResult';
 
@@ -17,7 +13,6 @@ interface RateSummaryCardProps {
 export function RateSummaryCard({ summary, asOfDate }: RateSummaryCardProps) {
   const c = useTheme();
   const { t } = useTranslation();
-  const oddsHidden = useOddsHidden();
   const winRate =
     summary.bet_total > 0
       ? (summary.success_count / summary.bet_total) * 100
@@ -33,11 +28,6 @@ export function RateSummaryCard({ summary, asOfDate }: RateSummaryCardProps) {
         <Stat
           label={t('rate.summary.signals').toUpperCase()}
           value={String(summary.total_signals)}
-          color={c.text}
-        />
-        <Stat
-          label={t('rate.summary.avgOdd').toUpperCase()}
-          value={formatOddValue(summary.avg_odd_value, oddsHidden)}
           color={c.text}
         />
         <Stat
@@ -71,15 +61,6 @@ export function RateSummaryCard({ summary, asOfDate }: RateSummaryCardProps) {
             label={t('rate.summary.actualWin').toUpperCase()}
             value={winRate != null ? `${winRate.toFixed(1)}%` : '-'}
             color={c.brand}
-          />
-          <Stat
-            label={t('rate.summary.earnings').toUpperCase()}
-            value={
-              summary.earning_total != null
-                ? summary.earning_total.toFixed(2)
-                : '-'
-            }
-            color={c.text}
           />
         </View>
       ) : null}
