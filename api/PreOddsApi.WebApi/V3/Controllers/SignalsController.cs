@@ -33,6 +33,10 @@ namespace PreOddsApi.WebApi.V3.Controllers
             [FromQuery(Name = "market_id")] long? marketId,
             [FromQuery(Name = "league_id")] long? leagueId,
             [FromQuery(Name = "window")] string? windowCode,
+            // `window_code` alias — the DB column and SignalQuery property
+            // both use that name, so it's the natural ask for someone reading
+            // the code or schema. `window` stays the canonical short form.
+            [FromQuery(Name = "window_code")] string? windowCodeAlias,
             [FromQuery(Name = "match_state")] int? matchState,
             [FromQuery(Name = "min_rate")] decimal? minRate,
             [FromQuery(Name = "max_rate")] decimal? maxRate,
@@ -61,7 +65,7 @@ namespace PreOddsApi.WebApi.V3.Controllers
                 BookmakerId = bookmakerId,
                 MarketId = marketId,
                 LeagueId = leagueId,
-                WindowCode = windowCode,
+                WindowCode = windowCode ?? windowCodeAlias,
                 MatchState = matchState,
                 MinRate = minRate,
                 MaxRate = maxRate,
