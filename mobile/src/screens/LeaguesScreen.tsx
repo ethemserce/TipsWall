@@ -1,7 +1,7 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
@@ -28,6 +28,7 @@ const normalize = (value: string | null | undefined): string =>
   (value ?? '').toLocaleLowerCase('tr-TR');
 
 interface LeagueSection {
+  countryId: number;
   title: string;
   data: League[];
   countryImage: string | null;
@@ -39,6 +40,10 @@ export function LeaguesScreen() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const searchInputRef = useRef<TextInput | null>(null);
+  // Per-country collapsed set — mirrors the home / analysis pattern so
+  // long country lists stay scannable. While a search is active every
+  // section auto-expands so hits are visible.
+  const [collapsed, setCollapsed] = useState<Set<number>>(() => new Set());
 
   const leaguesQuery = useLeagues({ active: true });
   const allLeagues = leaguesQuery.data?.items ?? [];
@@ -70,7 +75,7 @@ export function LeaguesScreen() {
   // collation (so İ sorts after I correctly when locale is tr).
   const sections = useMemo<LeagueSection[]>(() => {
     const groups = new Map<
-      number | -1,
+      number,
       { name: string; image: string | null; data: League[] }
     >();
     for (const league of filtered) {
@@ -83,8 +88,9 @@ export function LeaguesScreen() {
       if (existing) existing.data.push(league);
       else groups.set(id, { name, image, data: [league] });
     }
-    return Array.from(groups.values())
-      .map((g) => ({
+    return Array.from(groups.entries())
+      .map(([id, g]) => ({
+        countryId: id,
         title: g.name,
         countryImage: g.image,
         data: [...g.data].sort((a, b) =>
@@ -93,6 +99,37 @@ export function LeaguesScreen() {
       }))
       .sort((a, b) => a.title.localeCompare(b.title, 'tr'));
   }, [filtered, countryLookup, t]);
+
+  // Hide rows when a section is collapsed, but keep the section header so
+  // the user can re-expand it. Search overrides collapse — every match
+  // stays visible while typing.
+  const visibleSections = useMemo<LeagueSection[]>(() => {
+    if (searchActive) return sections;
+    return sections.map((s) =>
+      collapsed.has(s.countryId) ? { ...s, data: [] } : s,
+    );
+  }, [sections, collapsed, searchActive]);
+
+  const toggleCountry = useCallback((countryId: number) => {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(countryId)) next.delete(countryId);
+      else next.add(countryId);
+      return next;
+    });
+  }, []);
+
+  const allCollapsed =
+    sections.length > 0 &&
+    sections.every((s) => collapsed.has(s.countryId));
+  const toggleAll = useCallback(() => {
+    setCollapsed((prev) => {
+      if (sections.every((s) => prev.has(s.countryId))) {
+        return new Set();
+      }
+      return new Set(sections.map((s) => s.countryId));
+    });
+  }, [sections]);
 
   const handleToggleSearch = () => {
     setSearchOpen((prev) => {
@@ -184,7 +221,34 @@ export function LeaguesScreen() {
         </View>
       ) : (
         <SectionList
-          sections={sections}
+          sections={visibleSections}
+          ListHeaderComponent={
+            sections.length > 0 ? (
+              <View style={styles.metaRow}>
+                <Pressable
+                  onPress={toggleAll}
+                  hitSlop={6}
+                  style={({ pressed }) => [
+                    styles.toggleAllBtn,
+                    {
+                      backgroundColor: pressed ? c.brandSoft : 'transparent',
+                      borderColor: c.borderSoft,
+                    },
+                  ]}>
+                  <MaterialCommunityIcons
+                    name={allCollapsed ? 'unfold-more-horizontal' : 'unfold-less-horizontal'}
+                    size={14}
+                    color={c.brand}
+                  />
+                  <ThemedText style={[styles.toggleAllText, { color: c.brand }]}>
+                    {allCollapsed
+                      ? t('home.toggleAll.expand')
+                      : t('home.toggleAll.collapse')}
+                  </ThemedText>
+                </Pressable>
+              </View>
+            ) : null
+          }
           keyExtractor={(l) => String(l.id)}
           keyboardShouldPersistTaps="handled"
           renderItem={({ item, index, section }) => (
@@ -228,26 +292,47 @@ export function LeaguesScreen() {
               />
             </Pressable>
           )}
-          renderSectionHeader={({ section }) => (
-            <View style={[styles.sectionHeader, { backgroundColor: c.bg }]}>
-              {section.countryImage ? (
-                <Image
-                  source={{ uri: section.countryImage }}
-                  style={styles.flag}
-                  contentFit="cover"
-                />
-              ) : null}
-              <ThemedText
-                style={[styles.sectionHeaderText, { color: c.textMuted }]}>
-                {section.title.toLocaleUpperCase('tr-TR')}
-              </ThemedText>
-              <View style={[styles.countBadge, { backgroundColor: c.brandSoft }]}>
-                <ThemedText style={[styles.countText, { color: c.brand }]}>
-                  {section.data.length}
+          renderSectionHeader={({ section }) => {
+            const isCollapsed =
+              !searchActive && collapsed.has(section.countryId);
+            const groupCount =
+              sections.find((s) => s.countryId === section.countryId)?.data
+                .length ?? section.data.length;
+            return (
+              <Pressable
+                onPress={() => toggleCountry(section.countryId)}
+                accessibilityRole="button"
+                accessibilityState={{ expanded: !isCollapsed }}
+                style={({ pressed }) => [
+                  styles.sectionHeader,
+                  {
+                    backgroundColor: pressed ? c.brandSoft : c.bg,
+                  },
+                ]}>
+                {section.countryImage ? (
+                  <Image
+                    source={{ uri: section.countryImage }}
+                    style={styles.flag}
+                    contentFit="cover"
+                  />
+                ) : null}
+                <ThemedText
+                  style={[styles.sectionHeaderText, { color: c.textMuted }]}>
+                  {section.title.toLocaleUpperCase('tr-TR')}
                 </ThemedText>
-              </View>
-            </View>
-          )}
+                <View style={[styles.countBadge, { backgroundColor: c.brandSoft }]}>
+                  <ThemedText style={[styles.countText, { color: c.brand }]}>
+                    {groupCount}
+                  </ThemedText>
+                </View>
+                <MaterialCommunityIcons
+                  name={isCollapsed ? 'chevron-down' : 'chevron-up'}
+                  size={18}
+                  color={c.textMuted}
+                />
+              </Pressable>
+            );
+          }}
           stickySectionHeadersEnabled={false}
           ListEmptyComponent={
             <View style={styles.center}>
@@ -323,6 +408,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingTop: 4,
     paddingBottom: 32,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 4,
+    paddingTop: 4,
+  },
+  toggleAllBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  toggleAllText: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.4,
   },
   sectionHeader: {
     flexDirection: 'row',

@@ -14,8 +14,43 @@ export const MARKET_SHORT: Record<number, string> = {
   80: 'A/Ü',
 };
 
+// Turkish long-form names for the market headers. Card titles previously
+// surfaced SportMonks' raw English market.name ("Fulltime Result", "Both
+// Teams To Score") — these Turkish equivalents replace that on the UI,
+// keyed by market_id so we don't depend on the upstream string.
+export const MARKET_LONG_TR: Record<number, string> = {
+  1: 'Maç Sonucu',
+  10: 'Beraberlikte İade',
+  14: 'Karşılıklı Gol',
+  18: 'Ev Sahibi Kesin Skor',
+  19: 'Deplasman Kesin Skor',
+  31: 'İlk Yarı / Maç Sonu',
+  33: 'İlk Yarı Kesin Skor',
+  38: 'İkinci Yarı Kesin Skor',
+  39: 'Deplasman İki Yarıyı da Önde Bitirir',
+  41: 'Ev Sahibi İki Yarıyı da Önde Bitirir',
+  44: 'Toplam Gol Tek / Çift',
+  50: 'Ev Sahibi Kalesini Gole Kapatır',
+  51: 'Deplasman Kalesini Gole Kapatır',
+  52: 'Çifte Şans',
+  80: 'Toplam Gol Alt / Üst',
+};
+
 export function marketShort(marketId: number, fallbackName?: string | null): string {
   return MARKET_SHORT[marketId] ?? fallbackName ?? `M${marketId}`;
+}
+
+/**
+ * Long-form Turkish market label for card headers. Falls back to the
+ * SportMonks-supplied English name when we don't have a translation —
+ * better to show *something* than to break the header for unmapped
+ * markets the worker happens to sync.
+ */
+export function marketLongName(
+  marketId: number,
+  fallbackName?: string | null,
+): string {
+  return MARKET_LONG_TR[marketId] ?? fallbackName ?? `Market #${marketId}`;
 }
 
 /**

@@ -62,12 +62,31 @@ function migrateCoupon(raw: unknown): Coupon | null {
   if (typeof c.id !== 'string' || !Array.isArray(c.selections)) return null;
   return {
     id: c.id,
-    name: typeof c.name === 'string' ? c.name : 'Yeni Liste',
+    name: migrateCouponName(typeof c.name === 'string' ? c.name : undefined),
     createdAt: typeof c.createdAt === 'string' ? c.createdAt : new Date().toISOString(),
     updatedAt: typeof c.updatedAt === 'string' ? c.updatedAt : new Date().toISOString(),
     status: c.status ?? 'saved',
     selections: c.selections.map(migrateSelection).filter((s): s is CouponSelection => s != null),
   };
+}
+
+/**
+ * Cleans betting-adjacent words out of legacy stored list names. Saved
+ * coupons named "9 Mayıs Kuponu" / "Yeni Kupon" / "Cumartesi Kuponum"
+ * etc. get rewritten on load so the on-device vocabulary stays consistent
+ * with the rest of the UI.
+ */
+function migrateCouponName(name: string | undefined): string {
+  if (name == null || name.trim().length === 0) return 'Yeni Liste';
+  return name
+    .replace(/Kuponum/g, 'Listem')
+    .replace(/Kuponun/g, 'Listen')
+    .replace(/Kuponu/g, 'Listesi')
+    .replace(/Kupon/g, 'Liste')
+    .replace(/kuponum/g, 'listem')
+    .replace(/kuponun/g, 'listen')
+    .replace(/kuponu/g, 'listesi')
+    .replace(/kupon/g, 'liste');
 }
 
 function migrateSelection(raw: unknown): CouponSelection | null {
@@ -123,6 +142,9 @@ async function hydrate() {
           .filter((c): c is Coupon => c != null)
       : [];
     state = { draft, saved, hydrated: true };
+    // Persist the migrated shape so the Kupon→Liste rename is durable
+    // even before the user touches anything.
+    persist();
   } catch {
     state = { draft: emptyDraft(), saved: [], hydrated: true };
   }

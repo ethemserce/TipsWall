@@ -28,9 +28,6 @@ export function StatsTab({ loading, error, stats }: StatsTabProps) {
         styles.card,
         { backgroundColor: c.surface, borderColor: c.border },
       ]}>
-      <ThemedText style={[styles.title, { color: c.textMuted }]}>
-        {t('fixture.stats.title').toUpperCase()}
-      </ThemedText>
       {stats.map((s) => (
         <StatRow key={s.type_id} stat={s} />
       ))}
@@ -40,6 +37,7 @@ export function StatsTab({ loading, error, stats }: StatsTabProps) {
 
 function StatRow({ stat }: { stat: FixtureStatistic }) {
   const c = useTheme();
+  const { t } = useTranslation();
   const isPercent = PERCENT_TYPES.has((stat.type_code ?? '').toUpperCase());
   const home = stat.home_value ?? 0;
   const away = stat.away_value ?? 0;
@@ -54,7 +52,7 @@ function StatRow({ stat }: { stat: FixtureStatistic }) {
           {formatValue(stat.home_value, isPercent)}
         </ThemedText>
         <ThemedText style={[styles.label, { color: c.textMuted }]}>
-          {humanizeLabel(stat)}
+          {humanizeLabel(stat, t)}
         </ThemedText>
         <ThemedText style={[styles.value, { color: c.text }]}>
           {formatValue(stat.away_value, isPercent)}
@@ -97,7 +95,20 @@ function formatValue(value: number | null, isPercent: boolean): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }
 
-function humanizeLabel(stat: FixtureStatistic): string {
+// SportMonks type_code → user-facing translation. Falls back to the
+// title-cased English type_code (or the upstream type_name) so unmapped
+// stats still render legibly. The i18n key is "fixture.stats.types.<code>".
+function humanizeLabel(
+  stat: FixtureStatistic,
+  t: (key: string, opts?: Record<string, unknown>) => string,
+): string {
+  const code = (stat.type_code ?? '').toUpperCase();
+  if (code) {
+    const translated = t(`fixture.stats.types.${code}`, {
+      defaultValue: '',
+    });
+    if (translated) return translated;
+  }
   if (stat.type_name) return stat.type_name;
   if (stat.type_code) {
     return stat.type_code

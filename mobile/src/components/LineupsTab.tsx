@@ -293,11 +293,21 @@ function BenchRow({
   subIn: SubInInfo | null;
 }) {
   const c = useTheme();
+  const { t } = useTranslation();
   const minuteLabel = subIn?.minute != null
     ? subIn.extraMinute && subIn.extraMinute > 0
       ? `${subIn.minute}+${subIn.extraMinute}'`
       : `${subIn.minute}'`
     : null;
+  const positionCode = (player.position_code ?? '').toUpperCase();
+  // Translate the SportMonks position enum so the bench row reads in the
+  // user's language. Unknown codes fall back to the raw upper-case string
+  // (better than a broken key like `fixture.lineups.positions.MISC`).
+  const positionLabel = positionCode
+    ? t(`fixture.lineups.positions.${positionCode}`, {
+        defaultValue: positionCode,
+      })
+    : '';
   return (
     <View style={[styles.benchRow, { borderTopColor: c.border }]}>
       <View style={[styles.benchJersey, { backgroundColor: c.bg, borderColor: c.border }]}>
@@ -338,7 +348,7 @@ function BenchRow({
       <ThemedText
         style={[styles.benchPosition, { color: c.textMuted }]}
         numberOfLines={1}>
-        {player.position_code ?? ''}
+        {positionLabel}
       </ThemedText>
     </View>
   );

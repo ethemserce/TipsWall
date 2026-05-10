@@ -622,6 +622,11 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: 'hidden',
+    // RateMatchCard has marginTop:12 so cards inside stack with a 12px
+    // gap between them. The last card has no bottom margin of its own —
+    // mirror the inter-card spacing as section padding so the section
+    // closes with the same breathing room cards have between each other.
+    paddingBottom: 12,
   },
   fixtureSeparator: {
     height: StyleSheet.hairlineWidth,

@@ -5,7 +5,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
-  Animated,
   type LayoutChangeEvent,
   PanResponder,
   Pressable,
@@ -13,6 +12,13 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
+import Reanimated, {
+  Extrapolation,
+  interpolate,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useSharedValue,
+} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { format, parseISO } from 'date-fns';
@@ -88,14 +94,19 @@ export function FixtureDetailScreen({ fixtureId }: FixtureDetailScreenProps) {
   const { data, isLoading, isFetching, isError, error, refetch } =
     useFixture(fixtureId);
 
-  // Animated.Value drives both the hero's collapse and the compact bar's
-  // fade-in. The visible wrapper has an interpolated height (and overflow
-  // hidden), which means onLayout there reports the *clipped* size — so
-  // we'd freeze the height before async data (events / goal lines) lands.
-  // Measure the natural size in a hidden, absolutely-positioned twin so
-  // late-arriving content (e.g. a goal scored in the 70th minute) makes
-  // the wrapper grow to fit.
-  const scrollY = useRef(new Animated.Value(0)).current;
+  // Hero collapse + compact-bar reveal run on Reanimated's UI thread via a
+  // shared scroll position — the JS-driven Animated.Value version flickered
+  // because each frame had to round-trip the bridge, then run a Yoga
+  // relayout for the height change. Reanimated keeps both interpolations
+  // on the UI thread so the header tracks the scroll position smoothly.
+  //
+  // The visible wrapper has an interpolated height (and overflow hidden),
+  // which means onLayout there reports the *clipped* size — so we'd freeze
+  // the height before async data (events / goal lines) lands. Measure the
+  // natural size in a hidden, absolutely-positioned twin so late-arriving
+  // content (e.g. a goal scored in the 70th minute) makes the wrapper
+  // grow to fit.
+  const scrollY = useSharedValue(0);
   const [heroHeight, setHeroHeight] = useState<number | null>(null);
   const onHeroLayout = useCallback((e: LayoutChangeEvent) => {
     const h = e.nativeEvent.layout.height;
@@ -105,40 +116,45 @@ export function FixtureDetailScreen({ fixtureId }: FixtureDetailScreenProps) {
       );
     }
   }, []);
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (e) => {
+      scrollY.value = e.contentOffset.y;
+    },
+  });
 
-  const heroAnimatedHeight =
-    heroHeight !== null
-      ? scrollY.interpolate({
-          inputRange: [0, HERO_COLLAPSE_RANGE],
-          outputRange: [heroHeight, 0],
-          extrapolate: 'clamp',
-        })
-      : undefined;
-  const heroOpacity = scrollY.interpolate({
-    inputRange: [0, HERO_COLLAPSE_RANGE * 0.6],
-    outputRange: [1, 0],
-    extrapolate: 'clamp',
-  });
-  const compactHeight = scrollY.interpolate({
-    inputRange: [0, HERO_COLLAPSE_RANGE],
-    outputRange: [0, COMPACT_BAR_HEIGHT],
-    extrapolate: 'clamp',
-  });
-  const compactOpacity = scrollY.interpolate({
-    inputRange: [HERO_COLLAPSE_RANGE * 0.5, HERO_COLLAPSE_RANGE],
-    outputRange: [0, 1],
-    extrapolate: 'clamp',
-  });
-  // height isn't transformable on the native driver, so the whole event
-  // chain runs on the JS thread. scrollEventThrottle keeps it manageable.
-  const onScroll = useMemo(
-    () =>
-      Animated.event(
-        [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-        { useNativeDriver: false },
+  const heroAnimatedStyle = useAnimatedStyle(() => {
+    if (heroHeight == null) return { overflow: 'hidden' };
+    return {
+      height: interpolate(
+        scrollY.value,
+        [0, HERO_COLLAPSE_RANGE],
+        [heroHeight, 0],
+        Extrapolation.CLAMP,
       ),
-    [scrollY],
-  );
+      opacity: interpolate(
+        scrollY.value,
+        [0, HERO_COLLAPSE_RANGE * 0.6],
+        [1, 0],
+        Extrapolation.CLAMP,
+      ),
+      overflow: 'hidden',
+    };
+  });
+
+  const compactAnimatedStyle = useAnimatedStyle(() => ({
+    height: interpolate(
+      scrollY.value,
+      [0, HERO_COLLAPSE_RANGE],
+      [0, COMPACT_BAR_HEIGHT],
+      Extrapolation.CLAMP,
+    ),
+    opacity: interpolate(
+      scrollY.value,
+      [HERO_COLLAPSE_RANGE * 0.5, HERO_COLLAPSE_RANGE],
+      [0, 1],
+      Extrapolation.CLAMP,
+    ),
+  }));
 
   // Horizontal-swipe-to-switch-tabs. The PanResponder is created once,
   // so we keep the latest tab in a ref and read it inside the handler —
@@ -355,19 +371,18 @@ export function FixtureDetailScreen({ fixtureId }: FixtureDetailScreenProps) {
           <MarketLegendButton />
         </View>
       </View>
-      <Animated.View
+      <Reanimated.View
         style={[
           styles.compactBar,
           {
             backgroundColor: c.surface,
             borderBottomColor: c.border,
-            height: compactHeight,
-            opacity: compactOpacity,
           },
+          compactAnimatedStyle,
         ]}
         pointerEvents="none">
         <CompactHeroBar fixture={data.fixture} />
-      </Animated.View>
+      </Reanimated.View>
       {/* Hidden measurer — rendered once at natural height so late-arriving
           events (goals) update heroHeight, letting the visible wrapper
           grow. Absolute positioning keeps it out of layout flow. */}
@@ -383,12 +398,7 @@ export function FixtureDetailScreen({ fixtureId }: FixtureDetailScreenProps) {
           events={events.data}
         />
       </View>
-      <Animated.View
-        style={{
-          height: heroAnimatedHeight,
-          opacity: heroOpacity,
-          overflow: 'hidden',
-        }}>
+      <Reanimated.View style={heroAnimatedStyle}>
         <FixtureDetailHero
           fixture={data.fixture}
           league={league}
@@ -396,15 +406,15 @@ export function FixtureDetailScreen({ fixtureId }: FixtureDetailScreenProps) {
           scores={data.scores}
           events={events.data}
         />
-      </Animated.View>
+      </Reanimated.View>
       </View>
       <DetailTabBar selected={tab} onSelect={setTab} />
 
       <View style={styles.flex} {...swipeResponder.panHandlers}>
-      <Animated.ScrollView
+      <Reanimated.ScrollView
         style={styles.flex}
         contentContainerStyle={styles.content}
-        onScroll={onScroll}
+        onScroll={scrollHandler}
         scrollEventThrottle={16}
         refreshControl={
           <RefreshControl
@@ -497,7 +507,7 @@ export function FixtureDetailScreen({ fixtureId }: FixtureDetailScreenProps) {
             ]}
           />
         ) : null}
-      </Animated.ScrollView>
+      </Reanimated.ScrollView>
       </View>
     </SafeAreaView>
   );
@@ -515,20 +525,42 @@ function CompactHeroBar({ fixture }: { fixture: FixtureSummary }) {
       : '--:--';
   return (
     <View style={styles.compactRow}>
-      <ThemedText
-        style={[styles.compactName, { color: c.text }]}
-        numberOfLines={1}>
-        {fixture.home_team_name ?? 'TBD'}
-      </ThemedText>
+      <View style={styles.compactTeamHome}>
+        {fixture.home_team_image_path ? (
+          <Image
+            source={{ uri: fixture.home_team_image_path }}
+            style={styles.compactLogo}
+            contentFit="contain"
+          />
+        ) : (
+          <View style={[styles.compactLogo, styles.compactLogoFallback, { backgroundColor: c.border }]} />
+        )}
+        <ThemedText
+          style={[styles.compactName, { color: c.text }]}
+          numberOfLines={1}>
+          {fixture.home_team_name ?? 'TBD'}
+        </ThemedText>
+      </View>
       <ThemedText
         style={[styles.compactScore, { color: live ? c.live : c.text }]}>
         {center}
       </ThemedText>
-      <ThemedText
-        style={[styles.compactName, styles.compactNameRight, { color: c.text }]}
-        numberOfLines={1}>
-        {fixture.away_team_name ?? 'TBD'}
-      </ThemedText>
+      <View style={styles.compactTeamAway}>
+        <ThemedText
+          style={[styles.compactName, styles.compactNameRight, { color: c.text }]}
+          numberOfLines={1}>
+          {fixture.away_team_name ?? 'TBD'}
+        </ThemedText>
+        {fixture.away_team_image_path ? (
+          <Image
+            source={{ uri: fixture.away_team_image_path }}
+            style={styles.compactLogo}
+            contentFit="contain"
+          />
+        ) : (
+          <View style={[styles.compactLogo, styles.compactLogoFallback, { backgroundColor: c.border }]} />
+        )}
+      </View>
     </View>
   );
 }
@@ -669,8 +701,28 @@ const styles = StyleSheet.create({
     height: COMPACT_BAR_HEIGHT,
     gap: 12,
   },
-  compactName: {
+  compactTeamHome: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  compactTeamAway: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 8,
+  },
+  compactLogo: {
+    width: 22,
+    height: 22,
+  },
+  compactLogoFallback: {
+    borderRadius: 4,
+  },
+  compactName: {
+    flexShrink: 1,
     fontSize: 14,
     fontWeight: '600',
   },

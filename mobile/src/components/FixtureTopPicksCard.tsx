@@ -218,11 +218,6 @@ function PickRow({
           })}
         </ThemedText>
       </View>
-      <ThemedText
-        style={[styles.pickOdd, { color: c.text }]}
-        numberOfLines={1}>
-        {`${marketShort(pick.marketId, pick.marketName)} ${pick.outcomeDisplay}`}
-      </ThemedText>
       <View
         style={[
           styles.btn,
@@ -293,13 +288,6 @@ const styles = StyleSheet.create({
   pickStats: {
     fontSize: 10,
     fontVariant: ['tabular-nums'],
-  },
-  pickOdd: {
-    fontSize: 16,
-    fontWeight: '800',
-    fontVariant: ['tabular-nums'],
-    minWidth: 44,
-    textAlign: 'right',
   },
   btn: {
     paddingHorizontal: 10,

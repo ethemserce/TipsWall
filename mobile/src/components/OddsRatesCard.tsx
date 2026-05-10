@@ -6,7 +6,7 @@ import { CircularGauge } from '@/src/components/CircularGauge';
 import { MarketInfoButton } from '@/src/components/MarketInfoButton';
 import { toggleSelection, useCouponStore } from '@/src/lib/coupons/store';
 import { outcomeLiveStatus, type LiveScore } from '@/src/lib/liveOutcome';
-import { marketShort, shortenOutcome } from '@/src/lib/marketShort';
+import { marketLongName, marketShort, shortenOutcome } from '@/src/lib/marketShort';
 import { useTheme } from '@/src/lib/useTheme';
 import type {
   FixtureOddOutcome,
@@ -89,7 +89,7 @@ export function OddsRatesCard({
         <ThemedText
           style={[styles.title, { color: c.textMuted }]}
           numberOfLines={1}>
-          {(market.market_name ?? `MARKET #${market.market_id}`).toUpperCase()}
+          {marketLongName(market.market_id, market.market_name).toLocaleUpperCase('tr-TR')}
         </ThemedText>
         <MarketInfoButton
           marketId={market.market_id}
@@ -102,7 +102,6 @@ export function OddsRatesCard({
           style={[
             styles.headerCell,
             styles.cellLabel,
-            styles.headerLabelLeft,
             { color: c.textMuted },
           ]}>
           TAHMİN
@@ -312,9 +311,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
     textAlign: 'center',
   },
-  headerLabelLeft: {
-    textAlign: 'left',
-  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -325,21 +321,22 @@ const styles = StyleSheet.create({
   },
   cell: {
     fontSize: 12,
+    textAlign: 'center',
   },
   cellLabel: {
     flex: 2.4,
     fontWeight: '500',
-    paddingLeft: 6,
   },
   // Visual treatment for the tip cell when it's a tap target. Subtle border
   // hints at affordance without competing with the value-bet ★ row accent.
   tipPressable: {
     paddingVertical: 6,
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
     borderRadius: 6,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'transparent',
     justifyContent: 'center',
+    alignItems: 'center',
   },
   valueAccent: {
     position: 'absolute',
