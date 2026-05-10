@@ -372,7 +372,10 @@ namespace SportMonks.Football.FixtureWorker.Services
         {
             // /livescores/latest returns just the fixtures that changed state in
             // the last few seconds. Cheap enough to run on a 30s cadence even
-            // across a wide league portfolio.
+            // across a wide league portfolio. Subscriptions without livescores
+            // access return 403 — we fall back to fixtures/between/today/today
+            // so live tier still produces updates (one heavier call instead of
+            // a delta).
             if (!GetBoolean("SportMonksFixtureLiveSync:Enabled",
                     GetBoolean("SportMonksFixtureSync:Enabled", false)))
                 return;
@@ -390,17 +393,26 @@ namespace SportMonks.Football.FixtureWorker.Services
             if (timezone != null)
                 request.WithTimezone(timezone);
 
-            var fixtures = (await _syncRunner.GetAllAsync<Fixture>(
-                SportMonksSyncJobDefinition.Create(
-                    "sportmonks.football.livescores.latest",
-                    "football.fixture",
-                    "Sync SportMonks fixtures whose state changed in the last few seconds."),
-                request,
-                cursorKey: endpoint,
-                cancellationToken: cancellationToken)).ToList();
+            try
+            {
+                var fixtures = (await _syncRunner.GetAllAsync<Fixture>(
+                    SportMonksSyncJobDefinition.Create(
+                        "sportmonks.football.livescores.latest",
+                        "football.fixture",
+                        "Sync SportMonks fixtures whose state changed in the last few seconds."),
+                    request,
+                    cursorKey: endpoint,
+                    cancellationToken: cancellationToken)).ToList();
 
-            if (fixtures.Count > 0)
-                await ProcessFixturesAsync(fixtures, "live", cancellationToken);
+                if (fixtures.Count > 0)
+                    await ProcessFixturesAsync(fixtures, "live", cancellationToken);
+            }
+            catch (SportMonksApiException ex) when ((int)ex.StatusCode == 403)
+            {
+                _logger.LogWarning(
+                    "livescores/latest returned 403 (subscription doesn't include it); falling back to fixtures/between/today.");
+                await ExecuteFixtureWindow(0, 0, timezone, "live", cancellationToken);
+            }
 
             _scheduler.RecordRun(ScheduleKey.FixtureLive);
         }
@@ -1138,23 +1150,36 @@ namespace SportMonks.Football.FixtureWorker.Services
             if (!_scheduler.ShouldRun(ScheduleKey.PrematchOdds, interval))
                 return;
 
-            var odds = (await _syncRunner.GetAllAsync<PreMatchOdd>(
-                SportMonksSyncJobDefinition.Create(
-                    "sportmonks.football.odds.prematch.latest",
-                    "odds.prematch_odds_current",
-                    "Sync latest updated SportMonks pre-match odds."),
-                SportMonksApiRequest.Create("odds/latest"),
-                cancellationToken: cancellationToken)).ToList();
-
-            if (odds.Count > 0)
+            try
             {
-                var byFixture = odds
-                    .Where(o => o.FixtureId > 0)
-                    .GroupBy(o => o.FixtureId);
+                var odds = (await _syncRunner.GetAllAsync<PreMatchOdd>(
+                    SportMonksSyncJobDefinition.Create(
+                        "sportmonks.football.odds.prematch.latest",
+                        "odds.prematch_odds_current",
+                        "Sync latest updated SportMonks pre-match odds."),
+                    SportMonksApiRequest.Create("odds/latest"),
+                    cancellationToken: cancellationToken)).ToList();
 
-                foreach (var group in byFixture)
-                    await _prematchOddsWriter.UpsertPrematchOddsForFixtureAsync(
-                        group.Key, group, cancellationToken);
+                if (odds.Count > 0)
+                {
+                    var byFixture = odds
+                        .Where(o => o.FixtureId > 0)
+                        .GroupBy(o => o.FixtureId);
+
+                    foreach (var group in byFixture)
+                        await _prematchOddsWriter.UpsertPrematchOddsForFixtureAsync(
+                            group.Key, group, cancellationToken);
+                }
+            }
+            catch (SportMonksApiException ex)
+                when ((int)ex.StatusCode == 403 || (int)ex.StatusCode == 404)
+            {
+                // odds/latest gates on the Odds & Predictions add-on; without
+                // it SportMonks returns 403/404. The fixture-scoped odds path
+                // (via includes) still covers what we have access to.
+                _logger.LogWarning(
+                    "odds/latest returned {Status}; subscription doesn't include the Odds & Predictions add-on.",
+                    (int)ex.StatusCode);
             }
 
             _scheduler.RecordRun(ScheduleKey.PrematchOdds);
@@ -1172,24 +1197,34 @@ namespace SportMonks.Football.FixtureWorker.Services
 
             var requestDelayMs = GetInteger("SportMonksInplayOddsSync:RequestDelayMs", 1000);
 
-            var odds = (await _syncRunner.GetAllAsync<InplayOdd>(
-                SportMonksSyncJobDefinition.Create(
-                    "sportmonks.football.odds.inplay.latest",
-                    "odds.inplay_odds_current",
-                    "Sync latest updated SportMonks inplay odds."),
-                SportMonksApiRequest.Create("odds/inplay/latest")
-                    .WithRequestDelayMs(requestDelayMs),
-                cancellationToken: cancellationToken)).ToList();
-
-            if (odds.Count > 0)
+            try
             {
-                var byFixture = odds
-                    .Where(o => o.FixtureId > 0)
-                    .GroupBy(o => o.FixtureId);
+                var odds = (await _syncRunner.GetAllAsync<InplayOdd>(
+                    SportMonksSyncJobDefinition.Create(
+                        "sportmonks.football.odds.inplay.latest",
+                        "odds.inplay_odds_current",
+                        "Sync latest updated SportMonks inplay odds."),
+                    SportMonksApiRequest.Create("odds/inplay/latest")
+                        .WithRequestDelayMs(requestDelayMs),
+                    cancellationToken: cancellationToken)).ToList();
 
-                foreach (var group in byFixture)
-                    await _inplayOddsWriter.UpsertInplayOddsForFixtureAsync(
-                        group.Key, group, cancellationToken);
+                if (odds.Count > 0)
+                {
+                    var byFixture = odds
+                        .Where(o => o.FixtureId > 0)
+                        .GroupBy(o => o.FixtureId);
+
+                    foreach (var group in byFixture)
+                        await _inplayOddsWriter.UpsertInplayOddsForFixtureAsync(
+                            group.Key, group, cancellationToken);
+                }
+            }
+            catch (SportMonksApiException ex)
+                when ((int)ex.StatusCode == 403 || (int)ex.StatusCode == 404)
+            {
+                _logger.LogWarning(
+                    "odds/inplay/latest returned {Status}; subscription doesn't include the Odds & Predictions add-on.",
+                    (int)ex.StatusCode);
             }
 
             _scheduler.RecordRun(ScheduleKey.InplayOdds);
