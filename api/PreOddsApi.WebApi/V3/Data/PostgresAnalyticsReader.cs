@@ -19,36 +19,39 @@ namespace PreOddsApi.WebApi.V3.Data
 
         public async Task<RateQueryResult> GetSignalsAsync(SignalQuery query, CancellationToken ct = default)
         {
+            // Yol A: this query joins live `prematch_odds_current` rows to
+            // `odd_analysis_snapshots` at request time on the snapshot's
+            // outcome_key (which already encodes label:total:handicap:odd_value).
+            // When the bookmaker moves Mainz Home from 1.45 to 1.55, the
+            // current odd's outcome_key flips — the JOIN automatically picks
+            // the snapshot row that matches the new odd. No nightly fixture
+            // signal rebuild needed.
+            //
             // Filters split into two stages so İKO (the no-vig implied
             // probability) can be normalised across the FULL market context.
             //
-            // Stage 1 (baseFilters) — applied before İKO normalisation:
+            // Stage 1 (baseFilters) — applied before JOIN/İKO normalisation:
             //   bookmaker_id, market_id, league_id, fixture_id, window_code,
-            //   match_state, fixture_date, signal_type
+            //   match_state, fixture_date
             //
             // Stage 2 (rowFilters) — applied AFTER İKO is computed, otherwise
             // a min_rate / min_winning_percent threshold would strip outcomes
             // from a market and inflate Σ(1/odd) for the survivors.
             //   min_rate, max_rate, min_winning_percent, min_earning_percent,
             //   min_sample_count, value_only (DSO > İKO)
-            var baseClauses = new List<string> { "fs.signal_type = 'custom'" };
+            var baseClauses = new List<string> { "1 = 1" };
             var rowClauses = new List<string>();
             var parameters = new List<NpgsqlParameter>();
 
             if (query.BookmakerId.HasValue)
             {
-                baseClauses.Add("fs.bookmaker_id = @bookmaker_id");
+                baseClauses.Add("poc.bookmaker_id = @bookmaker_id");
                 parameters.Add(new NpgsqlParameter("bookmaker_id", query.BookmakerId.Value));
             }
             if (query.MarketId.HasValue)
             {
-                baseClauses.Add("fs.market_id = @market_id");
+                baseClauses.Add("poc.market_id = @market_id");
                 parameters.Add(new NpgsqlParameter("market_id", query.MarketId.Value));
-            }
-            if (!string.IsNullOrWhiteSpace(query.WindowCode))
-            {
-                baseClauses.Add("fs.window_code = @window_code");
-                parameters.Add(new NpgsqlParameter("window_code", query.WindowCode.Trim()));
             }
             if (query.MatchState.HasValue)
             {
@@ -69,6 +72,15 @@ namespace PreOddsApi.WebApi.V3.Data
                 baseClauses.Add("f.starting_at >= @fixture_date_start and f.starting_at < @fixture_date_end");
                 parameters.Add(new NpgsqlParameter("fixture_date_start", query.FixtureDate.Value.Date));
                 parameters.Add(new NpgsqlParameter("fixture_date_end", query.FixtureDate.Value.Date.AddDays(1)));
+            }
+
+            // window_code is a snapshot-side filter — applied inside the JOIN
+            // so the planner uses ix_odd_analysis_snapshots_join.
+            var windowFilter = string.Empty;
+            if (!string.IsNullOrWhiteSpace(query.WindowCode))
+            {
+                windowFilter = " and s.window_code = @window_code";
+                parameters.Add(new NpgsqlParameter("window_code", query.WindowCode.Trim()));
             }
 
             if (query.MinRate.HasValue)
@@ -145,37 +157,99 @@ namespace PreOddsApi.WebApi.V3.Data
             }
 
             var sql = $"""
-                with base as (
-                    select fs.id, fs.fixture_id,
-                           fs.id as fixture_signal_id,
-                           fs.bookmaker_id, fs.market_id, fs.window_code,
-                           fs.outcome_key, fs.label, fs.odd_value, fs.total, fs.handicap,
-                           fs.win_count, fs.lost_count, fs.sample_count,
-                           fs.winning_percent, fs.earning_percent,
-                           fs.confidence_score,
-                           fs.rank_order, fs.as_of_date,
-                           f.state_id as match_state,
-                           f.starting_at as fixture_starting_at,
-                           poc.winning as bet_winning
-                    from analytics.fixture_signals fs
-                    inner join football.fixtures f on f.id = fs.fixture_id
-                    left join odds.prematch_odds_current poc
-                        on poc.fixture_id    = fs.fixture_id
-                       and poc.bookmaker_id  = fs.bookmaker_id
-                       and poc.market_id     = fs.market_id
-                       and lower(coalesce(poc.label, '')) = lower(coalesce(fs.label, ''))
-                       and coalesce(nullif(poc.total, ''), '-') = coalesce(nullif(fs.total, ''), '-')
-                       and coalesce(nullif(poc.handicap, ''), '-') = coalesce(nullif(fs.handicap, ''), '-')
-                       and poc.value::numeric(12,4) = fs.odd_value::numeric(12,4)
+                with current_odds as (
+                    select
+                        poc.id            as odds_current_id,
+                        poc.fixture_id,
+                        poc.bookmaker_id,
+                        poc.market_id,
+                        poc.label,
+                        nullif(poc.total, '')    as total,
+                        nullif(poc.handicap, '') as handicap,
+                        poc.value::numeric(12,4) as odd_value,
+                        coalesce(poc.feed_type, 'standard') as feed_type,
+                        poc.winning              as bet_winning,
+                        f.state_id               as match_state,
+                        f.starting_at            as fixture_starting_at,
+                        f.league_id,
+                        lower(coalesce(poc.label, ''))
+                            || ':' || coalesce(nullif(poc.total, ''), '-')
+                            || ':' || coalesce(nullif(poc.handicap, ''), '-')
+                            || ':' || to_char(poc.value::numeric, 'FM99999990.0000')
+                            as outcome_key
+                    from odds.prematch_odds_current poc
+                    inner join football.fixtures f on f.id = poc.fixture_id
                     {baseWhere}
+                ),
+                joined as (
+                    -- The snapshot row for an outcome lives at
+                    -- (bookmaker, market, outcome_key, feed_type, as_of_date).
+                    -- Today's snapshot is rebuilt nightly from settled history,
+                    -- so the JOIN attaches today's stat row to whatever the
+                    -- current odd happens to be at request time.
+                    select
+                        c.fixture_id,
+                        c.odds_current_id,
+                        c.feed_type,
+                        c.bookmaker_id,
+                        c.market_id,
+                        s.window_code,
+                        c.outcome_key,
+                        c.label,
+                        c.odd_value,
+                        c.total,
+                        c.handicap,
+                        c.match_state,
+                        c.bet_winning,
+                        s.win_count,
+                        s.lost_count,
+                        (s.win_count + s.lost_count) as sample_count,
+                        s.winning_percent,
+                        s.earning_percent,
+                        (s.win_count + s.lost_count)::numeric as n_obs,
+                        case
+                            when (s.win_count + s.lost_count) = 0 then null
+                            else s.win_count::numeric / (s.win_count + s.lost_count)
+                        end as p_hat
+                    from current_odds c
+                    inner join analytics.odd_analysis_snapshots s
+                        on s.bookmaker_id = c.bookmaker_id
+                       and s.market_id   = c.market_id
+                       and s.outcome_key = c.outcome_key
+                       and s.feed_type   = c.feed_type
+                       and s.as_of_date  = current_date{windowFilter}
+                ),
+                scored as (
+                    -- Wilson lower bound at z=1.96 (95% one-sided): penalises
+                    -- small samples — 10/10 ≈ 0.72, 100/100 ≈ 0.96, 3/3 ≈ 0.44.
+                    select j.*,
+                        case
+                            when j.n_obs = 0 or j.p_hat is null then 0
+                            else round(
+                                100.0 * (
+                                    (j.p_hat + 1.9208 / j.n_obs
+                                     - 1.96 * sqrt(j.p_hat * (1.0 - j.p_hat) / j.n_obs
+                                                   + 0.9604 / (j.n_obs * j.n_obs)))
+                                    / (1.0 + 3.8416 / j.n_obs)
+                                ),
+                                4
+                            )
+                        end as confidence_score
+                    from joined j
+                ),
+                ranked as (
+                    select sc.*,
+                        row_number() over (
+                            partition by bookmaker_id, market_id, window_code
+                            order by confidence_score desc nulls last,
+                                     sample_count desc
+                        ) as rank_order
+                    from scored sc
                 ),
                 market_inv_sum as (
                     -- Σ(1/oran) per (fixture, bookmaker, market, total, handicap)
-                    -- computed from prematch_odds_current — fixture_signals
-                    -- only has outcomes that produced settled history, so
-                    -- partitioning over it can leave a single-outcome group
-                    -- and inflate İKO to 100%. The (total, handicap) part
-                    -- keeps separate betting lines apart: Over/Under 2.5 is a
+                    -- — needed for İKO. The (total, handicap) part keeps
+                    -- separate betting lines apart: Over/Under 2.5 is a
                     -- different market than Over/Under 3.5 even though they
                     -- share market_id 80.
                     select poc.fixture_id, poc.bookmaker_id, poc.market_id,
@@ -184,8 +258,7 @@ namespace PreOddsApi.WebApi.V3.Data
                            sum(1.0 / poc.value::numeric) as inv_sum
                     from odds.prematch_odds_current poc
                     where (poc.fixture_id, poc.bookmaker_id, poc.market_id) in (
-                        select distinct b.fixture_id, b.bookmaker_id, b.market_id
-                        from base b
+                        select distinct r.fixture_id, r.bookmaker_id, r.market_id from ranked r
                     )
                     and poc.value::numeric > 0
                     group by poc.fixture_id, poc.bookmaker_id, poc.market_id,
@@ -196,41 +269,46 @@ namespace PreOddsApi.WebApi.V3.Data
                     -- İKO = (1/oran) / Σ(1/oran), expressed as a percentage.
                     -- Equivalent to the bookmaker's implied probability after
                     -- stripping the vig.
-                    select b.*,
+                    select r.*,
                            round(
-                               100.0 * (1.0 / b.odd_value) /
+                               100.0 * (1.0 / r.odd_value) /
                                nullif(mi.inv_sum, 0),
                                4
                            ) as iko
-                    from base b
+                    from ranked r
                     left join market_inv_sum mi
-                       on mi.fixture_id   = b.fixture_id
-                      and mi.bookmaker_id = b.bookmaker_id
-                      and mi.market_id    = b.market_id
-                      and mi.total_key    = coalesce(nullif(b.total, ''), '-')
-                      and mi.handicap_key = coalesce(nullif(b.handicap, ''), '-')
-                )
-                ,
+                       on mi.fixture_id   = r.fixture_id
+                      and mi.bookmaker_id = r.bookmaker_id
+                      and mi.market_id    = r.market_id
+                      and mi.total_key    = coalesce(nullif(r.total, ''), '-')
+                      and mi.handicap_key = coalesce(nullif(r.handicap, ''), '-')
+                ),
                 row_filtered as (
                     select with_iko.*,
                            {fixtureRankSelect}
                     from with_iko
                     {rowWhere}
                 )
-                select id, fixture_id, fixture_signal_id, bookmaker_id, market_id,
-                       window_code, outcome_key, label, odd_value, total, handicap,
-                       win_count, lost_count, sample_count,
-                       winning_percent, earning_percent, confidence_score, iko,
-                       rank_order, match_state, bet_winning,
-                       count(*) over() as total_count,
-                       sum(sample_count) over() as total_samples,
-                       avg(winning_percent) over() as avg_winning_percent,
-                       avg(earning_percent) over() as avg_earning_percent,
-                       avg(odd_value) over() as avg_odd_value,
-                       count(*) filter (where bet_winning is true) over() as success_count,
-                       count(*) filter (where bet_winning is false) over() as fail_count,
-                       coalesce(sum(odd_value) filter (where bet_winning is true) over(), 0) as earning_total,
-                       max(as_of_date) over() as as_of_date_max
+                select
+                    md5(
+                        fixture_id::text || ':' || bookmaker_id::text || ':' || market_id::text || ':' || outcome_key
+                    )::uuid as id,
+                    fixture_id,
+                    null::uuid as fixture_signal_id,
+                    bookmaker_id, market_id,
+                    window_code, outcome_key, label, odd_value, total, handicap,
+                    win_count, lost_count, sample_count,
+                    winning_percent, earning_percent, confidence_score, iko,
+                    rank_order, match_state, bet_winning,
+                    count(*) over() as total_count,
+                    sum(sample_count) over() as total_samples,
+                    avg(winning_percent) over() as avg_winning_percent,
+                    avg(earning_percent) over() as avg_earning_percent,
+                    avg(odd_value) over() as avg_odd_value,
+                    count(*) filter (where bet_winning is true) over() as success_count,
+                    count(*) filter (where bet_winning is false) over() as fail_count,
+                    coalesce(sum(odd_value) filter (where bet_winning is true) over(), 0) as earning_total,
+                    current_date as as_of_date_max
                 from row_filtered
                 {fixtureCapClause}
                 order by {orderBy}

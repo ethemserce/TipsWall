@@ -44,7 +44,6 @@ with expected(schema_name, table_name) as (values
     ('odds',        'inplay_odds_history'),
     ('analytics',   'analysis_windows'),
     ('analytics',   'odd_analysis_snapshots'),
-    ('analytics',   'fixture_signals'),
     ('analytics',   'season_stats'),
     ('analytics',   'season_team_stats'),
     ('app',         'users'),

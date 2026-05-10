@@ -174,105 +174,16 @@ namespace PreOddsApi.ExternalApis.Analytics
             return rows;
         }
 
-        public async Task<int> RunFixtureSignalsAsync(CancellationToken cancellationToken = default)
+        public Task<int> RunFixtureSignalsAsync(CancellationToken cancellationToken = default)
         {
-            // Single row per (fixture, market, outcome, window). Replaces the
-            // earlier UNION-of-3 (hot/winning/earning) layout — sort and filter
-            // are now runtime concerns on top of one normalised dataset.
-            //
-            // confidence_score = Wilson lower bound at z=1.96 (95% one-sided),
-            // computed on (win_count, sample_count). Penalises small samples
-            // automatically: 10/10 ≈ 0.72, 100/100 ≈ 0.96, 3/3 ≈ 0.44.
-            const string sql = """
-                delete from analytics.fixture_signals where as_of_date = current_date;
-
-                with current_odds as (
-                    select
-                        o.id as odds_current_id, o.fixture_id, o.bookmaker_id, o.market_id,
-                        o.label,
-                        nullif(o.total, '') as total,
-                        nullif(o.handicap, '') as handicap,
-                        nullif(o.participants, '') as participants,
-                        o.value::numeric(12,4) as odd_value,
-                        coalesce(o.feed_type, 'standard') as feed_type,
-                        f.state_id as match_state,
-                        lower(coalesce(o.label, ''))
-                            || ':' || coalesce(nullif(o.total, ''), '-')
-                            || ':' || coalesce(nullif(o.handicap, ''), '-')
-                            || ':' || to_char(o.value::numeric, 'FM99999990.0000')
-                            as outcome_key
-                    from odds.prematch_odds_current o
-                    inner join football.fixtures f on f.id = o.fixture_id
-                ),
-                joined as (
-                    select c.fixture_id, c.odds_current_id, c.feed_type,
-                           c.bookmaker_id, c.market_id, s.window_code, c.outcome_key,
-                           c.label, c.odd_value, c.total, c.handicap, c.participants, c.match_state,
-                           s.win_count, s.lost_count, s.winning_percent, s.earning_percent,
-                           (s.win_count + s.lost_count)::numeric as n_obs,
-                           case
-                               when (s.win_count + s.lost_count) = 0 then null
-                               else s.win_count::numeric / (s.win_count + s.lost_count)
-                           end as p_hat
-                    from current_odds c
-                    inner join analytics.odd_analysis_snapshots s
-                        on s.bookmaker_id = c.bookmaker_id
-                       and s.market_id   = c.market_id
-                       and s.outcome_key = c.outcome_key
-                       and s.feed_type   = c.feed_type
-                       and s.as_of_date  = current_date
-                ),
-                scored as (
-                    select j.*,
-                           case
-                               when j.n_obs = 0 or j.p_hat is null then 0
-                               else round(
-                                   100.0 * (
-                                       (j.p_hat + 1.9208 / j.n_obs
-                                        - 1.96 * sqrt(j.p_hat * (1.0 - j.p_hat) / j.n_obs
-                                                      + 0.9604 / (j.n_obs * j.n_obs)))
-                                       / (1.0 + 3.8416 / j.n_obs)
-                                   ),
-                                   4
-                               )
-                           end as confidence_score
-                    from joined j
-                ),
-                ranked as (
-                    select *,
-                        row_number() over (
-                            partition by bookmaker_id, market_id, window_code
-                            order by confidence_score desc nulls last,
-                                     (win_count + lost_count) desc) as rank_order
-                    from scored
-                )
-                insert into analytics.fixture_signals (
-                    as_of_date, fixture_id, odds_current_id, feed_type,
-                    signal_type, bookmaker_id, market_id, window_code, outcome_key,
-                    label, odd_value, total, handicap, participants,
-                    win_count, lost_count, winning_percent, earning_percent,
-                    confidence_score, rank_order, filters, metrics)
-                select current_date, fixture_id, odds_current_id, feed_type,
-                       'custom', bookmaker_id, market_id, window_code, outcome_key,
-                       label, odd_value, total, handicap, participants,
-                       win_count, lost_count, winning_percent, earning_percent,
-                       confidence_score, rank_order,
-                       jsonb_build_object(
-                           'min_sample',      (win_count + lost_count) >= 3,
-                           'positive_edge',   earning_percent > 0,
-                           'high_confidence', winning_percent >= 60),
-                       jsonb_build_object(
-                           'sample_count', (win_count + lost_count),
-                           'odd_value',    odd_value)
-                from ranked;
-                """;
-
-            await using var connection = await OpenAsync(cancellationToken);
-            await using var command = new NpgsqlCommand(sql, connection);
-            var rows = await command.ExecuteNonQueryAsync(cancellationToken);
-
-            _logger.LogInformation("Analytics fixture_signals refresh affected {Rows} rows.", rows);
-            return rows;
+            // No-op: the fixture_signals materialised table is being retired.
+            // /v3/signals now joins prematch_odds_current × odd_analysis_snapshots
+            // at request time (see PostgresAnalyticsReader.GetSignalsAsync), so
+            // the precomputed snapshot served by this method is dead weight.
+            // Migration 020 will drop the table; until then it sits empty.
+            _logger.LogInformation(
+                "Analytics fixture_signals refresh is a no-op (Yol A: runtime JOIN).");
+            return Task.FromResult(0);
         }
 
         private async Task<NpgsqlConnection> OpenAsync(CancellationToken cancellationToken)
