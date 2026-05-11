@@ -215,6 +215,39 @@ export function clearDraft() {
   emit();
 }
 
+/**
+ * Wipes every saved + draft pick from the device. Called from the
+ * auth lifecycle when tokens are cleared (logout / account deletion /
+ * forced sign-out on refresh failure) so the *previous* logged-in
+ * user's picks don't leak to whoever opens the app next on the same
+ * device. Signup-time migration intentionally does NOT call this —
+ * a fresh signup keeps the guest's local picks as the seed of their
+ * new account.
+ *
+ * No-op when the store hasn't hydrated yet: clearing before the disk
+ * read settles would race the hydrate completion and overwrite the
+ * disk with empty state. The auth lifecycle only calls this from
+ * user-driven paths, so by then hydration has long since finished.
+ */
+export function clearAllCoupons() {
+  if (!state.hydrated) return;
+  state = { draft: emptyDraft(), saved: [], hydrated: true };
+  persist();
+  emit();
+}
+
+/**
+ * Snapshot pick counts — used by signup to detect "the guest had N
+ * picks they're about to bring into their new account" and surface a
+ * confirmation toast.
+ */
+export function getCouponCounts(): { draft: number; saved: number } {
+  return {
+    draft: state.draft.selections.length,
+    saved: state.saved.length,
+  };
+}
+
 export function saveDraft(name?: string): Coupon | null {
   if (state.draft.selections.length === 0) return null;
   const now = new Date().toISOString();

@@ -240,7 +240,11 @@
       "passwordHint": "En az {{min}} karakter",
       "legal": "Üye olarak Kullanım Koşulları ve Gizlilik Politikası'nı kabul etmiş olursun.",
       "haveAccount": "Zaten üye misin?",
-      "loginLink": "Giriş yap"
+      "loginLink": "Giriş yap",
+      "migrationToastTitle": "Hoş geldin 🎉",
+      "migrationToastBody": "{{count}} tahminin hesabına bağlandı.",
+      "welcomeToastTitle": "Hoş geldin 🎉",
+      "welcomeToastBody": "Hesabın hazır. Tahmin etmeye başlayabilirsin."
     },
     "forgot": {
       "title": "Şifremi Unuttum",

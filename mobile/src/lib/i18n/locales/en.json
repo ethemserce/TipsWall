@@ -240,7 +240,11 @@
       "passwordHint": "At least {{min}} characters",
       "legal": "By signing up you agree to the Terms of Service and Privacy Policy.",
       "haveAccount": "Already a member?",
-      "loginLink": "Log in"
+      "loginLink": "Log in",
+      "migrationToastTitle": "Welcome 🎉",
+      "migrationToastBody": "{{count}} picks moved into your account.",
+      "welcomeToastTitle": "Welcome 🎉",
+      "welcomeToastBody": "Your account is ready. Start picking."
     },
     "forgot": {
       "title": "Forgot password",

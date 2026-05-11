@@ -17,6 +17,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { signup } from '@/src/api/auth';
 import { ApiClientError } from '@/src/api/client';
+import { getCouponCounts } from '@/src/lib/coupons/store';
+import { notify } from '@/src/lib/toasts';
 import { useTheme } from '@/src/lib/useTheme';
 
 // Server enforces these too, but failing fast on-device skips a
@@ -56,6 +58,11 @@ export default function SignupScreen() {
     }
     setError(null);
     setSubmitting(true);
+    // Snapshot local pick count BEFORE signup — used to surface a
+    // "X tahminin hesabına bağlandı" toast so the user sees their
+    // guest-mode work carrying over.
+    const counts = getCouponCounts();
+    const carryOver = counts.draft + counts.saved;
     try {
       await signup({
         username: username.trim(),
@@ -65,6 +72,19 @@ export default function SignupScreen() {
       // Successful signup auto-logs the user in. Pop the auth stack.
       if (router.canGoBack()) router.back();
       else router.replace('/');
+      if (carryOver > 0) {
+        notify({
+          kind: 'win',
+          title: t('auth.signup.migrationToastTitle'),
+          body: t('auth.signup.migrationToastBody', { count: carryOver }),
+        });
+      } else {
+        notify({
+          kind: 'info',
+          title: t('auth.signup.welcomeToastTitle'),
+          body: t('auth.signup.welcomeToastBody'),
+        });
+      }
     } catch (err) {
       const msg =
         err instanceof ApiClientError

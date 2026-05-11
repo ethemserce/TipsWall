@@ -7,6 +7,7 @@ import {
   writeAccessToken,
   writeRefreshToken,
 } from '@/src/lib/auth/tokenStorage';
+import { clearAllCoupons } from '@/src/lib/coupons/store';
 
 /**
  * Module-level auth state. Mirrors the coupon-store pattern: a single shared
@@ -86,6 +87,10 @@ export async function setAccessToken(accessToken: string): Promise<void> {
 export async function clearTokens(): Promise<void> {
   state = { ...state, accessToken: null, refreshToken: null };
   emit();
+  // Picks on disk belonged to whoever was logged in (or the guest path
+  // before login). Wipe them at the same time tokens go away so the
+  // next session — whether guest or a different user — starts fresh.
+  clearAllCoupons();
   await clearAllTokens();
 }
 
