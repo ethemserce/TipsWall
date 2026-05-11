@@ -125,6 +125,11 @@ builder.Services.AddSingleton<PreOddsApi.WebApi.V3.Data.IUserDataService,
     PreOddsApi.WebApi.V3.Data.PostgresUserDataService>();
 builder.Services.AddSingleton<PreOddsApi.WebApi.V3.Data.IGuestQuotaService,
     PreOddsApi.WebApi.V3.Data.PostgresGuestQuotaService>();
+builder.Services.AddSingleton<PreOddsApi.WebApi.V3.Data.ISocialIdentityService,
+    PreOddsApi.WebApi.V3.Data.PostgresSocialIdentityService>();
+builder.Services.AddSingleton<PreOddsApi.WebApi.V3.Auth.ISocialTokenVerifier,
+    PreOddsApi.WebApi.V3.Auth.SocialTokenVerifier>();
+builder.Services.AddSingleton(PreOddsApi.WebApi.V3.Auth.SocialAuthOptions.Load(builder.Configuration));
 builder.Services.AddSingleton<PreOddsApi.WebApi.V3.Data.IAnalyticsReader,
     PreOddsApi.WebApi.V3.Data.PostgresAnalyticsReader>();
 

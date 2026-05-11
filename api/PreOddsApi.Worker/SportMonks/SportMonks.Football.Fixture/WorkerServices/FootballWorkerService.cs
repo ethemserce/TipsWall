@@ -33,6 +33,7 @@ namespace SportMonks.Football.FixtureWorker.Services
             public const string PrematchOdds = "worker.football.prematch-odds";
             public const string InplayOdds = "worker.football.inplay-odds";
             public const string Analytics = "worker.football.analytics";
+            public const string AccountPurge = "worker.football.account-purge";
         }
 
         private static readonly string[] FixtureSyncIncludes =
@@ -158,6 +159,7 @@ namespace SportMonks.Football.FixtureWorker.Services
         private readonly ISportMonksMatchFactsWriter _matchFactsWriter;
         private readonly IAnalyticsEngine _analyticsEngine;
         private readonly IFixtureLiveBridge _liveBridge;
+        private readonly PreOddsApi.ExternalApis.Accounts.IAccountPurgeService _accountPurge;
 
         private List<League> _cachedLeagues = [];
 
@@ -184,7 +186,8 @@ namespace SportMonks.Football.FixtureWorker.Services
             ISportMonksValueBetsWriter valueBetsWriter,
             ISportMonksMatchFactsWriter matchFactsWriter,
             IAnalyticsEngine analyticsEngine,
-            IFixtureLiveBridge liveBridge)
+            IFixtureLiveBridge liveBridge,
+            PreOddsApi.ExternalApis.Accounts.IAccountPurgeService accountPurge)
         {
             _logger = logger;
             _configuration = configuration;
@@ -209,6 +212,7 @@ namespace SportMonks.Football.FixtureWorker.Services
             _matchFactsWriter = matchFactsWriter;
             _analyticsEngine = analyticsEngine;
             _liveBridge = liveBridge;
+            _accountPurge = accountPurge;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -299,6 +303,7 @@ namespace SportMonks.Football.FixtureWorker.Services
             await MaybeRunTvStationsAsync(cancellationToken);
             await MaybeRunFixtureBacklogAsync(cancellationToken);
             await MaybeRunAnalyticsAsync(cancellationToken);
+            await MaybeRunAccountPurgeAsync(cancellationToken);
         }
 
         private async Task MaybeRunReferenceDataAsync(CancellationToken cancellationToken)
@@ -1383,6 +1388,34 @@ namespace SportMonks.Football.FixtureWorker.Services
                 await _analyticsEngine.RunFixtureSignalsAsync(cancellationToken);
 
             _scheduler.RecordRun(ScheduleKey.Analytics);
+        }
+
+        /// <summary>
+        /// Hard-removes soft-deleted accounts whose audit row is older
+        /// than the configured retention window. Runs once a day; the
+        /// retention window defaults to 30 days (Apple/Google's standard
+        /// "this should actually disappear" expectation).
+        /// </summary>
+        private async Task MaybeRunAccountPurgeAsync(CancellationToken cancellationToken)
+        {
+            var interval = GetInteger(
+                "AccountPurge:IntervalSeconds", 86400);
+            if (!_scheduler.ShouldRun(ScheduleKey.AccountPurge, interval))
+                return;
+
+            var retentionDays = GetInteger("AccountPurge:RetentionDays", 30);
+            try
+            {
+                await _accountPurge.PurgeStaleAccountsAsync(
+                    retentionDays, cancellationToken);
+            }
+            catch (System.Exception ex)
+            {
+                _logger.LogError(
+                    ex, "Account purge job failed; will retry on the next tick.");
+            }
+
+            _scheduler.RecordRun(ScheduleKey.AccountPurge);
         }
 
         private string GetFixtureByDateRangeEndpoint()

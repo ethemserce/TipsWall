@@ -29,17 +29,23 @@ namespace PreOddsApi.WebApi.V3.Controllers
         private readonly IRefreshTokenService _refreshTokens;
         private readonly IAccountTokenService _accountTokens;
         private readonly AuthOptions _authOptions;
+        private readonly ISocialTokenVerifier _socialVerifier;
+        private readonly ISocialIdentityService _socialIdentity;
 
         public AuthController(
             IUserIdentityService identity,
             IRefreshTokenService refreshTokens,
             IAccountTokenService accountTokens,
-            AuthOptions authOptions)
+            AuthOptions authOptions,
+            ISocialTokenVerifier socialVerifier,
+            ISocialIdentityService socialIdentity)
         {
             _identity = identity;
             _refreshTokens = refreshTokens;
             _accountTokens = accountTokens;
             _authOptions = authOptions;
+            _socialVerifier = socialVerifier;
+            _socialIdentity = socialIdentity;
         }
 
         [AllowAnonymous]
@@ -89,6 +95,57 @@ namespace PreOddsApi.WebApi.V3.Controllers
             }
 
             var user = outcome.User!;
+            var refresh = await _refreshTokens.IssueAsync(
+                user.Id, GetUserAgent(), GetIpAddress(), ct);
+
+            return Ok(ApiResponse<AuthResponseDto>.Ok(new AuthResponseDto
+            {
+                User = user,
+                AccessToken = GenerateAccessToken(user),
+                RefreshToken = refresh.RawToken,
+                TokenType = "Bearer",
+                ExpiresIn = _authOptions.AccessTokenLifetimeSeconds
+            }));
+        }
+
+        [AllowAnonymous]
+        [HttpPost("social-signin")]
+        public async Task<IActionResult> SocialSignInAsync(
+            [FromBody] SocialSignInRequest request,
+            CancellationToken ct)
+        {
+            // Both Apple and Google return a signed JWT (id_token). The
+            // mobile client posts it here; the server verifies signature
+            // + audience against the configured OAuth client IDs, then
+            // either finds the existing identity or creates a new user.
+            if (request == null ||
+                string.IsNullOrWhiteSpace(request.Provider) ||
+                string.IsNullOrWhiteSpace(request.IdToken))
+            {
+                return BadRequestResponse("provider and id_token are required.");
+            }
+
+            var provider = request.Provider.Trim().ToLowerInvariant();
+            SocialIdentityProfile profile;
+            try
+            {
+                profile = provider switch
+                {
+                    "apple" => await _socialVerifier.VerifyAppleAsync(request.IdToken, ct),
+                    "google" => await _socialVerifier.VerifyGoogleAsync(request.IdToken, ct),
+                    _ => throw new SocialTokenInvalidException(
+                        $"Unsupported provider '{provider}'."),
+                };
+            }
+            catch (SocialTokenInvalidException ex)
+            {
+                return Unauthorized(ApiResponse<object>.Fail(
+                    ApiError.Codes.Unauthorized, ex.Message));
+            }
+
+            var user = await _socialIdentity.UpsertFromProviderAsync(
+                provider, profile.Subject, profile.Email, profile.Name, ct);
+
             var refresh = await _refreshTokens.IssueAsync(
                 user.Id, GetUserAgent(), GetIpAddress(), ct);
 

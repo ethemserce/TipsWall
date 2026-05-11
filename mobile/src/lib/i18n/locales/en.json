@@ -261,6 +261,14 @@
       "emailTaken": "An account with this email already exists.",
       "passwordShort": "Password must be at least {{min}} characters.",
       "network": "Connection error. Please try again."
+    },
+    "social": {
+      "dividerLabel": "OR",
+      "appleBtn": "Continue with Apple",
+      "googleBtn": "Continue with Google",
+      "errorTitle": "Sign-in failed",
+      "errorApple": "Apple sign-in could not complete.",
+      "errorGoogle": "Google sign-in could not complete."
     }
   },
   "settings": {

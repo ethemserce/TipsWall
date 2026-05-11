@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { signup } from '@/src/api/auth';
 import { ApiClientError } from '@/src/api/client';
+import { SocialSignInButtons } from '@/src/components/SocialSignInButtons';
 import { getCouponCounts } from '@/src/lib/coupons/store';
 import { notify } from '@/src/lib/toasts';
 import { useTheme } from '@/src/lib/useTheme';
@@ -236,6 +237,8 @@ export default function SignupScreen() {
               </ThemedText>
             )}
           </Pressable>
+
+          <SocialSignInButtons />
 
           <ThemedText style={[styles.legal, { color: c.textMuted }]}>
             {t('auth.signup.legal')}

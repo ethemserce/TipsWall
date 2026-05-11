@@ -38,6 +38,9 @@ namespace PreOddsApi.ExternalApis.DependencyInjection
             services.AddSingleton<ISportMonksValueBetsWriter, SportMonksValueBetsWriter>();
             services.AddSingleton<ISportMonksMatchFactsWriter, SportMonksMatchFactsWriter>();
             services.AddSingleton<IAnalyticsEngine, PostgresAnalyticsEngine>();
+            services.AddSingleton<
+                PreOddsApi.ExternalApis.Accounts.IAccountPurgeService,
+                PreOddsApi.ExternalApis.Accounts.PostgresAccountPurgeService>();
             services.AddHttpClient<ISportMonksApiClient, SportMonksApiClient>(httpClient =>
             {
                 httpClient.BaseAddress = new Uri(options.BaseUrl);

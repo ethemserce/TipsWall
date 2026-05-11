@@ -42,6 +42,22 @@ interface SignupPayload {
   display_name?: string | null;
 }
 
+/**
+ * Verifies a provider id_token on the server and signs in / creates
+ * a user keyed on (provider, sub). Same return shape as signup().
+ */
+export async function socialSignIn(
+  provider: 'apple' | 'google',
+  idToken: string,
+): Promise<AuthResponse> {
+  const body = await postAuth<AuthResponse>('/auth/social-signin', {
+    provider,
+    id_token: idToken,
+  });
+  await setTokens(body.access_token, body.refresh_token);
+  return body;
+}
+
 /** Logs in with a username-or-email + password. Stores tokens on success. */
 export async function login(
   usernameOrEmail: string,

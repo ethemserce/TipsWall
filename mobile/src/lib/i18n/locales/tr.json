@@ -261,6 +261,14 @@
       "emailTaken": "Bu e-posta ile zaten bir hesap var.",
       "passwordShort": "Şifre en az {{min}} karakter olmalı.",
       "network": "Bağlantı hatası. Lütfen tekrar dene."
+    },
+    "social": {
+      "dividerLabel": "VEYA",
+      "appleBtn": "Apple ile devam et",
+      "googleBtn": "Google ile devam et",
+      "errorTitle": "Giriş başarısız",
+      "errorApple": "Apple ile giriş tamamlanamadı.",
+      "errorGoogle": "Google ile giriş tamamlanamadı."
     }
   },
   "settings": {

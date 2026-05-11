@@ -126,6 +126,61 @@ LAN IP changes between sessions — `Get-NetIPAddress -InterfaceAlias 'Wi-Fi'`
 gets the current one. Windows Firewall sometimes blocks 19002/28333 on
 fresh networks; `New-NetFirewallRule` once per port.
 
+## Membership system
+
+3-tier freemium: **guest** (no account) / **free** (registered) / **premium**
+(paid yearly). Tier lives on `app.users.tier` and is stamped into every
+JWT as the `tier` claim. Mobile reads it via `useTier()`.
+
+- **Guest quota**: 2 picks/day, counted on `app.guest_pick_quotas` keyed
+  by mobile-minted UUID `device_id`. Over-limit hit pops `QuotaLimitModal`.
+- **Auth screens**: `mobile/app/auth/{login,signup,forgot-password}.tsx`
+  use email+password against `/api/v3/auth/{token,signup,forgot-password}`.
+- **Social sign-in**: Apple + Google via `expo-apple-authentication` +
+  `expo-auth-session`. Both pass `id_token` JWT to
+  `POST /api/v3/auth/social-signin` which verifies signature against the
+  provider's JWKS, then upserts an `app.user_auth_identities` row.
+  Apple button shows only on iOS. Google button shows only when at
+  least one `EXPO_PUBLIC_GOOGLE_CLIENT_ID_*` env is set.
+- **Account deletion**: `DELETE /api/v3/auth/me` soft-deletes (scrub PII,
+  status='deleted', revoke refresh tokens). The Football worker's
+  nightly tier hard-removes rows whose audit is >30 days old
+  (`AccountPurge:RetentionDays` config).
+
+### OAuth credentials (per environment)
+
+Server reads from env (or `Authentication:Social:*` config keys):
+
+```
+PREODDS_APPLE_CLIENT_ID            = com.tipswall.app        # Bundle ID
+PREODDS_GOOGLE_CLIENT_ID_IOS       = NNNNNN-...apps.googleusercontent.com
+PREODDS_GOOGLE_CLIENT_ID_ANDROID   = NNNNNN-...apps.googleusercontent.com
+PREODDS_GOOGLE_CLIENT_ID_WEB       = NNNNNN-...apps.googleusercontent.com
+```
+
+Mobile reads from `EXPO_PUBLIC_*` (must be set at Metro start time):
+
+```
+EXPO_PUBLIC_GOOGLE_CLIENT_ID_IOS
+EXPO_PUBLIC_GOOGLE_CLIENT_ID_ANDROID
+EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB
+```
+
+Apple needs no mobile env — the bundle id from `app.json` + the device's
+Apple ID handles it. Google requires the web client id even in iOS
+because Expo Auth Session's PKCE flow routes through the web client.
+
+Setup checklist (do once before shipping):
+1. **Apple Developer**: Add "Sign In with Apple" capability to the app
+   bundle. Configure the Service ID + return URL if you also want
+   web-based Apple sign-in. Set `PREODDS_APPLE_CLIENT_ID` to the bundle
+   id (e.g. `com.tipswall.app`).
+2. **Google Cloud → Credentials**: Create OAuth 2.0 client IDs:
+   - iOS app type, bundle id matching `app.json`
+   - Android app type, package + SHA-1 from your keystore
+   - Web app type (used by Expo's auth flow)
+3. Set all four server-side env vars + three mobile env vars.
+
 ## Pending business decisions
 
 - **SportMonks subscription**: user planned to purchase Starter (€29) +
