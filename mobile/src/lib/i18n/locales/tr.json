@@ -84,16 +84,39 @@
       "kupon": "Tahmin",
       "won": "İsabet",
       "hitRate": "Tutturma",
+      "streakHit": "Üst üste {{count}} isabet 🔥",
+      "streakMiss": "Üst üste {{count}} kaçan",
       "calibration": "KALİBRASYON ({{count}} tahmin)",
       "calibrationSystem": "Sistem",
       "calibrationUser": "Sen",
       "deltaPoints": "{{delta}} puan",
       "deltaAbove": "sistemin üstünde",
       "deltaBelow": "sistemin altında",
+      "riskProfile": "RİSK PROFİLİN ({{count}} tahmin)",
+      "riskAvgImp": "ORT. IMP",
+      "riskTiers": {
+        "low": "Düşük Risk",
+        "mid": "Dengeli",
+        "high": "Cüretkâr"
+      },
+      "riskHints": {
+        "low": "Genelde favorisi belli tahminler seçiyorsun. Sık isabet, küçük katkı.",
+        "mid": "Orta yolu tutmuşsun. Risk ve isabet dengesi makul.",
+        "high": "Cüretkâr seçimler yapıyorsun. Az tutuyor ama tuttuğunda büyük."
+      },
       "marketBreakdown": "TAHMİN PERFORMANSI",
       "legendSystem": "Sistem (HIT ort.)",
       "legendUser": "Sen (gerçek)",
       "legendCount": "{{count}} tahmin"
+    },
+    "guestStats": {
+      "title": "Tahminlerini takip etmek için üye ol",
+      "body": "Üye olunca her tahminin sonucu otomatik takip edilir. Sezon boyunca ne kadar isabetli olduğunu görürsün.",
+      "bulletHit": "Tutturma yüzden + kalibrasyon",
+      "bulletCalibration": "Sistemin önerdiğiyle senin tercihin karşılaştırması",
+      "bulletStreak": "Aktif seri + market başına performans",
+      "signupBtn": "ÜCRETSİZ ÜYE OL",
+      "loginBtn": "Giriş yap"
     }
   },
   "filters": {

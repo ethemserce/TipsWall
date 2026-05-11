@@ -10,6 +10,8 @@ import {
   computeCalibrationTimeline,
   computeCouponStats,
   computeMarketBreakdown,
+  computeRiskProfile,
+  computeStreak,
   type CalibrationPoint,
 } from '@/src/lib/coupons/stats';
 import type { Coupon } from '@/src/lib/coupons/types';
@@ -36,12 +38,17 @@ export function CouponStatsCard({ coupons }: CouponStatsCardProps) {
     () => computeCalibrationTimeline(coupons),
     [coupons],
   );
+  const streak = useMemo(() => computeStreak(coupons), [coupons]);
+  const riskProfile = useMemo(() => computeRiskProfile(coupons), [coupons]);
 
   // Render nothing until there's at least one settled coupon so we don't
   // show empty stats on first install.
   if (stats.settledCoupons === 0) return null;
 
   const hitRate = stats.couponHitRate;
+  // Streak banner only when it's interesting — ≥2 consecutive hits or
+  // misses. Single-pick "streaks" are noise.
+  const showStreak = Math.abs(streak.length) >= 2;
 
   return (
     <View
@@ -77,6 +84,33 @@ export function CouponStatsCard({ coupons }: CouponStatsCardProps) {
           color={c.textMuted}
         />
       </Pressable>
+
+      {showStreak ? (
+        <View
+          style={[
+            styles.streakBanner,
+            {
+              backgroundColor:
+                streak.length > 0 ? c.successSoft : c.dangerSoft,
+              borderTopColor: c.border,
+            },
+          ]}>
+          <MaterialCommunityIcons
+            name={streak.length > 0 ? 'fire' : 'arrow-down-bold-circle'}
+            size={16}
+            color={streak.length > 0 ? c.success : c.danger}
+          />
+          <ThemedText
+            style={[
+              styles.streakText,
+              { color: streak.length > 0 ? c.success : c.danger },
+            ]}>
+            {streak.length > 0
+              ? t('coupons.stats.streakHit', { count: streak.length })
+              : t('coupons.stats.streakMiss', { count: -streak.length })}
+          </ThemedText>
+        </View>
+      ) : null}
 
       <View style={[styles.summary, { borderTopColor: c.border }]}>
         <Stat
@@ -138,6 +172,34 @@ export function CouponStatsCard({ coupons }: CouponStatsCardProps) {
               {timeline.length >= 2 ? (
                 <CalibrationTimelineChart points={timeline} />
               ) : null}
+            </View>
+          ) : null}
+
+          {riskProfile ? (
+            <View style={[styles.breakdown, { borderTopColor: c.border }]}>
+              <ThemedText style={[styles.sectionLabel, { color: c.textMuted }]}>
+                {t('coupons.stats.riskProfile', { count: riskProfile.sampleSize })}
+              </ThemedText>
+              <View style={styles.riskRow}>
+                <ThemedText
+                  style={[
+                    styles.riskTierText,
+                    { color: c.brand },
+                  ]}>
+                  {t(`coupons.stats.riskTiers.${riskProfile.tier}`)}
+                </ThemedText>
+                <View style={styles.riskMetric}>
+                  <ThemedText style={[styles.riskMetricLabel, { color: c.textMuted }]}>
+                    {t('coupons.stats.riskAvgImp')}
+                  </ThemedText>
+                  <ThemedText style={[styles.riskMetricValue, { color: c.text }]}>
+                    %{riskProfile.averageImpPercent.toFixed(0)}
+                  </ThemedText>
+                </View>
+              </View>
+              <ThemedText style={[styles.riskHint, { color: c.textMuted }]}>
+                {t(`coupons.stats.riskHints.${riskProfile.tier}`)}
+              </ThemedText>
             </View>
           ) : null}
 
@@ -477,5 +539,49 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '700',
     letterSpacing: 0.3,
+  },
+  streakBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  streakText: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  riskRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 4,
+    paddingBottom: 4,
+  },
+  riskTierText: {
+    fontSize: 18,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+  riskMetric: {
+    alignItems: 'flex-end',
+    gap: 1,
+  },
+  riskMetricLabel: {
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  riskMetricValue: {
+    fontSize: 16,
+    fontWeight: '800',
+    fontVariant: ['tabular-nums'],
+  },
+  riskHint: {
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: '500',
   },
 });

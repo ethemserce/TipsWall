@@ -84,16 +84,39 @@
       "kupon": "Picks",
       "won": "Hit",
       "hitRate": "Hit rate",
+      "streakHit": "{{count}} hits in a row 🔥",
+      "streakMiss": "{{count}} misses in a row",
       "calibration": "CALIBRATION ({{count}} picks)",
       "calibrationSystem": "System",
       "calibrationUser": "You",
       "deltaPoints": "{{delta}} pp",
       "deltaAbove": "above the system",
       "deltaBelow": "below the system",
+      "riskProfile": "YOUR RISK PROFILE ({{count}} picks)",
+      "riskAvgImp": "AVG IMP",
+      "riskTiers": {
+        "low": "Safe",
+        "mid": "Balanced",
+        "high": "Bold"
+      },
+      "riskHints": {
+        "low": "You tend to pick clear favourites. Frequent hits, smaller upside.",
+        "mid": "You're in the middle ground between safety and upside.",
+        "high": "You go for bold picks. Rare hits but big when they land."
+      },
       "marketBreakdown": "MARKET PERFORMANCE",
       "legendSystem": "System (avg HIT)",
       "legendUser": "You (actual)",
       "legendCount": "{{count}} picks"
+    },
+    "guestStats": {
+      "title": "Sign up to track your picks",
+      "body": "Once you sign up every pick is auto-tracked. See how accurate you are across the season.",
+      "bulletHit": "Hit rate + system calibration",
+      "bulletCalibration": "Your picks compared with the system's call",
+      "bulletStreak": "Active streak + per-market performance",
+      "signupBtn": "SIGN UP — IT'S FREE",
+      "loginBtn": "Log in"
     }
   },
   "filters": {

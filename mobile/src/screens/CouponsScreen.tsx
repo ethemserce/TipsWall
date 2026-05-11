@@ -14,6 +14,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { AppBrand } from '@/src/components/AppBrand';
 import { CouponStatsCard } from '@/src/components/CouponStatsCard';
+import { GuestStatsCTA } from '@/src/components/GuestStatsCTA';
+import { useTier } from '@/src/lib/auth/authStore';
 import { MarketLegendButton } from '@/src/components/MarketLegendButton';
 import { useFixtureLookup } from '@/src/hooks/useFixtureLookup';
 import { useLiveTicker } from '@/src/hooks/useLiveTicker';
@@ -93,6 +95,10 @@ export function CouponsScreen() {
   const { t } = useTranslation();
   const saved = useCouponStore((s) => s.saved);
   const hydrated = useCouponStore((s) => s.hydrated);
+  // Guest users see a CTA where the stats card would otherwise sit —
+  // the streak / calibration / market breakdown only make sense once
+  // there's a history the user owns.
+  const tier = useTier();
   // Settlement runs at the tab-shell level (app/(tabs)/_layout.tsx) so it's
   // active across every screen — no need to mount it here too.
 
@@ -218,7 +224,11 @@ export function CouponsScreen() {
           stickySectionHeadersEnabled={false}
           ListHeaderComponent={
             <View>
-              <CouponStatsCard coupons={saved} />
+              {tier === 'guest' ? (
+                <GuestStatsCTA />
+              ) : (
+                <CouponStatsCard coupons={saved} />
+              )}
               <View style={styles.dateFilterRow}>
                 {DATE_FILTERS.map(({ key, i18nKey }) => {
                   const active = dateFilter === key;

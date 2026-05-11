@@ -208,6 +208,88 @@ export function computeParlayMath(coupon: Coupon): ParlayMath | null {
  * point is the running average up through that pick, so the line smooths
  * out short-term streaks and converges as the sample grows.
  */
+export interface Streak {
+  /** Positive = consecutive hits, negative = consecutive misses, 0 = nothing settled yet. */
+  length: number;
+  /** Total settled selections (across coupons) the streak was computed from. */
+  totalSettled: number;
+}
+
+/**
+ * Current streak across all settled selections, ordered chronologically.
+ * "+3" = last three settled picks all hit; "-2" = last two missed. Used
+ * for a single-line motivational header in the stats card so the user
+ * sees momentum at a glance.
+ *
+ * Walks selections newest-first; the run stops as soon as the outcome
+ * flips. Coupons share an `updatedAt` timestamp so settlements within
+ * the same coupon stay grouped.
+ */
+export function computeStreak(saved: Coupon[]): Streak {
+  const settled: { ts: number; hit: boolean }[] = [];
+  for (const c of saved) {
+    const ts = Date.parse(c.updatedAt);
+    if (Number.isNaN(ts)) continue;
+    for (const s of c.selections) {
+      if (!selectionStarted(s)) continue;
+      if (s.betWinning !== true && s.betWinning !== false) continue;
+      settled.push({ ts, hit: s.betWinning === true });
+    }
+  }
+  if (settled.length === 0) return { length: 0, totalSettled: 0 };
+  settled.sort((a, b) => b.ts - a.ts); // newest first
+  const sign = settled[0].hit;
+  let n = 0;
+  for (const s of settled) {
+    if (s.hit !== sign) break;
+    n++;
+  }
+  return {
+    length: sign ? n : -n,
+    totalSettled: settled.length,
+  };
+}
+
+export type RiskTier = 'low' | 'mid' | 'high';
+
+export interface RiskProfile {
+  /** Average iko (no-vig implied probability, 0-100) across user picks. */
+  averageImpPercent: number;
+  /** Bucketed tier based on the average — mirrors the analysis filter chips. */
+  tier: RiskTier;
+  /** How many selections fed the average. */
+  sampleSize: number;
+}
+
+/**
+ * Translates the user's average pick iko into one of the three risk
+ * tiers the analysis filter uses (Düşük / Dengeli / Cüretkâr). High iko
+ * = high implied probability = "safe" pick territory. Same thresholds
+ * as RISK_THRESHOLDS in AnalysisFiltersSheet so the vocabulary stays
+ * consistent across the app.
+ *
+ * Returns null when no selections have an iko snapshot yet.
+ */
+export function computeRiskProfile(saved: Coupon[]): RiskProfile | null {
+  let ikoSum = 0;
+  let n = 0;
+  for (const c of saved) {
+    for (const s of c.selections) {
+      if (s.iko == null || s.iko <= 0) continue;
+      ikoSum += s.iko;
+      n++;
+    }
+  }
+  if (n === 0) return null;
+  const avg = ikoSum / n;
+  // RISK_THRESHOLDS uses min/max RATE, not iko, but iko is just
+  // 100/rate stripped of the vig — same shape, inverted axis.
+  // rate ≤ 1.8 → iko ≳ 55%, rate ≥ 3.0 → iko ≲ 33%.
+  const tier: RiskTier =
+    avg >= 55 ? 'low' : avg >= 33 ? 'mid' : 'high';
+  return { averageImpPercent: avg, tier, sampleSize: n };
+}
+
 export function computeCalibrationTimeline(saved: Coupon[]): CalibrationPoint[] {
   const settled: { ts: number; dso: number; hit: boolean }[] = [];
   for (const c of saved) {
