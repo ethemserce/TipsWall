@@ -94,6 +94,48 @@ export function isLoggedIn(): boolean {
 }
 
 /**
+ * Membership tier of the current user, derived from the JWT payload.
+ *  - 'guest'   → no access token (or token can't be decoded)
+ *  - 'free'    → registered but not premium
+ *  - 'premium' → active paid subscription
+ *
+ * The backend re-stamps `tier` into every freshly issued access token,
+ * so an upgrade only takes effect after the next refresh (≤15 min grace).
+ * Routes that need stricter enforcement should also gate server-side.
+ */
+export type MembershipTier = 'guest' | 'free' | 'premium';
+
+export function getTier(): MembershipTier {
+  if (state.accessToken == null) return 'guest';
+  const payload = decodeJwtPayload(state.accessToken);
+  const claim = typeof payload?.tier === 'string' ? payload.tier : null;
+  if (claim === 'premium' || claim === 'free') return claim;
+  return 'free';
+}
+
+/**
+ * Parses the base64url payload chunk of a JWT into a plain object.
+ * Doesn't verify the signature — that's the server's job; here we only
+ * need to read claims to drive UI. Returns null on any decode failure
+ * so callers can fall back to the safest tier (guest / free).
+ */
+function decodeJwtPayload(token: string): Record<string, unknown> | null {
+  try {
+    const parts = token.split('.');
+    if (parts.length < 2) return null;
+    const padded = parts[1] + '==='.slice((parts[1].length + 3) % 4);
+    const base64 = padded.replace(/-/g, '+').replace(/_/g, '/');
+    // atob is available in Hermes / RN runtime; if it ever isn't, the
+    // try/catch keeps us at the safe "guest" default.
+    const json = globalThis.atob ? globalThis.atob(base64) : null;
+    if (json == null) return null;
+    return JSON.parse(json) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * React subscription hook — re-renders when auth state changes.
  */
 export function useAuth(): AuthSnapshot {
@@ -104,4 +146,20 @@ export function useAuth(): AuthSnapshot {
     return unsubscribe;
   }, []);
   return snapshot;
+}
+
+/**
+ * React subscription hook for the membership tier. Re-renders whenever
+ * the access token changes (login, logout, refresh). Components can
+ * use this to branch UI: hide ROI gauges for guests, show "Üye Ol"
+ * CTAs, suppress AdMob for premium, etc.
+ */
+export function useTier(): MembershipTier {
+  const [tier, setTier] = useState<MembershipTier>(() => getTier());
+  useEffect(() => {
+    const unsubscribe = subscribeAuth(() => setTier(getTier()));
+    setTier(getTier());
+    return unsubscribe;
+  }, []);
+  return tier;
 }

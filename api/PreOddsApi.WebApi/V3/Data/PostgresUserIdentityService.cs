@@ -136,7 +136,8 @@ namespace PreOddsApi.WebApi.V3.Data
                 Username = username,
                 Email = email,
                 DisplayName = trimmedDisplayName,
-                Role = "user"
+                Role = "user",
+                Tier = "free"
             });
         }
 
@@ -147,7 +148,8 @@ namespace PreOddsApi.WebApi.V3.Data
             await using var connection = await OpenAsync(ct);
             await using var command = new NpgsqlCommand(
                 """
-                select id, username, email, display_name, role, password_hash
+                select id, username, email, display_name, role,
+                       tier, tier_expires_at, password_hash
                 from app.users
                 where status = 'active'
                   and (lower(username) = lower(@key) or lower(email) = lower(@key))
@@ -165,7 +167,9 @@ namespace PreOddsApi.WebApi.V3.Data
                 Username = ReadNullableString(reader, "username"),
                 Email = ReadNullableString(reader, "email"),
                 DisplayName = ReadNullableString(reader, "display_name"),
-                Role = reader.GetString(reader.GetOrdinal("role"))
+                Role = reader.GetString(reader.GetOrdinal("role")),
+                Tier = reader.GetString(reader.GetOrdinal("tier")),
+                TierExpiresAt = ReadNullableDateTimeOffset(reader, "tier_expires_at")
             };
             var hash = ReadNullableString(reader, "password_hash");
             return (user, hash);
@@ -178,7 +182,7 @@ namespace PreOddsApi.WebApi.V3.Data
             await using var connection = await OpenAsync(ct);
             await using var command = new NpgsqlCommand(
                 """
-                select id, username, email, display_name, role
+                select id, username, email, display_name, role, tier, tier_expires_at
                 from app.users
                 where id = @id and status = 'active'
                 limit 1;
@@ -195,7 +199,9 @@ namespace PreOddsApi.WebApi.V3.Data
                 Username = ReadNullableString(reader, "username"),
                 Email = ReadNullableString(reader, "email"),
                 DisplayName = ReadNullableString(reader, "display_name"),
-                Role = reader.GetString(reader.GetOrdinal("role"))
+                Role = reader.GetString(reader.GetOrdinal("role")),
+                Tier = reader.GetString(reader.GetOrdinal("tier")),
+                TierExpiresAt = ReadNullableDateTimeOffset(reader, "tier_expires_at")
             };
         }
 
@@ -213,7 +219,7 @@ namespace PreOddsApi.WebApi.V3.Data
                 """
                 insert into app.users (username, email, password_algorithm, role, status)
                 values (@username, @email, @algorithm, 'user', 'active')
-                returning id, username, email, display_name, role;
+                returning id, username, email, display_name, role, tier, tier_expires_at;
                 """, connection);
 
             command.Parameters.Add(new NpgsqlParameter("username", username));
@@ -233,7 +239,9 @@ namespace PreOddsApi.WebApi.V3.Data
                         Username = ReadNullableString(reader, "username"),
                         Email = ReadNullableString(reader, "email"),
                         DisplayName = ReadNullableString(reader, "display_name"),
-                        Role = reader.GetString(reader.GetOrdinal("role"))
+                        Role = reader.GetString(reader.GetOrdinal("role")),
+                        Tier = reader.GetString(reader.GetOrdinal("tier")),
+                        TierExpiresAt = ReadNullableDateTimeOffset(reader, "tier_expires_at")
                     };
                 }
             }
@@ -322,6 +330,13 @@ namespace PreOddsApi.WebApi.V3.Data
         {
             var i = r.GetOrdinal(column);
             return r.IsDBNull(i) ? null : r.GetString(i);
+        }
+
+        private static DateTimeOffset? ReadNullableDateTimeOffset(
+            NpgsqlDataReader r, string column)
+        {
+            var i = r.GetOrdinal(column);
+            return r.IsDBNull(i) ? null : r.GetFieldValue<DateTimeOffset>(i);
         }
     }
 }

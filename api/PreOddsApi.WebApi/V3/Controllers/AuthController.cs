@@ -275,7 +275,12 @@ namespace PreOddsApi.WebApi.V3.Controllers
             {
                 new(JwtRegisteredClaimNames.Sub, user.Username ?? user.Id.ToString()),
                 new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new("uid", user.Id.ToString())
+                new("uid", user.Id.ToString()),
+                // Membership tier — drives mobile gating + server-side
+                // feature filters. Stamped at token issue time, so an
+                // upgrade only takes effect after the next refresh (15m
+                // grace). Acceptable; full enforcement still hits the DB.
+                new("tier", user.Tier)
             };
 
             if (!string.IsNullOrWhiteSpace(user.Email))

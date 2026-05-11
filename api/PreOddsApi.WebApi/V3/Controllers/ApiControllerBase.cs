@@ -17,6 +17,29 @@ namespace PreOddsApi.WebApi.V3.Controllers
             return Guid.TryParse(uid, out var id) ? id : null;
         }
 
+        /// <summary>
+        /// Membership tier of the calling user. Returns "guest" when no
+        /// JWT is present (anonymous request on a [AllowAnonymous]
+        /// endpoint), otherwise the tier claim baked into the token
+        /// ("free" or "premium"). Use this to gate response detail on
+        /// public read endpoints — no [Authorize] required, but the
+        /// response can be enriched when the caller is logged in.
+        /// </summary>
+        protected string GetTier()
+        {
+            if (!(User?.Identity?.IsAuthenticated ?? false))
+                return "guest";
+            return User.FindFirst("tier")?.Value ?? "free";
+        }
+
+        protected bool IsPremium() => GetTier() == "premium";
+
+        protected bool IsRegistered()
+        {
+            var t = GetTier();
+            return t == "free" || t == "premium";
+        }
+
         protected IActionResult OkResponse<T>(T data)
             => Ok(ApiResponse<T>.Ok(data));
 
