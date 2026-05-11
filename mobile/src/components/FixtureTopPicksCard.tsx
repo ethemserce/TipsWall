@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { toggleSelection, useCouponStore } from '@/src/lib/coupons/store';
+import { useTryAddSelection } from '@/src/hooks/useTryAddSelection';
+import { useCouponStore } from '@/src/lib/coupons/store';
 import { marketShort, shortenOutcome } from '@/src/lib/marketShort';
 import { outcomeSentence } from '@/src/lib/marketSentence';
 import { useTheme } from '@/src/lib/useTheme';
@@ -154,6 +155,7 @@ function PickRow({
 }) {
   const c = useTheme();
   const { t } = useTranslation();
+  const tryAdd = useTryAddSelection();
   const draftSelections = useCouponStore((s) => s.draft.selections);
   const inCoupon = draftSelections.some(
     (s) =>
@@ -169,7 +171,7 @@ function PickRow({
 
   const handlePress = () => {
     if (disabled && !inCoupon) return;
-    toggleSelection({
+    void tryAdd({
       fixtureId,
       fixtureName,
       startingAt,

@@ -4,7 +4,8 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { CircularGauge } from '@/src/components/CircularGauge';
 import { MarketInfoButton } from '@/src/components/MarketInfoButton';
-import { toggleSelection, useCouponStore } from '@/src/lib/coupons/store';
+import { useTryAddSelection } from '@/src/hooks/useTryAddSelection';
+import { useCouponStore } from '@/src/lib/coupons/store';
 import { outcomeLiveStatus, type LiveScore } from '@/src/lib/liveOutcome';
 import { marketLongName, marketShort, shortenOutcome } from '@/src/lib/marketShort';
 import { useTheme } from '@/src/lib/useTheme';
@@ -46,6 +47,7 @@ export function OddsRatesCard({
   liveScore,
 }: OddsRatesCardProps) {
   const c = useTheme();
+  const tryAdd = useTryAddSelection();
 
   // Track which outcomes from this market are already in the draft so the
   // tip cell can render a "selected" state.
@@ -169,7 +171,7 @@ export function OddsRatesCard({
         const handleAddToCoupon = () => {
           if (tapDisabled) return;
           const rawLabel = outcome.label || '';
-          toggleSelection({
+          void tryAdd({
             fixtureId,
             fixtureName,
             startingAt,

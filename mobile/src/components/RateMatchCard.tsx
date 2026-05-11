@@ -5,10 +5,8 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { CircularGauge } from '@/src/components/CircularGauge';
-import {
-  toggleSelection,
-  useCouponStore,
-} from '@/src/lib/coupons/store';
+import { useTryAddSelection } from '@/src/hooks/useTryAddSelection';
+import { useCouponStore } from '@/src/lib/coupons/store';
 import { getStateBucket } from '@/src/lib/fixtureState';
 import { outcomeLiveStatus } from '@/src/lib/liveOutcome';
 import { useTheme } from '@/src/lib/useTheme';
@@ -44,6 +42,7 @@ export function RateMatchCard({
 }: RateMatchCardProps) {
   const c = useTheme();
   const router = useRouter();
+  const tryAdd = useTryAddSelection();
 
   const homeName = fixture?.fixture.home_team_name ?? null;
   const awayName = fixture?.fixture.away_team_name ?? null;
@@ -272,7 +271,7 @@ export function RateMatchCard({
         const handleAddToCoupon = () => {
           if (tapDisabled) return;
           const rawLabel = s.label || '';
-          toggleSelection({
+          void tryAdd({
             fixtureId,
             fixtureName: fixtureNameForCoupon,
             startingAt: fixture?.fixture.starting_at ?? null,

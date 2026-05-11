@@ -208,6 +208,15 @@
       "searchBody": "Try a different league or country name."
     }
   },
+  "quotaLimit": {
+    "title": "Daily limit reached",
+    "body": "Guests can save up to {{limit}} picks per day. Sign up for free to keep adding.",
+    "bulletUnlimited": "Unlimited picks",
+    "bulletHistory": "Full pick history and stats",
+    "bulletFavorites": "Favourite teams and leagues",
+    "signupBtn": "SIGN UP — FREE",
+    "dismiss": "Come back tomorrow"
+  },
   "auth": {
     "fields": {
       "username": "Username",

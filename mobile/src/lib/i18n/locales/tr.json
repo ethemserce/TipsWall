@@ -208,6 +208,15 @@
       "searchBody": "Farklı bir lig ya da ülke adı dene."
     }
   },
+  "quotaLimit": {
+    "title": "Bugünkü hakkını kullandın",
+    "body": "Misafir olarak günde {{limit}} tahmin yapabilirsin. Ücretsiz üye ol, sınırsız tahmin yap.",
+    "bulletUnlimited": "Sınırsız tahmin ekleme",
+    "bulletHistory": "Tahmin geçmişi ve istatistikler",
+    "bulletFavorites": "Favori takım ve lig kaydı",
+    "signupBtn": "ÜCRETSİZ ÜYE OL",
+    "dismiss": "Yarın tekrar dene"
+  },
   "auth": {
     "fields": {
       "username": "Kullanıcı adı",

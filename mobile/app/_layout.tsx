@@ -9,6 +9,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { CouponBadge } from '@/src/components/CouponBadge';
 import { LiveStatusBanner } from '@/src/components/LiveStatusBanner';
+import { QuotaLimitModal } from '@/src/components/QuotaLimitModal';
 import { ToastHost } from '@/src/components/ToastHost';
 import { useAutoSettleSavedCoupons } from '@/src/hooks/useCouponSettlement';
 import '@/src/lib/i18n';
@@ -78,6 +79,7 @@ function RootShell({ statusBarStyle }: { statusBarStyle: 'light' | 'dark' }) {
       </Stack>
       <CouponBadge />
       <ToastHost />
+      <QuotaLimitModal />
       <StatusBar style={statusBarStyle} />
     </View>
   );

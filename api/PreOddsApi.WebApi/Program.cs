@@ -123,6 +123,8 @@ builder.Services.AddSingleton<PreOddsApi.WebApi.V3.Data.IAccountTokenService,
     PreOddsApi.WebApi.V3.Data.PostgresAccountTokenService>();
 builder.Services.AddSingleton<PreOddsApi.WebApi.V3.Data.IUserDataService,
     PreOddsApi.WebApi.V3.Data.PostgresUserDataService>();
+builder.Services.AddSingleton<PreOddsApi.WebApi.V3.Data.IGuestQuotaService,
+    PreOddsApi.WebApi.V3.Data.PostgresGuestQuotaService>();
 builder.Services.AddSingleton<PreOddsApi.WebApi.V3.Data.IAnalyticsReader,
     PreOddsApi.WebApi.V3.Data.PostgresAnalyticsReader>();
 

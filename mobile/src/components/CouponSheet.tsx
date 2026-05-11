@@ -5,11 +5,11 @@ import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { useDraftSuggestions, type DraftSuggestion } from '@/src/hooks/useDraftSuggestions';
+import { useTryAddSelection } from '@/src/hooks/useTryAddSelection';
 import {
   clearDraft,
   removeSelection,
   saveDraft,
-  toggleSelection,
   useCouponStore,
 } from '@/src/lib/coupons/store';
 import type { CouponSelection } from '@/src/lib/coupons/types';
@@ -178,11 +178,12 @@ function SelectionRow({ selection }: { selection: CouponSelection }) {
 
 function SuggestionRow({ suggestion }: { suggestion: DraftSuggestion }) {
   const c = useTheme();
+  const tryAdd = useTryAddSelection();
   const time = suggestion.startingAt
     ? format(parseISO(suggestion.startingAt), 'HH:mm')
     : null;
   const handleAdd = () => {
-    toggleSelection({
+    void tryAdd({
       fixtureId: suggestion.fixtureId,
       fixtureName: suggestion.fixtureName,
       startingAt: suggestion.startingAt,
