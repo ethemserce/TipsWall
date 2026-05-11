@@ -1,6 +1,10 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { router } from 'expo-router';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+  Alert,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -9,7 +13,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
+import { deleteAccount, logout } from '@/src/api/auth';
 import { AppBrand } from '@/src/components/AppBrand';
+import { useTier } from '@/src/lib/auth/authStore';
 import {
   setLanguageMode,
   setThemeMode,
@@ -35,6 +41,33 @@ export function SettingsScreen() {
   const c = useTheme();
   const { t } = useTranslation();
   const { themeMode, languageMode } = useSettings();
+  const tier = useTier();
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch {
+      // logout() already clears tokens locally regardless — nothing to
+      // surface to the user.
+    }
+  };
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await deleteAccount();
+      setDeleteOpen(false);
+    } catch (err) {
+      Alert.alert(
+        t('auth.errors.network'),
+        err instanceof Error ? err.message : t('common.somethingWentWrong'),
+      );
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   return (
     <SafeAreaView style={[styles.flex, { backgroundColor: c.bg }]} edges={['top']}>
@@ -43,6 +76,85 @@ export function SettingsScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll}>
+        {/* Hesap — guest sees Giriş/Üye Ol; registered sees Çıkış + Sil */}
+        <SectionHeader label={t('settings.account.header')} />
+        <View
+          style={[
+            styles.card,
+            { backgroundColor: c.surfaceElevated, borderColor: c.borderSoft },
+          ]}>
+          {tier === 'guest' ? (
+            <>
+              <View style={styles.rowHeader}>
+                <ThemedText style={[styles.rowTitle, { color: c.text }]}>
+                  {t('settings.account.guestTitle')}
+                </ThemedText>
+                <ThemedText style={[styles.rowHint, { color: c.textMuted }]}>
+                  {t('settings.account.guestHint')}
+                </ThemedText>
+              </View>
+              <View style={styles.accountActions}>
+                <Pressable
+                  onPress={() => router.push('/auth/signup' as never)}
+                  style={({ pressed }) => [
+                    styles.actionBtnPrimary,
+                    { backgroundColor: c.brand, opacity: pressed ? 0.85 : 1 },
+                  ]}>
+                  <ThemedText style={[styles.actionTextPrimary, { color: c.textInverse }]}>
+                    {t('settings.account.signupBtn')}
+                  </ThemedText>
+                </Pressable>
+                <Pressable
+                  onPress={() => router.push('/auth/login' as never)}
+                  style={({ pressed }) => [
+                    styles.actionBtnSecondary,
+                    { borderColor: c.brand, opacity: pressed ? 0.7 : 1 },
+                  ]}>
+                  <ThemedText style={[styles.actionTextSecondary, { color: c.brand }]}>
+                    {t('settings.account.loginBtn')}
+                  </ThemedText>
+                </Pressable>
+              </View>
+            </>
+          ) : (
+            <>
+              <View style={styles.rowHeader}>
+                <ThemedText style={[styles.rowTitle, { color: c.text }]}>
+                  {tier === 'premium'
+                    ? t('settings.account.premiumTitle')
+                    : t('settings.account.memberTitle')}
+                </ThemedText>
+                <ThemedText style={[styles.rowHint, { color: c.textMuted }]}>
+                  {tier === 'premium'
+                    ? t('settings.account.premiumHint')
+                    : t('settings.account.memberHint')}
+                </ThemedText>
+              </View>
+              <Pressable
+                onPress={handleLogout}
+                style={({ pressed }) => [
+                  styles.actionBtnSecondary,
+                  { borderColor: c.border, opacity: pressed ? 0.7 : 1 },
+                ]}>
+                <MaterialCommunityIcons name="logout" size={16} color={c.textMuted} />
+                <ThemedText style={[styles.actionTextSecondary, { color: c.textMuted }]}>
+                  {t('settings.account.logoutBtn')}
+                </ThemedText>
+              </Pressable>
+              <Pressable
+                onPress={() => setDeleteOpen(true)}
+                style={({ pressed }) => [
+                  styles.deleteRow,
+                  { opacity: pressed ? 0.6 : 1 },
+                ]}>
+                <ThemedText style={[styles.deleteText, { color: c.danger }]}>
+                  {t('settings.account.deleteAccount')}
+                </ThemedText>
+              </Pressable>
+            </>
+          )}
+        </View>
+
         {/* Appearance — theme switcher */}
         <SectionHeader label={t('settings.appearance.header')} />
         <View
@@ -149,6 +261,58 @@ export function SettingsScreen() {
           </View>
         </View>
       </ScrollView>
+
+      <Modal
+        visible={deleteOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => !deleting && setDeleteOpen(false)}>
+        <Pressable
+          style={styles.modalBackdrop}
+          onPress={() => !deleting && setDeleteOpen(false)}>
+          <Pressable
+            onPress={(e) => e.stopPropagation()}
+            style={[
+              styles.modalSheet,
+              { backgroundColor: c.surfaceElevated, borderColor: c.borderSoft },
+            ]}>
+            <ThemedText style={[styles.modalTitle, { color: c.text }]}>
+              {t('settings.account.deleteConfirmTitle')}
+            </ThemedText>
+            <ThemedText style={[styles.modalBody, { color: c.textMuted }]}>
+              {t('settings.account.deleteConfirmBody')}
+            </ThemedText>
+            <View style={styles.modalActions}>
+              <Pressable
+                onPress={() => !deleting && setDeleteOpen(false)}
+                disabled={deleting}
+                style={({ pressed }) => [
+                  styles.modalBtn,
+                  { borderColor: c.border, opacity: pressed ? 0.7 : 1 },
+                ]}>
+                <ThemedText style={[styles.modalBtnText, { color: c.text }]}>
+                  {t('common.cancel').toLocaleUpperCase('tr-TR')}
+                </ThemedText>
+              </Pressable>
+              <Pressable
+                onPress={handleDelete}
+                disabled={deleting}
+                style={({ pressed }) => [
+                  styles.modalBtn,
+                  {
+                    backgroundColor: c.danger,
+                    borderColor: c.danger,
+                    opacity: deleting ? 0.6 : pressed ? 0.85 : 1,
+                  },
+                ]}>
+                <ThemedText style={[styles.modalBtnText, { color: c.textInverse }]}>
+                  {t('settings.account.deleteConfirm').toLocaleUpperCase('tr-TR')}
+                </ThemedText>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -219,5 +383,88 @@ const styles = StyleSheet.create({
   segmentText: {
     fontSize: 12,
     fontWeight: '600',
+  },
+  accountActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  actionBtnPrimary: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 11,
+    borderRadius: 10,
+  },
+  actionBtnSecondary: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  actionTextPrimary: {
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 0.4,
+  },
+  actionTextSecondary: {
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 0.4,
+  },
+  deleteRow: {
+    paddingTop: 6,
+    paddingBottom: 2,
+    alignItems: 'center',
+  },
+  deleteText: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.4,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  modalSheet: {
+    width: '100%',
+    maxWidth: 360,
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: 16,
+    gap: 8,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  modalBody: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 8,
+    paddingTop: 8,
+  },
+  modalBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  modalBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 0.6,
   },
 });

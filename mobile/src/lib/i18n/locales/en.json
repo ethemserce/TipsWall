@@ -185,8 +185,66 @@
       "searchBody": "Try a different league or country name."
     }
   },
+  "auth": {
+    "fields": {
+      "username": "Username",
+      "email": "Email",
+      "emailOrUsername": "Email or username",
+      "password": "Password"
+    },
+    "login": {
+      "title": "Log in",
+      "subtitle": "Sign in to track your picks and favourites.",
+      "submit": "LOG IN",
+      "forgotPassword": "Forgot password",
+      "noAccount": "No account yet?",
+      "signupLink": "Sign up"
+    },
+    "signup": {
+      "title": "Sign up",
+      "subtitle": "Save your picks, pick favourite teams, see your history.",
+      "submit": "SIGN UP",
+      "usernameHint": "3–32 chars — letters, digits and _",
+      "passwordHint": "At least {{min}} characters",
+      "legal": "By signing up you agree to the Terms of Service and Privacy Policy.",
+      "haveAccount": "Already a member?",
+      "loginLink": "Log in"
+    },
+    "forgot": {
+      "title": "Forgot password",
+      "subtitle": "Enter your email or username. We'll send a reset link.",
+      "submit": "SEND LINK",
+      "sent": "Link sent. Check your inbox.",
+      "backToLogin": "← Back to login"
+    },
+    "errors": {
+      "badCredentials": "Username or password is incorrect.",
+      "username": "Username must be 3–32 chars; only letters, digits and underscore.",
+      "usernameTaken": "This username is already taken.",
+      "email": "Please enter a valid email address.",
+      "emailTaken": "An account with this email already exists.",
+      "passwordShort": "Password must be at least {{min}} characters.",
+      "network": "Connection error. Please try again."
+    }
+  },
   "settings": {
     "title": "Settings",
+    "account": {
+      "header": "Account",
+      "guestTitle": "Not signed in",
+      "guestHint": "Sign up for free to save your picks and favourites.",
+      "signupBtn": "SIGN UP",
+      "loginBtn": "LOG IN",
+      "memberTitle": "Free member",
+      "memberHint": "Track your picks and favourites. Premium coming soon.",
+      "premiumTitle": "Premium",
+      "premiumHint": "Ad-free + every advanced analysis unlocked.",
+      "logoutBtn": "LOG OUT",
+      "deleteAccount": "Delete account",
+      "deleteConfirmTitle": "Delete your account?",
+      "deleteConfirmBody": "All your picks, favourites and account data will be removed. This can't be undone.",
+      "deleteConfirm": "Delete account"
+    },
     "appearance": {
       "header": "Appearance",
       "theme": "Theme",

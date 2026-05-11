@@ -257,13 +257,42 @@ namespace PreOddsApi.WebApi.V3.Controllers
             var sub = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
             var uid = User.FindFirst("uid")?.Value;
             var email = User.FindFirst(JwtRegisteredClaimNames.Email)?.Value;
+            var tier = User.FindFirst("tier")?.Value ?? "free";
 
             return OkResponse(new
             {
                 username = sub,
                 uid,
-                email
+                email,
+                tier
             });
+        }
+
+        [Authorize]
+        [HttpDelete("me")]
+        public async Task<IActionResult> DeleteAccountAsync(
+            [FromBody] DeleteAccountRequest? request,
+            CancellationToken ct)
+        {
+            // Apple & Google both require an in-app account deletion path.
+            // Soft-delete scrubs PII immediately (email/username/etc.) and
+            // marks the row 'deleted'; a nightly purge hard-removes after
+            // 30 days. Every refresh token for the user is revoked too so
+            // existing sessions on other devices are killed instantly.
+            var uid = User.FindFirst("uid")?.Value;
+            if (!Guid.TryParse(uid, out var userId))
+                return Unauthorized(ApiResponse<object>.Fail(
+                    ApiError.Codes.Unauthorized, "Invalid token."));
+
+            var ok = await _identity.SoftDeleteAccountAsync(
+                userId, request?.Reason, ct);
+            if (!ok)
+                return NotFoundResponse("Account not found or already deleted.");
+
+            await _refreshTokens.RevokeAllForUserAsync(
+                userId, "account-deleted", ct);
+
+            return OkResponse(new { deleted = true });
         }
 
         private string GenerateAccessToken(UserDto user)

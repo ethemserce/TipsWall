@@ -66,6 +66,15 @@ function RootShell({ statusBarStyle }: { statusBarStyle: 'light' | 'dark' }) {
         <Stack.Screen name="fixture/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="league/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="team/[id]" options={{ headerShown: false }} />
+        {/* Auth flow — root-level so users land back on whichever tab
+            they were on when they opened login from Settings or hit a
+            "Üye Ol" CTA on a card. */}
+        <Stack.Screen name="auth/login" options={{ headerShown: false }} />
+        <Stack.Screen name="auth/signup" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="auth/forgot-password"
+          options={{ headerShown: false }}
+        />
       </Stack>
       <CouponBadge />
       <ToastHost />

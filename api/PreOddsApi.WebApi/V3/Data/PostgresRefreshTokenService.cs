@@ -118,6 +118,26 @@ namespace PreOddsApi.WebApi.V3.Data
             return rows > 0;
         }
 
+        public async Task<int> RevokeAllForUserAsync(
+            Guid userId,
+            string reason,
+            CancellationToken ct = default)
+        {
+            await using var connection = await OpenAsync(ct);
+            await using var command = new NpgsqlCommand(
+                """
+                update app.refresh_tokens
+                set revoked_at = now(),
+                    revoked_reason = @reason
+                where user_id = @user_id and revoked_at is null;
+                """, connection);
+
+            command.Parameters.Add(new NpgsqlParameter("user_id", userId));
+            command.Parameters.Add(new NpgsqlParameter("reason", reason));
+
+            return await command.ExecuteNonQueryAsync(ct);
+        }
+
         private static async Task<(IssuedRefreshToken Token, Guid Id)> InsertTokenAsync(
             NpgsqlConnection connection,
             Guid userId,

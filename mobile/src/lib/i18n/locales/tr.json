@@ -185,8 +185,66 @@
       "searchBody": "Farklı bir lig ya da ülke adı dene."
     }
   },
+  "auth": {
+    "fields": {
+      "username": "Kullanıcı adı",
+      "email": "E-posta",
+      "emailOrUsername": "E-posta veya kullanıcı adı",
+      "password": "Şifre"
+    },
+    "login": {
+      "title": "Giriş Yap",
+      "subtitle": "Tahminlerini ve favorilerini takip etmek için hesabına gir.",
+      "submit": "GİRİŞ YAP",
+      "forgotPassword": "Şifremi unuttum",
+      "noAccount": "Hesabın yok mu?",
+      "signupLink": "Üye ol"
+    },
+    "signup": {
+      "title": "Üye Ol",
+      "subtitle": "Tahminlerini kaydet, favori takımlarını seç, geçmişini gör.",
+      "submit": "ÜYE OL",
+      "usernameHint": "3-32 karakter — harf, rakam ve _",
+      "passwordHint": "En az {{min}} karakter",
+      "legal": "Üye olarak Kullanım Koşulları ve Gizlilik Politikası'nı kabul etmiş olursun.",
+      "haveAccount": "Zaten üye misin?",
+      "loginLink": "Giriş yap"
+    },
+    "forgot": {
+      "title": "Şifremi Unuttum",
+      "subtitle": "E-posta veya kullanıcı adını gir. Şifre sıfırlama bağlantısı e-postana gönderilecek.",
+      "submit": "BAĞLANTI GÖNDER",
+      "sent": "Bağlantı gönderildi. E-postanı kontrol et.",
+      "backToLogin": "← Girişe dön"
+    },
+    "errors": {
+      "badCredentials": "Kullanıcı adı veya şifre hatalı.",
+      "username": "Kullanıcı adı 3-32 karakter olmalı; sadece harf, rakam ve alt çizgi.",
+      "usernameTaken": "Bu kullanıcı adı alınmış.",
+      "email": "Geçerli bir e-posta gir.",
+      "emailTaken": "Bu e-posta ile zaten bir hesap var.",
+      "passwordShort": "Şifre en az {{min}} karakter olmalı.",
+      "network": "Bağlantı hatası. Lütfen tekrar dene."
+    }
+  },
   "settings": {
     "title": "Ayarlar",
+    "account": {
+      "header": "Hesap",
+      "guestTitle": "Henüz üye değilsin",
+      "guestHint": "Tahminlerini ve favorilerini kaydetmek için ücretsiz üye ol.",
+      "signupBtn": "ÜYE OL",
+      "loginBtn": "GİRİŞ YAP",
+      "memberTitle": "Ücretsiz üye",
+      "memberHint": "Tahminlerini ve favorilerini takip et. Premium için yakında.",
+      "premiumTitle": "Premium üye",
+      "premiumHint": "Reklamsız kullanım + tüm gelişmiş analizler açık.",
+      "logoutBtn": "ÇIKIŞ YAP",
+      "deleteAccount": "Hesabımı sil",
+      "deleteConfirmTitle": "Hesabını silmek istediğinden emin misin?",
+      "deleteConfirmBody": "Tüm tahminlerin, favorilerin ve hesap bilgilerin kaldırılır. Bu işlem geri alınamaz.",
+      "deleteConfirm": "Hesabı sil"
+    },
     "appearance": {
       "header": "Görünüm",
       "theme": "Tema",

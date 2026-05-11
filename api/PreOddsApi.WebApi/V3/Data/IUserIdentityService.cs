@@ -41,6 +41,19 @@ namespace PreOddsApi.WebApi.V3.Data
         Task<bool> MarkEmailVerifiedAsync(
             Guid userId,
             CancellationToken ct = default);
+
+        /// <summary>
+        /// Apple- and Google-mandated in-app account deletion. Soft-deletes
+        /// the row (status='deleted'), scrubs PII (email, username,
+        /// display_name, password_hash) so re-signup with the same email
+        /// is possible later, and records an audit row in
+        /// app.account_deletions. Refresh-token revocation happens
+        /// separately at the controller layer.
+        /// </summary>
+        Task<bool> SoftDeleteAccountAsync(
+            Guid userId,
+            string? reason,
+            CancellationToken ct = default);
     }
 
     public sealed class SignupOutcome

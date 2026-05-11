@@ -323,6 +323,65 @@ namespace PreOddsApi.WebApi.V3.Data
             return rows > 0;
         }
 
+        public async Task<bool> SoftDeleteAccountAsync(
+            Guid userId,
+            string? reason,
+            CancellationToken ct = default)
+        {
+            // Wrap in a transaction so the audit row and the user mutation
+            // commit together. If either fails we roll back so we never end
+            // up with a deletion audit pointing at a still-active account.
+            await using var connection = await OpenAsync(ct);
+            await using var tx = await connection.BeginTransactionAsync(ct);
+
+            const string scrubSql = @"
+                update app.users
+                set status = 'deleted',
+                    -- Scrub identifying fields so future signups can reuse
+                    -- the email. The DB row stays for foreign-key parents
+                    -- (refresh tokens, coupons, etc.) until the nightly
+                    -- purge job hard-deletes after 30 days.
+                    email = null,
+                    username = null,
+                    display_name = null,
+                    first_name = null,
+                    last_name = null,
+                    password_hash = null,
+                    password_algorithm = null,
+                    updated_at = now()
+                where id = @id and status <> 'deleted';";
+
+            await using (var scrub = new NpgsqlCommand(scrubSql, connection, tx))
+            {
+                scrub.Parameters.AddWithValue("id", userId);
+                var rows = await scrub.ExecuteNonQueryAsync(ct);
+                if (rows == 0)
+                {
+                    await tx.RollbackAsync(ct);
+                    return false;
+                }
+            }
+
+            const string auditSql = @"
+                insert into app.account_deletions (user_id, reason)
+                values (@id, @reason)
+                on conflict (user_id) do update set
+                    deleted_at = excluded.deleted_at,
+                    reason = excluded.reason;";
+
+            await using (var audit = new NpgsqlCommand(auditSql, connection, tx))
+            {
+                audit.Parameters.AddWithValue("id", userId);
+                audit.Parameters.AddWithValue("reason",
+                    (object?)(string.IsNullOrWhiteSpace(reason) ? null : reason.Trim())
+                        ?? DBNull.Value);
+                await audit.ExecuteNonQueryAsync(ct);
+            }
+
+            await tx.CommitAsync(ct);
+            return true;
+        }
+
         private Task<NpgsqlConnection> OpenAsync(CancellationToken ct)
             => _dataSource.OpenConnectionAsync(ct).AsTask();
 

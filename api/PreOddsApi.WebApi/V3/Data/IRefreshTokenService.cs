@@ -22,6 +22,16 @@ namespace PreOddsApi.WebApi.V3.Data
             string rawToken,
             string reason,
             CancellationToken ct = default);
+
+        /// <summary>
+        /// Revokes every refresh token for the user — used by account
+        /// deletion and "log out of all devices" flows. Returns the
+        /// number of rows actually revoked (excludes already-revoked).
+        /// </summary>
+        Task<int> RevokeAllForUserAsync(
+            Guid userId,
+            string reason,
+            CancellationToken ct = default);
     }
 
     public sealed class IssuedRefreshToken
