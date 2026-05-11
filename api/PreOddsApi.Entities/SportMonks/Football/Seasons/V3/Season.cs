@@ -13,8 +13,10 @@ namespace PreOddsApi.Entities.SportMonks.Football.V3
         [JsonProperty("league_id")]
         public long LeagueId { get; set; }
 
+        // Nullable: SportMonks omits / nulls this for some leagues (the
+        // upgraded plan surfaces lower-tier comps where the rule isn't set).
         [JsonProperty("tie_breaker_rule_id")]
-        public long TieBreakerRuleId { get; set; }
+        public long? TieBreakerRuleId { get; set; }
 
         [JsonProperty("name")]
         public string Name { get; set; }

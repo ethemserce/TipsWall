@@ -1,5 +1,7 @@
+using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 
@@ -7,14 +9,18 @@ namespace PreOddsApi.ExternalApis.Accounts
 {
     public sealed class PostgresAccountPurgeService : IAccountPurgeService
     {
-        private readonly NpgsqlDataSource _dataSource;
+        private readonly string? _connectionString;
         private readonly ILogger<PostgresAccountPurgeService> _logger;
 
         public PostgresAccountPurgeService(
-            NpgsqlDataSource dataSource,
+            IConfiguration configuration,
             ILogger<PostgresAccountPurgeService> logger)
         {
-            _dataSource = dataSource;
+            // Same env-or-config pattern as PostgresAnalyticsEngine — the
+            // worker host doesn't register an NpgsqlDataSource singleton.
+            _connectionString =
+                Environment.GetEnvironmentVariable("PREODDS_POSTGRES_CONNECTION")
+                ?? configuration.GetConnectionString("PreOddsApiPostgresDb");
             _logger = logger;
         }
 
@@ -22,6 +28,12 @@ namespace PreOddsApi.ExternalApis.Accounts
             int olderThanDays,
             CancellationToken cancellationToken = default)
         {
+            if (string.IsNullOrWhiteSpace(_connectionString))
+            {
+                _logger.LogWarning(
+                    "Account purge skipped: no PREODDS_POSTGRES_CONNECTION configured.");
+                return 0;
+            }
             // Two-step inside a transaction:
             //  1) delete from app.users (cascades to refresh_tokens,
             //     user_preferences, devices, etc. — every FK to app.users
@@ -49,7 +61,8 @@ namespace PreOddsApi.ExternalApis.Accounts
                 where user_id in (select id from deleted);
                 """;
 
-            await using var connection = await _dataSource.OpenConnectionAsync(cancellationToken);
+            await using var connection = new NpgsqlConnection(_connectionString);
+            await connection.OpenAsync(cancellationToken);
             await using var command = new NpgsqlCommand(sql, connection);
             command.Parameters.Add(new NpgsqlParameter("days", olderThanDays));
 

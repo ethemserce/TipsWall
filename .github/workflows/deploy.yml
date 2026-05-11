@@ -1,0 +1,147 @@
+name: deploy
+
+on:
+  push:
+    branches: [main]
+    # Only fire when something in the backend or deploy assets actually
+    # changed — mobile-only commits don't need a server redeploy.
+    paths:
+      - 'api/**'
+      - '.github/workflows/deploy.yml'
+      - 'mobile/openapi.json'  # if mobile commits a regenerated schema
+  # Allow a manual "redeploy current main" from the Actions UI in case
+  # something on the VPS got stuck.
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false  # don't cancel a running deploy mid-restart
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}
+
+jobs:
+  # Stage 1 — build every Docker image in parallel and push to GHCR.
+  # Tagged with both `latest` and the commit SHA so we can roll back
+  # by pinning IMAGE_TAG in .env on the VPS.
+  build:
+    name: Build & push (${{ matrix.image }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        include:
+          - image: tipswall-webapi
+            dockerfile: api/Dockerfile.webapi
+          - image: tipswall-migrator
+            dockerfile: api/Dockerfile.migrator
+          - image: tipswall-worker-core
+            dockerfile: api/Dockerfile.worker.core
+          - image: tipswall-worker-football
+            dockerfile: api/Dockerfile.worker.football
+          - image: tipswall-worker-odds
+            dockerfile: api/Dockerfile.worker.odds
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Lowercase image prefix
+        id: prefix
+        run: echo "value=$(echo ${{ env.IMAGE_PREFIX }} | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+
+      - name: Build & push ${{ matrix.image }}
+        uses: docker/build-push-action@v5
+        with:
+          # Build context is the api/ folder — Dockerfiles assume their
+          # csproj paths relative to there.
+          context: api
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: |
+            ${{ steps.prefix.outputs.value }}/${{ matrix.image }}:latest
+            ${{ steps.prefix.outputs.value }}/${{ matrix.image }}:${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+
+  # Stage 2 — SSH into the VPS, pull the new images, run migrations,
+  # then bring everything up. The compose file is checked into the
+  # repo so the VPS just needs `git pull` before `docker compose pull`.
+  deploy:
+    name: Deploy to Hetzner
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    steps:
+      - name: SSH deploy
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          port: ${{ secrets.HETZNER_SSH_PORT || 22 }}
+          script_stop: true
+          # We tell the VPS exactly which SHA to deploy. The compose
+          # file falls back to `latest` if IMAGE_TAG is unset, but
+          # pinning the SHA guarantees no surprise (e.g. a parallel
+          # deploy that's still building doesn't sneak in).
+          envs: COMMIT_SHA,GHCR_USER,GHCR_PULL_TOKEN
+          script: |
+            set -euo pipefail
+            cd /opt/tipswall
+            git fetch --depth=1 origin main
+            git reset --hard origin/main
+
+            cd api
+
+            # Authenticate to GHCR using the same token the workflow
+            # used — re-supplied as a repo secret. (GHCR allows the
+            # default GITHUB_TOKEN but only from inside Actions; on
+            # the VPS we use a PAT or fine-grained token instead.)
+            if [[ -n "${GHCR_PULL_TOKEN:-}" ]]; then
+              echo "${GHCR_PULL_TOKEN}" \
+                | docker login ghcr.io -u "${GHCR_USER}" --password-stdin
+            fi
+
+            # Use the SHA tag so the deploy is deterministic. The
+            # compose file reads IMAGE_TAG from the environment
+            # (variable_substitution_priority: env-over-.env).
+            export IMAGE_TAG="${COMMIT_SHA}"
+
+            docker compose --env-file .env pull
+            # Migrations run as a one-shot container that exits on
+            # success — docker compose up blocks on it because of
+            # `condition: service_completed_successfully` deps.
+            docker compose --env-file .env up -d --remove-orphans
+
+            # Wait for the webapi health check to flip to "healthy"
+            # before reporting success. 60 sec budget covers a cold
+            # start; if it doesn't come up we fail the job loudly.
+            for i in $(seq 1 30); do
+              status=$(docker compose --env-file .env ps webapi \
+                --format json | jq -r '.[0].Health // empty')
+              if [[ "${status}" == "healthy" ]]; then
+                echo "webapi healthy after ${i}×2s"
+                exit 0
+              fi
+              sleep 2
+            done
+            echo "webapi failed to become healthy" >&2
+            docker compose --env-file .env logs --tail=80 webapi >&2
+            exit 1
+        env:
+          COMMIT_SHA: ${{ github.sha }}
+          GHCR_USER: ${{ secrets.GHCR_USER }}
+          GHCR_PULL_TOKEN: ${{ secrets.GHCR_PULL_TOKEN }}

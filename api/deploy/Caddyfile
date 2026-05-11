@@ -1,0 +1,36 @@
+# Single-site reverse proxy with auto Let's Encrypt.
+#
+# DOMAIN is substituted from the .env file at container start. The
+# webapi service listens on :8080 inside the docker network.
+#
+# Caddy also exposes /metrics for Prometheus on the internal network
+# (not published) — wire a scraper later if you add Grafana.
+
+{$DOMAIN} {
+    encode zstd gzip
+
+    # Forward the real client IP through. The webapi reads
+    # X-Forwarded-For via the standard ASP.NET Core integration.
+    handle {
+        reverse_proxy webapi:8080 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+        }
+    }
+
+    # Sensible defaults for an API behind a reverse proxy.
+    header {
+        # Don't broadcast the server brand back to clients.
+        -Server
+        # HSTS only after first deploy to avoid pinning a misconfigured
+        # cert. Bump max-age once the cert pipeline has settled.
+        Strict-Transport-Security "max-age=86400; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+
+    log {
+        output stdout
+        format console
+    }
+}

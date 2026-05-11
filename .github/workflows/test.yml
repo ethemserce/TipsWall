@@ -1,0 +1,73 @@
+name: test
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Cancel an in-progress run when a new commit lands on the same branch
+# / PR — saves runner minutes during fast review cycles.
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: .NET build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Cache NuGet
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('api/**/*.csproj') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Restore
+        working-directory: api
+        run: dotnet restore PreOddsApi.sln
+
+      # Build everything we ship in a Docker image — WebAPI, the three
+      # workers, and the migrator. If any of these fail to compile the
+      # production image build would fail too, so catching it here keeps
+      # bad code off main.
+      - name: Build WebAPI + workers + migrator
+        working-directory: api
+        run: |
+          dotnet build PreOddsApi.WebApi/PreOddsApi.WebApi.csproj --no-restore -c Release
+          dotnet build PreOddsApi.Worker/SportMonks/SportMonks.Core/SportMonks.Core.Worker.csproj --no-restore -c Release
+          dotnet build PreOddsApi.Worker/SportMonks/SportMonks.Football.Fixture/SportMonks.Football.FootballWorker.csproj --no-restore -c Release
+          dotnet build PreOddsApi.Worker/SportMonks/SportMonks.Odds/SportMonks.Odds.csproj --no-restore -c Release
+          dotnet build PreOddsApi.Migrator/PreOddsApi.Migrator.csproj --no-restore -c Release
+
+  mobile:
+    name: Mobile typecheck + jest
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Test
+        run: npm test -- --silent

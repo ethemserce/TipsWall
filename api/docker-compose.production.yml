@@ -1,14 +1,13 @@
-# Production docker-compose for PreOddsApi.
+# Production stack for TipsWall on a single VPS.
 #
-# Usage:
-#   1. Copy .env.production.example to .env and fill in secrets.
-#   2. docker compose -f docker-compose.production.yml --env-file .env up -d --build
+# Images are pulled from GHCR (built by .github/workflows/deploy.yml on
+# every push to main). The deploy script on the VPS does:
+#   docker compose --env-file .env pull
+#   docker compose --env-file .env up -d
 #
-# Services:
-#   postgres   - PostgreSQL 16 with persistent volume.
-#   migrator   - Runs once on each up; applies SQL files from database/postgres/.
-#   webapi     - Read API on port 8080.
-#   worker-*   - SportMonks sync workers (disabled by default per appsettings).
+# Postgres data lives on the Hetzner Volume mounted at
+# /mnt/tipswall-data on the host. Set POSTGRES_DATA_DIR in .env to
+# override (e.g. local-disk for dev).
 
 services:
   postgres:
@@ -19,82 +18,128 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?required}
       POSTGRES_DB: ${POSTGRES_DB:-preodds}
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - ${POSTGRES_DATA_DIR:-postgres-data}:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-preodds} -d ${POSTGRES_DB:-preodds}"]
       interval: 10s
       timeout: 5s
       retries: 10
+    # Tune Postgres for an 8 GB host. Numbers chosen so a runaway
+    # query doesn't OOM the box; raise shared_buffers carefully if
+    # you move to a bigger plan.
+    command:
+      - postgres
+      - -c
+      - shared_buffers=2GB
+      - -c
+      - effective_cache_size=6GB
+      - -c
+      - maintenance_work_mem=512MB
+      - -c
+      - work_mem=32MB
+      - -c
+      - max_connections=50
+      - -c
+      - wal_compression=on
+      - -c
+      - random_page_cost=1.1
 
   migrator:
-    build:
-      context: .
-      dockerfile: Dockerfile.migrator
+    image: ghcr.io/${GHCR_OWNER:?required}/tipswall-migrator:${IMAGE_TAG:-latest}
+    pull_policy: always
     restart: "no"
     depends_on:
       postgres:
         condition: service_healthy
     environment:
       PREODDS_POSTGRES_CONNECTION: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-preodds};Username=${POSTGRES_USER:-preodds};Password=${POSTGRES_PASSWORD}"
+    # Mount the migrations directory so the migrator sees current SQL
+    # without needing a rebuild for SQL-only changes.
+    volumes:
+      - ./database/postgres:/app/database/postgres:ro
 
   webapi:
-    build:
-      context: .
-      dockerfile: Dockerfile.webapi
+    image: ghcr.io/${GHCR_OWNER:?required}/tipswall-webapi:${IMAGE_TAG:-latest}
+    pull_policy: always
     restart: unless-stopped
     depends_on:
       migrator:
         condition: service_completed_successfully
-    ports:
-      - "${WEBAPI_PORT:-8080}:8080"
     environment:
       PREODDS_POSTGRES_CONNECTION: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-preodds};Username=${POSTGRES_USER:-preodds};Password=${POSTGRES_PASSWORD}"
       PREODDS_JWT_SECRET: ${PREODDS_JWT_SECRET:?required}
       PREODDS_INTERNAL_API_KEY: ${PREODDS_INTERNAL_API_KEY:-}
-      Authentication__Issuer: ${AUTH_ISSUER:-http://localhost:8080}
-      Authentication__Audience: ${AUTH_AUDIENCE:-http://localhost:8080}
+      Authentication__Issuer: ${AUTH_ISSUER:?required}
+      Authentication__Audience: ${AUTH_AUDIENCE:?required}
       Cors__AllowedOrigins__0: ${CORS_ORIGIN_0:?required}
+      # Social sign-in: missing values keep the buttons hidden client-
+      # side and return a clear "not configured" 503 server-side.
+      PREODDS_APPLE_CLIENT_ID: ${PREODDS_APPLE_CLIENT_ID:-}
+      PREODDS_GOOGLE_CLIENT_ID_IOS: ${PREODDS_GOOGLE_CLIENT_ID_IOS:-}
+      PREODDS_GOOGLE_CLIENT_ID_ANDROID: ${PREODDS_GOOGLE_CLIENT_ID_ANDROID:-}
+      PREODDS_GOOGLE_CLIENT_ID_WEB: ${PREODDS_GOOGLE_CLIENT_ID_WEB:-}
+      Sentry__Dsn: ${SENTRY_DSN_BACKEND:-}
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8080/health/live"]
       interval: 30s
       timeout: 5s
       retries: 3
-
-  worker-football:
-    build:
-      context: .
-      dockerfile: Dockerfile.worker.football
-    restart: unless-stopped
-    depends_on:
-      migrator:
-        condition: service_completed_successfully
-    environment:
-      PREODDS_POSTGRES_CONNECTION: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-preodds};Username=${POSTGRES_USER:-preodds};Password=${POSTGRES_PASSWORD}"
-      SportMonks__ApiToken: ${SPORTMONKS_API_TOKEN:-}
+    expose:
+      - "8080"
 
   worker-core:
-    build:
-      context: .
-      dockerfile: Dockerfile.worker.core
+    image: ghcr.io/${GHCR_OWNER:?required}/tipswall-worker-core:${IMAGE_TAG:-latest}
+    pull_policy: always
     restart: unless-stopped
     depends_on:
       migrator:
         condition: service_completed_successfully
     environment:
       PREODDS_POSTGRES_CONNECTION: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-preodds};Username=${POSTGRES_USER:-preodds};Password=${POSTGRES_PASSWORD}"
-      SportMonks__ApiToken: ${SPORTMONKS_API_TOKEN:-}
+      SportMonks__ApiToken: ${SPORTMONKS_API_TOKEN:?required}
+      WORKER_HEALTH_PORT: "8080"
+
+  worker-football:
+    image: ghcr.io/${GHCR_OWNER:?required}/tipswall-worker-football:${IMAGE_TAG:-latest}
+    pull_policy: always
+    restart: unless-stopped
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+    environment:
+      PREODDS_POSTGRES_CONNECTION: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-preodds};Username=${POSTGRES_USER:-preodds};Password=${POSTGRES_PASSWORD}"
+      SportMonks__ApiToken: ${SPORTMONKS_API_TOKEN:?required}
+      WORKER_HEALTH_PORT: "8080"
 
   worker-odds:
-    build:
-      context: .
-      dockerfile: Dockerfile.worker.odds
+    image: ghcr.io/${GHCR_OWNER:?required}/tipswall-worker-odds:${IMAGE_TAG:-latest}
+    pull_policy: always
     restart: unless-stopped
     depends_on:
       migrator:
         condition: service_completed_successfully
     environment:
       PREODDS_POSTGRES_CONNECTION: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-preodds};Username=${POSTGRES_USER:-preodds};Password=${POSTGRES_PASSWORD}"
-      SportMonks__ApiToken: ${SPORTMONKS_API_TOKEN:-}
+      SportMonks__ApiToken: ${SPORTMONKS_API_TOKEN:?required}
+      WORKER_HEALTH_PORT: "8080"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - webapi
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"  # HTTP/3
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    environment:
+      DOMAIN: ${DOMAIN:?required}
 
 volumes:
   postgres-data:
+  caddy-data:
+  caddy-config:
