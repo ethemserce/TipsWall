@@ -26,6 +26,7 @@ TestResults/
 secrets.json
 .env
 .env.*
+!.env.*.example
 
 # NuGet / tooling caches
 packages/
