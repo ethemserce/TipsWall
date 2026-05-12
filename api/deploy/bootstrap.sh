@@ -96,7 +96,25 @@ grep -qxF "$(cat "${KEY_PATH}.pub")" "${SSH_DIR}/authorized_keys" \
 chown -R "${DEPLOY_USER}:${DEPLOY_USER}" "${SSH_DIR}"
 
 # ----------------------------------------------------------------------
-# 4) Hetzner Volume mount
+# 3.5) Swap — keeps a 4GB host from going OOM under a Postgres restart
+#      or a noisy worker tick. 2 GB swap on a 4 GB box, no swap on
+#      boxes that already have it configured.
+# ----------------------------------------------------------------------
+if ! swapon --show | grep -q '/swapfile'; then
+  log "Adding 2 GB swap…"
+  fallocate -l 2G /swapfile 2>/dev/null || dd if=/dev/zero of=/swapfile bs=1M count=2048
+  chmod 600 /swapfile
+  mkswap /swapfile
+  swapon /swapfile
+  grep -q '^/swapfile' /etc/fstab || echo '/swapfile none swap sw 0 0' >> /etc/fstab
+  # Be less aggressive about reclaiming pages; we'd rather burn RAM
+  # than swap in/out a hot container.
+  sysctl -w vm.swappiness=10 >/dev/null
+  grep -q 'vm.swappiness' /etc/sysctl.conf || echo 'vm.swappiness=10' >> /etc/sysctl.conf
+fi
+
+# ----------------------------------------------------------------------
+# 4) Hetzner Volume mount (skipped on single-disk hosts like GoDaddy)
 # ----------------------------------------------------------------------
 if [[ -z "${VOLUME_DEVICE}" ]]; then
   # Hetzner volumes are typically /dev/sdb on a single-disk CX32.

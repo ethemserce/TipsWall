@@ -1,7 +1,8 @@
-# Deployment — Hetzner CX32 + GitHub Actions
+# Deployment — single VPS + GitHub Actions
 
 This directory has everything the CI/CD pipeline needs to deploy
-TipsWall to a single Hetzner VPS:
+TipsWall to a single VPS (tested on Hetzner CX32 and GoDaddy 2vCPU/4GB
+Standard; any Ubuntu 22.04+ host works):
 
 ```
 api/

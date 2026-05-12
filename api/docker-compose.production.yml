@@ -24,25 +24,31 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
-    # Tune Postgres for an 8 GB host. Numbers chosen so a runaway
-    # query doesn't OOM the box; raise shared_buffers carefully if
-    # you move to a bigger plan.
+    # Tune Postgres for a 4 GB host (GoDaddy Standard VPS, 2 vCPU). The
+    # rest of the budget goes to the four .NET services + page cache; a
+    # runaway query at these numbers won't push the box into swap.
+    # Raise shared_buffers (towards 25% of RAM) when moving to a bigger
+    # plan (e.g. 2GB on an 8GB host, 4GB on 16GB).
     command:
       - postgres
       - -c
-      - shared_buffers=2GB
+      - shared_buffers=512MB
       - -c
-      - effective_cache_size=6GB
+      - effective_cache_size=1500MB
       - -c
-      - maintenance_work_mem=512MB
+      - maintenance_work_mem=128MB
       - -c
-      - work_mem=32MB
+      - work_mem=16MB
       - -c
-      - max_connections=50
+      - max_connections=40
       - -c
       - wal_compression=on
       - -c
       - random_page_cost=1.1
+    deploy:
+      resources:
+        limits:
+          memory: 1500M
 
   migrator:
     image: ghcr.io/${GHCR_OWNER:?required}/tipswall-migrator:${IMAGE_TAG:-latest}
@@ -86,6 +92,10 @@ services:
       retries: 3
     expose:
       - "8080"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
 
   worker-core:
     image: ghcr.io/${GHCR_OWNER:?required}/tipswall-worker-core:${IMAGE_TAG:-latest}
@@ -98,6 +108,10 @@ services:
       PREODDS_POSTGRES_CONNECTION: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-preodds};Username=${POSTGRES_USER:-preodds};Password=${POSTGRES_PASSWORD}"
       SportMonks__ApiToken: ${SPORTMONKS_API_TOKEN:?required}
       WORKER_HEALTH_PORT: "8080"
+    deploy:
+      resources:
+        limits:
+          memory: 384M
 
   worker-football:
     image: ghcr.io/${GHCR_OWNER:?required}/tipswall-worker-football:${IMAGE_TAG:-latest}
@@ -110,6 +124,10 @@ services:
       PREODDS_POSTGRES_CONNECTION: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-preodds};Username=${POSTGRES_USER:-preodds};Password=${POSTGRES_PASSWORD}"
       SportMonks__ApiToken: ${SPORTMONKS_API_TOKEN:?required}
       WORKER_HEALTH_PORT: "8080"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
 
   worker-odds:
     image: ghcr.io/${GHCR_OWNER:?required}/tipswall-worker-odds:${IMAGE_TAG:-latest}
@@ -122,6 +140,10 @@ services:
       PREODDS_POSTGRES_CONNECTION: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-preodds};Username=${POSTGRES_USER:-preodds};Password=${POSTGRES_PASSWORD}"
       SportMonks__ApiToken: ${SPORTMONKS_API_TOKEN:?required}
       WORKER_HEALTH_PORT: "8080"
+    deploy:
+      resources:
+        limits:
+          memory: 384M
 
   caddy:
     image: caddy:2-alpine
@@ -138,6 +160,10 @@ services:
       - caddy-config:/config
     environment:
       DOMAIN: ${DOMAIN:?required}
+    deploy:
+      resources:
+        limits:
+          memory: 128M
 
 volumes:
   postgres-data:
