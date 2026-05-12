@@ -29,5 +29,7 @@ RUN [ -f appsettings.json ] || cp appsettings.example.json appsettings.json
 # bases without us having to RUN useradd.
 USER $APP_UID
 
-ENV DOTNET_RUNNING_IN_CONTAINER=true
+ENV DOTNET_RUNNING_IN_CONTAINER=true \
+    ASPNETCORE_ENVIRONMENT=Production \
+    DOTNET_ENVIRONMENT=Production
 ENTRYPOINT ["dotnet", "SportMonks.Core.Worker.dll"]

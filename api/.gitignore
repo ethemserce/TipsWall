@@ -23,6 +23,7 @@ TestResults/
 **/appsettings.*.json
 !**/appsettings.example.json
 !**/appsettings.*.example.json
+!**/appsettings.Production.json
 secrets.json
 .env
 .env.*
