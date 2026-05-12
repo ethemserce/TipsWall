@@ -187,8 +187,16 @@ export function TodayMatchesScreen() {
   }, [fixtures]);
 
   const sections = useMemo<Section[]>(() => {
+    // Dedupe by fixture id. The backend occasionally emits the same
+    // fixture in two pages of /fixtures (when its `last_synced_at`
+    // straddles a page boundary mid-sync); React's reconciler crashes
+    // with a duplicate-key warning if we let both rows render side by
+    // side inside the same league section.
+    const seen = new Set<number>();
     const groups = new Map<number, FixtureSummary[]>();
     for (const f of filtered) {
+      if (seen.has(f.id)) continue;
+      seen.add(f.id);
       const list = groups.get(f.league_id);
       if (list) list.push(f);
       else groups.set(f.league_id, [f]);
