@@ -11,7 +11,7 @@ namespace PreOddsApi.Entities.SportMonks.Football.V3
         public long FixtureId { get; set; }
 
         [JsonProperty("player_id")]
-        public long PlayerId { get; set; }
+        public long? PlayerId { get; set; }
 
         [JsonProperty("team_id")]
         public long TeamId { get; set; }

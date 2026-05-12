@@ -45,5 +45,26 @@ namespace PreOddsApi.WebApi.V3.Data
             long fixtureId,
             int limit,
             CancellationToken ct = default);
+
+        Task<IReadOnlyList<FixtureTrendDto>> GetFixtureTrendsAsync(
+            long fixtureId,
+            CancellationToken ct = default);
+
+        Task<IReadOnlyList<FixtureMatchFactDto>> GetFixtureMatchFactsAsync(
+            long fixtureId,
+            int limit,
+            CancellationToken ct = default);
+
+        Task<FixtureWeatherDto?> GetFixtureWeatherAsync(
+            long fixtureId,
+            CancellationToken ct = default);
+
+        Task<IReadOnlyList<FixtureTvStationDto>> GetFixtureTvStationsAsync(
+            long fixtureId,
+            CancellationToken ct = default);
+
+        Task<IReadOnlyList<FixtureValueBetDto>> GetFixtureValueBetsAsync(
+            long fixtureId,
+            CancellationToken ct = default);
     }
 }

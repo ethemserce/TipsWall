@@ -108,6 +108,45 @@ namespace PreOddsApi.WebApi.V3.Controllers
             return OkResponse(items);
         }
 
+        [HttpGet("{id:long}/trends")]
+        public async Task<IActionResult> GetTrendsAsync(long id, CancellationToken ct)
+        {
+            var items = await _reader.GetFixtureTrendsAsync(id, ct);
+            return OkResponse(items);
+        }
+
+        [HttpGet("{id:long}/match-facts")]
+        public async Task<IActionResult> GetMatchFactsAsync(
+            long id,
+            [FromQuery(Name = "limit")] int? limit,
+            CancellationToken ct)
+        {
+            var capped = limit is int l && l > 0 ? Math.Min(l, 200) : 50;
+            var items = await _reader.GetFixtureMatchFactsAsync(id, capped, ct);
+            return OkResponse(items);
+        }
+
+        [HttpGet("{id:long}/weather")]
+        public async Task<IActionResult> GetWeatherAsync(long id, CancellationToken ct)
+        {
+            var item = await _reader.GetFixtureWeatherAsync(id, ct);
+            return OkResponse(item);
+        }
+
+        [HttpGet("{id:long}/tv-stations")]
+        public async Task<IActionResult> GetTvStationsAsync(long id, CancellationToken ct)
+        {
+            var items = await _reader.GetFixtureTvStationsAsync(id, ct);
+            return OkResponse(items);
+        }
+
+        [HttpGet("{id:long}/value-bets")]
+        public async Task<IActionResult> GetValueBetsAsync(long id, CancellationToken ct)
+        {
+            var items = await _reader.GetFixtureValueBetsAsync(id, ct);
+            return OkResponse(items);
+        }
+
         private static IReadOnlyList<long> ParseMarketIds(string? raw)
         {
             if (string.IsNullOrWhiteSpace(raw)) return Array.Empty<long>();
