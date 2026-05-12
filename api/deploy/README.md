@@ -115,9 +115,10 @@ Repo → Settings → Secrets and variables → Actions → **New repo secret**:
 
 | Secret | Source |
 |---|---|
-| `HETZNER_HOST` | Server IP from step 1 |
-| `HETZNER_USER` | `tipswall` |
-| `HETZNER_SSH_KEY` | Private key printed at the end of `bootstrap.sh` |
+| `DEPLOY_HOST` | Server IPv4 from step 1 |
+| `DEPLOY_USER` | `tipswall` |
+| `DEPLOY_SSH_KEY` | Private key printed at the end of `bootstrap.sh` |
+| `DEPLOY_SSH_PORT` | Custom SSH port, omit if 22 (most hosts) |
 | `GHCR_USER` | Your GitHub username |
 | `GHCR_PULL_TOKEN` | A PAT with `read:packages` scope (settings → developer settings → fine-grained tokens) |
 

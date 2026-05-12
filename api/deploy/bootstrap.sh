@@ -9,9 +9,10 @@
 #   2. Creates the `tipswall` deploy user with docker access.
 #   3. Generates an SSH keypair the GitHub Actions deploy job will use
 #      (public key goes in authorized_keys, private key you copy to
-#      the GH repo secret HETZNER_SSH_KEY).
-#   4. Mounts the Hetzner Volume at /mnt/tipswall-data and lays out
-#      the directory structure the compose file expects.
+#      the GH repo secret DEPLOY_SSH_KEY).
+#   4. Mounts a separate block device at /mnt/tipswall-data when one is
+#      present (Hetzner Volume etc.); falls back to a regular directory
+#      on the system disk otherwise (GoDaddy single-disk plans).
 #   5. Clones the repo at /opt/tipswall and copies the env template.
 #
 # After bootstrap you must:
@@ -202,10 +203,12 @@ echo
 echo "Next steps:"
 echo
 echo " 1. Fill in /opt/tipswall/api/.env (passwords, JWT secret, etc.)."
-echo " 2. Point your DNS A record to this VPS IP:"
-echo "      $(curl -s ifconfig.me || echo '<run: curl ifconfig.me>')"
+echo " 2. Point your DNS A record to this VPS IPv4:"
+# ifconfig.me with -4 forces IPv4 even on dual-stack hosts where the
+# default would pick the IPv6 address (useless for an A record).
+echo "      $(curl -s -4 ifconfig.me || echo '<run: curl -4 ifconfig.me>')"
 echo " 3. Copy the GitHub-actions private key into the repo secret"
-echo "    HETZNER_SSH_KEY:"
+echo "    DEPLOY_SSH_KEY:"
 echo
 echo "    --- BEGIN PRIVATE KEY ---"
 cat "${KEY_PATH}"
