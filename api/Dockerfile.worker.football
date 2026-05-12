@@ -12,6 +12,10 @@ FROM mcr.microsoft.com/dotnet/runtime:8.0 AS runtime
 WORKDIR /app
 COPY --from=build /app/publish .
 
+# Workers ship without the gitignored appsettings.json — bootstrap one
+# from the checked-in example. Env vars at runtime override secrets.
+RUN [ -f appsettings.json ] || cp appsettings.example.json appsettings.json
+
 USER $APP_UID
 
 ENV DOTNET_RUNNING_IN_CONTAINER=true

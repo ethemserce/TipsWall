@@ -18,6 +18,12 @@ FROM mcr.microsoft.com/dotnet/runtime:8.0 AS runtime
 WORKDIR /app
 COPY --from=build /app/publish .
 
+# Workers ship without the gitignored appsettings.json. Bootstrap one
+# from the checked-in example so the config root is present; the few
+# values that differ in production (DB connection, SportMonks token)
+# are overridden by env vars at runtime.
+RUN [ -f appsettings.json ] || cp appsettings.example.json appsettings.json
+
 # Drop privileges. $APP_UID is set by the .NET 8 base image to a
 # pre-created unprivileged uid; works on both `runtime` and `aspnet`
 # bases without us having to RUN useradd.
