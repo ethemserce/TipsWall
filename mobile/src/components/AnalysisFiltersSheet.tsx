@@ -95,6 +95,35 @@ export const PRESETS: Record<StrategyPreset, { filters: AnalysisFilterState }> =
   },
 };
 
+// Rule A: with "Sadece Değer" on, DSO > İKO claims need real samples to
+// avoid noise. 3 is the system floor — anything less is a coin flip.
+const KZ_MIN_WITH_VALUE = 3;
+// Rule B: short windows can't fill big sample buckets, so cap the KZ slider
+// upper bound to a reachable value per window. Beyond these caps the user
+// would be filtering for outcomes that mathematically can't exist.
+const KZ_MAX_BY_WINDOW: Record<WindowCode, number> = {
+  '1m': 5,
+  '3m': 7,
+  '6m': 8,
+  '1y': 10,
+  all: 10,
+};
+
+function kzFloor(state: AnalysisFilterState): number {
+  return state.valueOnly ? KZ_MIN_WITH_VALUE : 1;
+}
+
+function kzCeiling(state: AnalysisFilterState): number {
+  return KZ_MAX_BY_WINDOW[state.window];
+}
+
+function clampKz(state: AnalysisFilterState): AnalysisFilterState {
+  const floor = kzFloor(state);
+  const ceiling = kzCeiling(state);
+  const next = Math.min(ceiling, Math.max(floor, state.kzMin));
+  return next === state.kzMin ? state : { ...state, kzMin: next };
+}
+
 function filtersEqual(a: AnalysisFilterState, b: AnalysisFilterState): boolean {
   return (
     a.dsoMin === b.dsoMin &&
@@ -142,20 +171,47 @@ export function AnalysisFiltersSheet({
   // the user taps UYGULA; closing via backdrop / handle discards. Each open
   // syncs the draft to whatever the parent currently has.
   const [draft, setDraft] = useState<AnalysisFilterState>(filters);
+  // Rule C: remember which preset the user last tapped so we can mark its
+  // chip as "modified" once they've started tweaking. activePreset(draft)
+  // alone can't tell us that — it returns null the moment any field drifts.
+  const [appliedPreset, setAppliedPreset] = useState<StrategyPreset | null>(
+    null,
+  );
   useEffect(() => {
-    if (visible) setDraft(filters);
+    if (visible) {
+      setDraft(filters);
+      setAppliedPreset(activePreset(filters));
+    }
   }, [visible, filters]);
 
   const set = <K extends keyof AnalysisFilterState>(
     key: K,
     value: AnalysisFilterState[K],
-  ) => setDraft((prev) => ({ ...prev, [key]: value }));
+  ) =>
+    setDraft((prev) => {
+      const next = { ...prev, [key]: value };
+      // Rule A/B: KZ floor depends on valueOnly, ceiling on window — touch
+      // either and the KZ slider may need to slide along.
+      return clampKz(next);
+    });
 
-  const reset = () => setDraft(DEFAULT_FILTERS);
+  const applyPreset = (key: StrategyPreset) => {
+    setAppliedPreset(key);
+    setDraft(clampKz(PRESETS[key].filters));
+  };
+
+  const reset = () => {
+    setAppliedPreset(null);
+    setDraft(DEFAULT_FILTERS);
+  };
   const apply = () => {
     onApply(draft);
     onClose();
   };
+
+  const currentPreset = activePreset(draft);
+  const draftKzFloor = kzFloor(draft);
+  const draftKzCeiling = kzCeiling(draft);
 
   return (
     <Modal
@@ -195,37 +251,54 @@ export function AnalysisFiltersSheet({
               </ThemedText>
               <View style={styles.presetRow}>
                 {(Object.keys(PRESETS) as StrategyPreset[]).map((key) => {
-                  const preset = PRESETS[key];
-                  const active = activePreset(draft) === key;
+                  const active = currentPreset === key;
+                  // Rule C: chip shows three visual states — inactive
+                  // (plain), active (filled brand), and "modified" (last
+                  // applied but the user has since edited a field). The
+                  // modified state carries a dot so the user can tell at a
+                  // glance that the preset is the *starting point*, not
+                  // the verdict.
+                  const modified = !active && appliedPreset === key;
                   return (
                     <Pressable
                       key={key}
-                      onPress={() => setDraft(preset.filters)}
+                      onPress={() => applyPreset(key)}
                       style={[
                         styles.presetChip,
                         {
-                          borderColor: active ? c.brand : c.border,
+                          borderColor: active || modified ? c.brand : c.border,
                           backgroundColor: active ? c.brand : 'transparent',
+                          borderStyle: modified ? 'dashed' : 'solid',
                         },
                       ]}>
-                      <ThemedText
-                        style={[
-                          styles.presetLabel,
-                          { color: active ? c.textInverse : c.text },
-                        ]}>
-                        {t(`filters.presets.${key}.label`)}
-                      </ThemedText>
+                      <View style={styles.presetLabelRow}>
+                        <ThemedText
+                          style={[
+                            styles.presetLabel,
+                            { color: active ? c.textInverse : c.text },
+                          ]}>
+                          {t(`filters.presets.${key}.label`)}
+                        </ThemedText>
+                        {modified ? (
+                          <View
+                            style={[
+                              styles.modifiedDot,
+                              { backgroundColor: c.brand },
+                            ]}
+                          />
+                        ) : null}
+                      </View>
                       <ThemedText
                         style={[
                           styles.presetDesc,
                           {
-                            color: active
-                              ? c.textInverse
-                              : c.textMuted,
+                            color: active ? c.textInverse : c.textMuted,
                           },
                         ]}
                         numberOfLines={2}>
-                        {t(`filters.presets.${key}.description`)}
+                        {modified
+                          ? t('filters.presets.modifiedHint')
+                          : t(`filters.presets.${key}.description`)}
                       </ThemedText>
                     </Pressable>
                   );
@@ -236,10 +309,7 @@ export function AnalysisFiltersSheet({
             {/* Top-3 per fixture toggle — keeps the headline list digestible */}
             <Pressable
               onPress={() =>
-                set(
-                  'topPerFixture',
-                  draft.topPerFixture == null ? 3 : null,
-                )
+                set('topPerFixture', draft.topPerFixture == null ? 3 : null)
               }
               style={[
                 styles.valueRow,
@@ -313,9 +383,7 @@ export function AnalysisFiltersSheet({
                   style={[
                     styles.valueSubtitle,
                     {
-                      color: draft.valueOnly
-                        ? c.textInverse
-                        : c.textMuted,
+                      color: draft.valueOnly ? c.textInverse : c.textMuted,
                     },
                   ]}>
                   {t('filters.valueOnly.subtitle')}
@@ -328,9 +396,7 @@ export function AnalysisFiltersSheet({
                     backgroundColor: draft.valueOnly
                       ? c.textInverse
                       : 'transparent',
-                    borderColor: draft.valueOnly
-                      ? c.textInverse
-                      : c.border,
+                    borderColor: draft.valueOnly ? c.textInverse : c.border,
                   },
                 ]}>
                 {draft.valueOnly ? (
@@ -364,11 +430,19 @@ export function AnalysisFiltersSheet({
             <SliderRow
               label={t('filters.sliders.kzMin')}
               value={draft.kzMin}
-              min={1}
-              max={10}
+              min={draftKzFloor}
+              max={draftKzCeiling}
               step={1}
               format={(v) => `≥ ${v}`}
-              hint={null}
+              hint={
+                draft.valueOnly && draft.kzMin === KZ_MIN_WITH_VALUE
+                  ? t('filters.sliders.kzMinValueLocked')
+                  : draftKzCeiling < 10
+                    ? t('filters.sliders.kzMaxWindowLocked', {
+                        max: draftKzCeiling,
+                      })
+                    : null
+              }
               onChange={(v) => set('kzMin', v)}
             />
 
@@ -699,10 +773,20 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     gap: 2,
   },
+  presetLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
   presetLabel: {
     fontSize: 12,
     fontWeight: '800',
     letterSpacing: 0.3,
+  },
+  modifiedDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
   },
   presetDesc: {
     fontSize: 9,

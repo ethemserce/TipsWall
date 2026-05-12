@@ -482,6 +482,45 @@ export function AnalysisScreen() {
                     {t('home.empty.searchBody')}
                   </ThemedText>
                 </>
+              ) : activeCount > 0 ? (
+                // Rule E: instead of a flat "no results" message, point at
+                // the most likely cause given the current filter shape and
+                // offer a one-tap path back to a usable state.
+                <>
+                  <View
+                    style={[
+                      styles.emptyIconCircle,
+                      { backgroundColor: c.brandSoft },
+                    ]}>
+                    <MaterialCommunityIcons
+                      name="filter-variant"
+                      size={28}
+                      color={c.brand}
+                    />
+                  </View>
+                  <ThemedText style={[styles.errorTitle, { color: c.text }]}>
+                    {t('analysis.empty.filteredTitle')}
+                  </ThemedText>
+                  <ThemedText style={[styles.errorMessage, { color: c.textMuted }]}>
+                    {suggestLoosen(filters, t)}
+                  </ThemedText>
+                  <View style={styles.emptyCtaRow}>
+                    <Pressable
+                      onPress={() => setFiltersOpen(true)}
+                      style={[styles.emptyCtaPrimary, { backgroundColor: c.brand }]}>
+                      <ThemedText style={[styles.emptyCtaText, { color: c.textInverse }]}>
+                        {t('analysis.empty.openFilters')}
+                      </ThemedText>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => setFilters(DEFAULT_FILTERS)}
+                      style={[styles.emptyCtaSecondary, { borderColor: c.border }]}>
+                      <ThemedText style={[styles.emptyCtaText, { color: c.text }]}>
+                        {t('analysis.empty.resetFilters')}
+                      </ThemedText>
+                    </Pressable>
+                  </View>
+                </>
               ) : (
                 <ThemedText style={{ color: c.textMuted }}>
                   {t('rate.noResults')}
@@ -507,6 +546,23 @@ export function AnalysisScreen() {
       />
     </SafeAreaView>
   );
+}
+
+// Rule E: choose the loosen-this-knob hint that's most likely to unblock
+// the user. Picks the most aggressive constraint relative to defaults so
+// the message is actionable rather than generic.
+function suggestLoosen(
+  filters: AnalysisFilterState,
+  t: (key: string, opts?: Record<string, unknown>) => string,
+): string {
+  if (filters.dsoMin >= 70) return t('analysis.empty.suggest.dsoHigh');
+  if (filters.vbetMin >= 50) return t('analysis.empty.suggest.vbetHigh');
+  if (filters.kzMin >= 6) return t('analysis.empty.suggest.kzHigh');
+  if (filters.window === '1m' || filters.window === '3m')
+    return t('analysis.empty.suggest.windowNarrow');
+  if (filters.valueOnly && filters.riskCategory != null)
+    return t('analysis.empty.suggest.valuePlusRisk');
+  return t('analysis.empty.suggest.generic');
 }
 
 const styles = StyleSheet.create({
@@ -655,5 +711,26 @@ const styles = StyleSheet.create({
     fontSize: 13,
     textAlign: 'center',
     fontWeight: '500',
+  },
+  emptyCtaRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+  },
+  emptyCtaPrimary: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  emptyCtaSecondary: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  emptyCtaText: {
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
 });

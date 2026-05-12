@@ -30,6 +30,18 @@ import { useTheme } from '@/src/lib/useTheme';
  * password without seeing a scary error if Apple/Google pops a
  * cancel sheet.
  */
+// Google's hook validates the per-platform client id at call time — calling
+// it on Android without `androidClientId` throws before we ever get to the
+// `showGoogle` gate. Resolving the requirement per Platform.OS up-front
+// also matches the library's intent: a Web-only id is useless on a native
+// device. When the platform id is missing we skip the entire Google child
+// so the hook never fires.
+function hasGoogleOnThisPlatform(): boolean {
+  if (Platform.OS === 'ios') return env.googleClientIdIos.length > 0;
+  if (Platform.OS === 'android') return env.googleClientIdAndroid.length > 0;
+  return env.googleClientIdWeb.length > 0;
+}
+
 export function SocialSignInButtons() {
   const c = useTheme();
   const { t } = useTranslation();
@@ -40,12 +52,6 @@ export function SocialSignInButtons() {
     if (Platform.OS !== 'ios') return;
     AppleAuthentication.isAvailableAsync().then(setAppleAvailable).catch(() => {});
   }, []);
-
-  const [, , promptGoogle] = Google.useIdTokenAuthRequest({
-    iosClientId: env.googleClientIdIos || undefined,
-    androidClientId: env.googleClientIdAndroid || undefined,
-    clientId: env.googleClientIdWeb || undefined,
-  });
 
   const handleSignedIn = (provider: 'apple' | 'google') => {
     // Same "your guest picks moved" toast as the email-password
@@ -107,33 +113,8 @@ export function SocialSignInButtons() {
     }
   };
 
-  const handleGoogle = async () => {
-    if (busy) return;
-    setBusy('google');
-    try {
-      const result = await promptGoogle();
-      if (result?.type !== 'success' || !result.params.id_token) {
-        // Cancelled or no token — silent.
-        return;
-      }
-      await socialSignIn('google', result.params.id_token);
-      handleSignedIn('google');
-    } catch (err) {
-      notify({
-        kind: 'loss',
-        title: t('auth.social.errorTitle'),
-        body:
-          err instanceof ApiClientError
-            ? err.message
-            : t('auth.social.errorGoogle'),
-      });
-    } finally {
-      setBusy(null);
-    }
-  };
-
   const showApple = Platform.OS === 'ios' && appleAvailable;
-  const showGoogle = env.hasGoogleSignIn;
+  const showGoogle = hasGoogleOnThisPlatform();
   if (!showApple && !showGoogle) return null;
 
   return (
@@ -168,31 +149,90 @@ export function SocialSignInButtons() {
       ) : null}
 
       {showGoogle ? (
-        <Pressable
-          onPress={handleGoogle}
+        <GoogleSignInButton
+          busy={busy === 'google'}
           disabled={busy != null}
-          style={({ pressed }) => [
-            styles.btn,
-            {
-              backgroundColor: c.surfaceElevated,
-              borderColor: c.border,
-              borderWidth: StyleSheet.hairlineWidth,
-              opacity: pressed ? 0.7 : 1,
-            },
-          ]}>
-          {busy === 'google' ? (
-            <ActivityIndicator color={c.text} />
-          ) : (
-            <>
-              <MaterialCommunityIcons name="google" size={18} color={c.text} />
-              <ThemedText style={[styles.btnText, { color: c.text }]}>
-                {t('auth.social.googleBtn')}
-              </ThemedText>
-            </>
-          )}
-        </Pressable>
+          onStart={() => setBusy('google')}
+          onSettle={() => setBusy(null)}
+          onSuccess={() => handleSignedIn('google')}
+        />
       ) : null}
     </View>
+  );
+}
+
+interface GoogleSignInButtonProps {
+  busy: boolean;
+  disabled: boolean;
+  onStart: () => void;
+  onSettle: () => void;
+  onSuccess: () => void;
+}
+
+// Mounted only when the device's platform-specific Google client id is
+// present (see `hasGoogleOnThisPlatform`). That way the `useIdTokenAuthRequest`
+// hook never fires with missing required props.
+function GoogleSignInButton({
+  busy,
+  disabled,
+  onStart,
+  onSettle,
+  onSuccess,
+}: GoogleSignInButtonProps) {
+  const c = useTheme();
+  const { t } = useTranslation();
+  const [, , promptGoogle] = Google.useIdTokenAuthRequest({
+    iosClientId: env.googleClientIdIos || undefined,
+    androidClientId: env.googleClientIdAndroid || undefined,
+    clientId: env.googleClientIdWeb || undefined,
+  });
+
+  const handlePress = async () => {
+    if (disabled) return;
+    onStart();
+    try {
+      const result = await promptGoogle();
+      if (result?.type !== 'success' || !result.params.id_token) return;
+      await socialSignIn('google', result.params.id_token);
+      onSuccess();
+    } catch (err) {
+      notify({
+        kind: 'loss',
+        title: t('auth.social.errorTitle'),
+        body:
+          err instanceof ApiClientError
+            ? err.message
+            : t('auth.social.errorGoogle'),
+      });
+    } finally {
+      onSettle();
+    }
+  };
+
+  return (
+    <Pressable
+      onPress={handlePress}
+      disabled={disabled}
+      style={({ pressed }) => [
+        styles.btn,
+        {
+          backgroundColor: c.surfaceElevated,
+          borderColor: c.border,
+          borderWidth: StyleSheet.hairlineWidth,
+          opacity: pressed ? 0.7 : 1,
+        },
+      ]}>
+      {busy ? (
+        <ActivityIndicator color={c.text} />
+      ) : (
+        <>
+          <MaterialCommunityIcons name="google" size={18} color={c.text} />
+          <ThemedText style={[styles.btnText, { color: c.text }]}>
+            {t('auth.social.googleBtn')}
+          </ThemedText>
+        </>
+      )}
+    </Pressable>
   );
 }
 

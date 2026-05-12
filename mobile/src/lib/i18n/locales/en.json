@@ -127,7 +127,8 @@
     "presets": {
       "banker": { "label": "Banker", "description": "Safe pick, high hit rate — solid leg" },
       "value": { "label": "Value", "description": "System sees value — math edge" },
-      "longshot": { "label": "Long shot", "description": "Rare but high-reward when it lands" }
+      "longshot": { "label": "Long shot", "description": "Rare but high-reward when it lands" },
+      "modifiedHint": "Starting point — customised"
     },
     "topPerFixture": {
       "title": "Best 3 per match",
@@ -141,7 +142,9 @@
       "dsoMin": "HIT min",
       "vbetMin": "ROI min",
       "kzMin": "Sample size min",
-      "off": "off"
+      "off": "off",
+      "kzMinValueLocked": "Min 3 while Value-only is on",
+      "kzMaxWindowLocked": "Capped at {{max}} for this window"
     },
     "period": "PERIOD",
     "risk": {
@@ -421,7 +424,20 @@
     }
   },
   "analysis": {
-    "filtersButton": "Filter"
+    "filtersButton": "Filter",
+    "empty": {
+      "filteredTitle": "No picks match these filters",
+      "openFilters": "Open Filters",
+      "resetFilters": "Reset",
+      "suggest": {
+        "dsoHigh": "HIT threshold is steep — try lowering it.",
+        "vbetHigh": "ROI threshold is aggressive — loosen it.",
+        "kzHigh": "Sample requirement is high — drop KZ or widen the period.",
+        "windowNarrow": "Period is narrow — try a wider window.",
+        "valuePlusRisk": "Value + risk tier together is tight — remove the risk filter.",
+        "generic": "Try loosening the filters."
+      }
+    }
   },
   "markets": {
     "tbd": "TBD",
@@ -523,7 +539,8 @@
       "stats": "Stats",
       "lineups": "Lineups",
       "h2h": "H2H",
-      "standings": "Standings"
+      "standings": "Standings",
+      "insights": "Notes"
     },
     "hero": {
       "halfTimeShort": "HT {{home}}-{{away}}",
@@ -543,6 +560,31 @@
       "leg": "Leg",
       "result": "Result",
       "lengthMinutes": "{{count}} min"
+    },
+    "momentum": {
+      "title": "Momentum",
+      "dangerousAttacks": "Dangerous Attacks",
+      "attacks": "Attacks",
+      "shots": "Shots",
+      "corners": "Corners"
+    },
+    "insights": {
+      "title": "Match Notes",
+      "showMore": "Show {{count}} more",
+      "showLess": "Show less",
+      "empty": "No notes available for this match yet."
+    },
+    "weather": {
+      "title": "Weather"
+    },
+    "tvStations": {
+      "title": "Broadcasters"
+    },
+    "aiPicks": {
+      "title": "AI Picks",
+      "valueBadge": "VALUE",
+      "valueLine": "High-value pick",
+      "modelLine": "Model suggestion"
     },
     "score": {
       "title": "Score",
