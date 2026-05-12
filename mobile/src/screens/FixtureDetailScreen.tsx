@@ -1,11 +1,10 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
-  type LayoutChangeEvent,
   PanResponder,
   Pressable,
   RefreshControl,
@@ -106,63 +105,18 @@ export function FixtureDetailScreen({ fixtureId }: FixtureDetailScreenProps) {
   const { data, isLoading, isFetching, isError, error, refetch } =
     useFixture(fixtureId);
 
-  // Hero collapse + compact-bar reveal run on Reanimated's UI thread via a
-  // shared scroll position — the JS-driven Animated.Value version flickered
-  // because each frame had to round-trip the bridge, then run a Yoga
-  // relayout for the height change. Reanimated keeps both interpolations
-  // on the UI thread so the header tracks the scroll position smoothly.
-  //
-  // The visible wrapper has an interpolated height (and overflow hidden),
-  // which means onLayout there reports the *clipped* size — so we'd freeze
-  // the height before async data (events / goal lines) lands. Measure the
-  // natural size in a hidden, absolutely-positioned twin so late-arriving
-  // content (e.g. a goal scored in the 70th minute) makes the wrapper
-  // grow to fit.
+  // Sticky tab bar pattern: hero scrolls inside the ScrollView as natural
+  // content, the [hero, tabBar] section index 1 is `stickyHeaderIndices`.
+  // Earlier attempts animated `height` on the hero wrapper — that triggers
+  // a Yoga reflow every frame and caused the visible flicker the user
+  // reported. Now the hero scrolls off naturally (no layout interpolation)
+  // and only the compact bar's height + opacity animate, which stays
+  // contained inside the sticky section so it doesn't reflow the page.
   const scrollY = useSharedValue(0);
-  // Hero height lives in a shared value (not React state) so a late
-  // measurement — events arriving with goals, weather row appearing —
-  // doesn't trigger a JS re-render that resnaps the useAnimatedStyle
-  // worklet mid-frame. The visible flicker the user reports when
-  // scrolling fast was that resnap.
-  const heroHeightSV = useSharedValue(0);
-  const onHeroLayout = useCallback(
-    (e: LayoutChangeEvent) => {
-      const h = e.nativeEvent.layout.height;
-      if (h > 0 && Math.abs(heroHeightSV.value - h) >= 1) {
-        heroHeightSV.value = h;
-      }
-    },
-    [heroHeightSV],
-  );
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (e) => {
       scrollY.value = e.contentOffset.y;
     },
-  });
-
-  const heroAnimatedStyle = useAnimatedStyle(() => {
-    const h = heroHeightSV.value;
-    if (h === 0) {
-      // First few frames before onLayout fires — let the wrapper take
-      // its natural size so the hero shows immediately at full height
-      // rather than blinking from 0 → measured.
-      return { opacity: 1, overflow: 'hidden' };
-    }
-    return {
-      height: interpolate(
-        scrollY.value,
-        [0, HERO_COLLAPSE_RANGE],
-        [h, 0],
-        Extrapolation.CLAMP,
-      ),
-      opacity: interpolate(
-        scrollY.value,
-        [0, HERO_COLLAPSE_RANGE * 0.6],
-        [1, 0],
-        Extrapolation.CLAMP,
-      ),
-      overflow: 'hidden',
-    };
   });
 
   const compactAnimatedStyle = useAnimatedStyle(() => ({
@@ -342,109 +296,70 @@ export function FixtureDetailScreen({ fixtureId }: FixtureDetailScreenProps) {
       style={[styles.flex, { backgroundColor: c.bg }]}
       edges={['top']}>
       <View {...leagueSwipeResponder.panHandlers}>
-      <View style={[styles.headerBar, { borderBottomColor: c.border }]}>
-        <Pressable
-          onPress={handleBack}
-          hitSlop={12}
-          style={styles.headerBack}>
-          <MaterialCommunityIcons
-            name="chevron-left"
-            size={24}
-            color={c.text}
-          />
-        </Pressable>
-        <Pressable
-          onPress={() => {
-            if (data.fixture.league_id != null) {
-              router.push(
-                `/league/${data.fixture.league_id}` as never,
-              );
-            }
-          }}
-          accessibilityRole="button"
-          accessibilityLabel={league?.name ?? ''}
-          style={({ pressed }) => [
-            styles.headerTitle,
-            pressed && { opacity: 0.6 },
-          ]}>
-          {league?.image_path ? (
-            <Image
-              source={{ uri: league.image_path }}
-              style={styles.headerLogo}
-              contentFit="contain"
-            />
-          ) : null}
-          <ThemedText
-            style={[styles.headerName, { color: c.text }]}
-            numberOfLines={1}>
-            {league?.name ?? ''}
-          </ThemedText>
-        </Pressable>
-        <View style={styles.headerActions}>
+        <View style={[styles.headerBar, { borderBottomColor: c.border }]}>
           <Pressable
-            onPress={() => {
-              const fxName =
-                data.fixture.home_team_name && data.fixture.away_team_name
-                  ? `${data.fixture.home_team_name} - ${data.fixture.away_team_name}`
-                  : t('markets.fallback', { id: fixtureId });
-              shareFixture(fixtureId, fxName);
-            }}
+            onPress={handleBack}
             hitSlop={12}
-            accessibilityRole="button"
-            accessibilityLabel={t('common.share')}
-            style={({ pressed }) => [
-              styles.headerIconBtn,
-              pressed && { backgroundColor: c.brandSoft },
-            ]}>
+            style={styles.headerBack}>
             <MaterialCommunityIcons
-              name="share-variant"
-              size={20}
-              color={c.textMuted}
+              name="chevron-left"
+              size={24}
+              color={c.text}
             />
           </Pressable>
-          <MarketLegendButton />
+          <Pressable
+            onPress={() => {
+              if (data.fixture.league_id != null) {
+                router.push(
+                  `/league/${data.fixture.league_id}` as never,
+                );
+              }
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={league?.name ?? ''}
+            style={({ pressed }) => [
+              styles.headerTitle,
+              pressed && { opacity: 0.6 },
+            ]}>
+            {league?.image_path ? (
+              <Image
+                source={{ uri: league.image_path }}
+                style={styles.headerLogo}
+                contentFit="contain"
+              />
+            ) : null}
+            <ThemedText
+              style={[styles.headerName, { color: c.text }]}
+              numberOfLines={1}>
+              {league?.name ?? ''}
+            </ThemedText>
+          </Pressable>
+          <View style={styles.headerActions}>
+            <Pressable
+              onPress={() => {
+                const fxName =
+                  data.fixture.home_team_name && data.fixture.away_team_name
+                    ? `${data.fixture.home_team_name} - ${data.fixture.away_team_name}`
+                    : t('markets.fallback', { id: fixtureId });
+                shareFixture(fixtureId, fxName);
+              }}
+              hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel={t('common.share')}
+              style={({ pressed }) => [
+                styles.headerIconBtn,
+                pressed && { backgroundColor: c.brandSoft },
+              ]}>
+              <MaterialCommunityIcons
+                name="share-variant"
+                size={20}
+                color={c.textMuted}
+              />
+            </Pressable>
+            <MarketLegendButton />
+          </View>
         </View>
       </View>
-      <Reanimated.View
-        style={[
-          styles.compactBar,
-          {
-            backgroundColor: c.surface,
-            borderBottomColor: c.border,
-          },
-          compactAnimatedStyle,
-        ]}
-        pointerEvents="none">
-        <CompactHeroBar fixture={data.fixture} />
-      </Reanimated.View>
-      {/* Hidden measurer — rendered once at natural height so late-arriving
-          events (goals) update heroHeight, letting the visible wrapper
-          grow. Absolute positioning keeps it out of layout flow. */}
-      <View
-        style={styles.heroMeasurer}
-        pointerEvents="none"
-        onLayout={onHeroLayout}>
-        <FixtureDetailHero
-          fixture={data.fixture}
-          league={league}
-          country={country}
-          scores={data.scores}
-          events={events.data}
-          weather={weather.data}
-        />
-      </View>
-      <Reanimated.View style={heroAnimatedStyle}>
-        <FixtureDetailHero
-          fixture={data.fixture}
-          league={league}
-          country={country}
-          scores={data.scores}
-          events={events.data}
-          weather={weather.data}
-        />
-      </Reanimated.View>
-      </View>
-      <DetailTabBar selected={tab} onSelect={setTab} />
 
       <View style={styles.flex} {...swipeResponder.panHandlers}>
       <Reanimated.ScrollView
@@ -452,6 +367,7 @@ export function FixtureDetailScreen({ fixtureId }: FixtureDetailScreenProps) {
         contentContainerStyle={styles.content}
         onScroll={scrollHandler}
         scrollEventThrottle={16}
+        stickyHeaderIndices={[1]}
         refreshControl={
           <RefreshControl
             refreshing={isFetching}
@@ -459,6 +375,31 @@ export function FixtureDetailScreen({ fixtureId }: FixtureDetailScreenProps) {
             tintColor={c.brand}
           />
         }>
+        <View>
+          <FixtureDetailHero
+            fixture={data.fixture}
+            league={league}
+            country={country}
+            scores={data.scores}
+            events={events.data}
+            weather={weather.data}
+          />
+        </View>
+        <View style={{ backgroundColor: c.bg }}>
+          <Reanimated.View
+            style={[
+              styles.compactBar,
+              {
+                backgroundColor: c.surface,
+                borderBottomColor: c.border,
+              },
+              compactAnimatedStyle,
+            ]}
+            pointerEvents="none">
+            <CompactHeroBar fixture={data.fixture} />
+          </Reanimated.View>
+          <DetailTabBar selected={tab} onSelect={setTab} />
+        </View>
         {tab === 'details' ? (
           <>
             <AttackMomentumCard
@@ -752,13 +693,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden',
     borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  heroMeasurer: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: -10000,
-    opacity: 0,
   },
   compactRow: {
     flexDirection: 'row',

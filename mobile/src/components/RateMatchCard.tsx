@@ -107,11 +107,13 @@ export function RateMatchCard({
       ? `${homeNameForCoupon} - ${awayNameForCoupon}`
       : `Maç #${fixtureId}`;
 
-  // Left-edge accent strip color tracks match state — green for upcoming
-  // (the value-bet sweet spot), red while live, muted grey when finished.
-  // Gives the card identity at a glance inside the league section instead
-  // of relying on a flat grey background to do that job.
-  const accentColor = live ? c.live : finished ? c.textMuted : c.brand;
+  // Left-edge accent strip. State coloring (green/red/grey) read too
+  // loud next to the lighter top + bottom edges of the card; user feedback
+  // was that the saturated stripe felt heavy. Match it to the outer
+  // borderSoft tone so the strip whispers along with the rest of the
+  // border instead of standing out as a colored bar. State identity
+  // still comes from the headerWash up top.
+  const accentColor = c.borderSoft;
   // Soft brand wash on the top strip when the match is still upcoming,
   // tinted live red while in-play. Finished matches get a neutral header
   // so the historic data underneath stays the focus.
@@ -129,7 +131,7 @@ export function RateMatchCard({
         { backgroundColor: c.surfaceElevated, borderColor: c.borderSoft },
       ]}>
       <View
-        style={[styles.accentStrip, { backgroundColor: accentColor, opacity: 0.45 }]}
+        style={[styles.accentStrip, { backgroundColor: accentColor }]}
         pointerEvents="none"
       />
       <Pressable
