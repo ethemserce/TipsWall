@@ -83,6 +83,9 @@ SSH_DIR="${DEPLOY_HOME}/.ssh"
 KEY_PATH="${SSH_DIR}/github_actions"
 mkdir -p "${SSH_DIR}"
 chmod 700 "${SSH_DIR}"
+# Hand the directory to the deploy user *before* running ssh-keygen as
+# them — otherwise the root-owned dir rejects their write.
+chown -R "${DEPLOY_USER}:${DEPLOY_USER}" "${SSH_DIR}"
 
 if [[ ! -f "${KEY_PATH}" ]]; then
   log "Generating ed25519 SSH key for GitHub Actions…"
@@ -93,6 +96,7 @@ touch "${SSH_DIR}/authorized_keys"
 chmod 600 "${SSH_DIR}/authorized_keys"
 grep -qxF "$(cat "${KEY_PATH}.pub")" "${SSH_DIR}/authorized_keys" \
   || cat "${KEY_PATH}.pub" >> "${SSH_DIR}/authorized_keys"
+# Re-chown to catch the freshly-written authorized_keys + key files.
 chown -R "${DEPLOY_USER}:${DEPLOY_USER}" "${SSH_DIR}"
 
 # ----------------------------------------------------------------------
