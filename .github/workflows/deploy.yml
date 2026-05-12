@@ -120,17 +120,17 @@ jobs:
             # (variable_substitution_priority: env-over-.env).
             export IMAGE_TAG="${COMMIT_SHA}"
 
-            docker compose --env-file .env pull
+            docker compose -f docker-compose.production.yml --env-file .env pull
             # Migrations run as a one-shot container that exits on
             # success — docker compose up blocks on it because of
             # `condition: service_completed_successfully` deps.
-            docker compose --env-file .env up -d --remove-orphans
+            docker compose -f docker-compose.production.yml --env-file .env up -d --remove-orphans
 
             # Wait for the webapi health check to flip to "healthy"
             # before reporting success. 60 sec budget covers a cold
             # start; if it doesn't come up we fail the job loudly.
             for i in $(seq 1 30); do
-              status=$(docker compose --env-file .env ps webapi \
+              status=$(docker compose -f docker-compose.production.yml --env-file .env ps webapi \
                 --format json | jq -r '.[0].Health // empty')
               if [[ "${status}" == "healthy" ]]; then
                 echo "webapi healthy after ${i}×2s"
@@ -139,7 +139,7 @@ jobs:
               sleep 2
             done
             echo "webapi failed to become healthy" >&2
-            docker compose --env-file .env logs --tail=80 webapi >&2
+            docker compose -f docker-compose.production.yml --env-file .env logs --tail=80 webapi >&2
             exit 1
         env:
           COMMIT_SHA: ${{ github.sha }}

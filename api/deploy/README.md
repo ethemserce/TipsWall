@@ -152,14 +152,14 @@ cd /opt/tipswall/api
 docker images | grep tipswall- | head
 # Pin it
 nano .env   # set IMAGE_TAG=<the-sha>
-docker compose --env-file .env up -d
+docker compose -f docker-compose.production.yml --env-file .env up -d
 ```
 
 ### Tail logs
 
 ```bash
-docker compose --env-file .env logs -f webapi
-docker compose --env-file .env logs -f worker-football
+docker compose -f docker-compose.production.yml --env-file .env logs -f webapi
+docker compose -f docker-compose.production.yml --env-file .env logs -f worker-football
 ```
 
 ### Run a manual migration
@@ -167,7 +167,7 @@ docker compose --env-file .env logs -f worker-football
 Migrations run as part of every deploy. To re-run on demand:
 
 ```bash
-docker compose --env-file .env run --rm migrator
+docker compose -f docker-compose.production.yml --env-file .env run --rm migrator
 ```
 
 ### Restore from backup
@@ -176,11 +176,11 @@ Backups are at `/mnt/tipswall-data/backup/preodds-*.sql.gz`, kept for
 14 days.
 
 ```bash
-docker compose --env-file .env stop webapi worker-core worker-football worker-odds
+docker compose -f docker-compose.production.yml --env-file .env stop webapi worker-core worker-football worker-odds
 zcat /mnt/tipswall-data/backup/preodds-20260511-030000.sql.gz \
-  | docker compose --env-file .env exec -T postgres \
+  | docker compose -f docker-compose.production.yml --env-file .env exec -T postgres \
     psql -U preodds preodds
-docker compose --env-file .env start webapi worker-core worker-football worker-odds
+docker compose -f docker-compose.production.yml --env-file .env start webapi worker-core worker-football worker-odds
 ```
 
 ### Tune Postgres further
