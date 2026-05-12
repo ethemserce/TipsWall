@@ -129,9 +129,15 @@ jobs:
             # Wait for the webapi health check to flip to "healthy"
             # before reporting success. 60 sec budget covers a cold
             # start; if it doesn't come up we fail the job loudly.
+            #
+            # `docker compose ps --format json` switched from JSON array
+            # to NDJSON in compose v2.20+; piping through jq '.[0]' then
+            # blew up with "Cannot index object with number". Reading
+            # the field via the go-template format skips jq entirely.
             for i in $(seq 1 30); do
-              status=$(docker compose -f docker-compose.production.yml --env-file .env ps webapi \
-                --format json | jq -r '.[0].Health // empty')
+              status=$(docker compose -f docker-compose.production.yml --env-file .env \
+                ps webapi --format '{{.Health}}' 2>/dev/null || true)
+              echo "[health-poll ${i}/30] webapi=${status:-<no-status>}"
               if [[ "${status}" == "healthy" ]]; then
                 echo "webapi healthy after ${i}×2s"
                 exit 0
