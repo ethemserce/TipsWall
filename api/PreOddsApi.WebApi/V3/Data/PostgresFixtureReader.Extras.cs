@@ -69,6 +69,7 @@ namespace PreOddsApi.WebApi.V3.Data
                        poc.participants,
                        poc.sort_order,
                        poc.winning,
+                       poc.value::numeric as odd_value,
                        poc.iko,
                        fs.win_count,
                        fs.lost_count,
@@ -127,6 +128,10 @@ namespace PreOddsApi.WebApi.V3.Data
                     Participants = ReadNullableString(reader, "participants"),
                     SortOrder = ReadNullableInt(reader, "sort_order"),
                     Winning = ReadNullableBool(reader, "winning"),
+                    // poc.value stores the raw odd as text; cast to numeric
+                    // in the projection above so the Npgsql reader hands us
+                    // a decimal instead of a string-of-decimal.
+                    Value = ReadNullableDecimal(reader, "odd_value"),
                     Iko = ReadNullableDecimal(reader, "iko"),
                     WinCount = winCount,
                     LostCount = lostCount,
@@ -404,7 +409,9 @@ namespace PreOddsApi.WebApi.V3.Data
                        coalesce(home_cards.cnt, 0) as home_red_cards,
                        coalesce(away_cards.cnt, 0) as away_red_cards,
                        coalesce(home_var.active, false) as home_var_active,
-                       coalesce(away_var.active, false) as away_var_active
+                       coalesce(away_var.active, false) as away_var_active,
+                       v.name as venue_name,
+                       main_ref.name as referee_name
                 from football.fixtures f
                 join shared s on s.fixture_id = f.id
                 cross join pair
@@ -414,6 +421,14 @@ namespace PreOddsApi.WebApi.V3.Data
                 left join football.fixture_participants away_p
                     on away_p.fixture_id = f.id and away_p.location = 'away'
                 left join football.teams away_t on away_t.id = away_p.team_id
+                left join football.venues v on v.id = f.venue_id
+                left join lateral (
+                    select r.name from football.fixture_referees fr
+                    join football.referees r on r.id = fr.referee_id
+                    where fr.fixture_id = f.id
+                    order by fr.id
+                    limit 1
+                ) main_ref on true
                 left join lateral (
                     select goals from football.fixture_scores
                     where fixture_id = f.id

@@ -66,5 +66,13 @@ namespace PreOddsApi.WebApi.V3.Data
         Task<IReadOnlyList<FixtureValueBetDto>> GetFixtureValueBetsAsync(
             long fixtureId,
             CancellationToken ct = default);
+
+        Task<FixtureExpectedGoalsDto?> GetFixtureExpectedGoalsAsync(
+            long fixtureId,
+            CancellationToken ct = default);
+
+        Task<FixtureSidelinedDto> GetFixtureSidelinedAsync(
+            long fixtureId,
+            CancellationToken ct = default);
     }
 }

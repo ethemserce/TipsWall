@@ -106,6 +106,8 @@ namespace PreOddsApi.WebApi.V3.Data
                        coalesce(away_cards.cnt, 0) as away_red_cards,
                        coalesce(home_var.active, false) as home_var_active,
                        coalesce(away_var.active, false) as away_var_active,
+                       v.name as venue_name,
+                       main_ref.name as referee_name,
                        count(*) over() as total_count
                 from football.fixtures f
                 {teamJoin}
@@ -115,6 +117,19 @@ namespace PreOddsApi.WebApi.V3.Data
                 left join football.fixture_participants away_p
                     on away_p.fixture_id = f.id and away_p.location = 'away'
                 left join football.teams away_t on away_t.id = away_p.team_id
+                left join football.venues v on v.id = f.venue_id
+                left join lateral (
+                    -- Single referee per fixture — the first row by id
+                    -- is the main centre official in every sample I've
+                    -- spot-checked. Worth refining once SportMonks
+                    -- documents type ids stably.
+                    select r.name
+                    from football.fixture_referees fr
+                    join football.referees r on r.id = fr.referee_id
+                    where fr.fixture_id = f.id
+                    order by fr.id
+                    limit 1
+                ) main_ref on true
                 left join lateral (
                     select goals from football.fixture_scores
                     where fixture_id = f.id
@@ -225,7 +240,9 @@ namespace PreOddsApi.WebApi.V3.Data
                        coalesce(home_cards.cnt, 0) as home_red_cards,
                        coalesce(away_cards.cnt, 0) as away_red_cards,
                        coalesce(home_var.active, false) as home_var_active,
-                       coalesce(away_var.active, false) as away_var_active
+                       coalesce(away_var.active, false) as away_var_active,
+                       v.name as venue_name,
+                       main_ref.name as referee_name
                 from football.fixtures f
                 left join football.fixture_participants home_p
                     on home_p.fixture_id = f.id and home_p.location = 'home'
@@ -233,6 +250,15 @@ namespace PreOddsApi.WebApi.V3.Data
                 left join football.fixture_participants away_p
                     on away_p.fixture_id = f.id and away_p.location = 'away'
                 left join football.teams away_t on away_t.id = away_p.team_id
+                left join football.venues v on v.id = f.venue_id
+                left join lateral (
+                    select r.name
+                    from football.fixture_referees fr
+                    join football.referees r on r.id = fr.referee_id
+                    where fr.fixture_id = f.id
+                    order by fr.id
+                    limit 1
+                ) main_ref on true
                 left join lateral (
                     select goals from football.fixture_scores
                     where fixture_id = f.id
@@ -396,7 +422,9 @@ namespace PreOddsApi.WebApi.V3.Data
             HomeRedCards = ReadNullableInt(r, "home_red_cards"),
             AwayRedCards = ReadNullableInt(r, "away_red_cards"),
             HomeVarActive = ReadNullableBool(r, "home_var_active"),
-            AwayVarActive = ReadNullableBool(r, "away_var_active")
+            AwayVarActive = ReadNullableBool(r, "away_var_active"),
+            VenueName = ReadNullableString(r, "venue_name"),
+            RefereeName = ReadNullableString(r, "referee_name")
         };
 
         private Task<NpgsqlConnection> OpenAsync(CancellationToken ct)

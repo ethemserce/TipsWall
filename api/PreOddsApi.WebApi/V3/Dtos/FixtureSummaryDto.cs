@@ -67,5 +67,21 @@ namespace PreOddsApi.WebApi.V3.Dtos
         public bool? HomeVarActive { get; init; }
 
         public bool? AwayVarActive { get; init; }
+
+        /// <summary>
+        /// Venue name (stadium) joined from football.venues. Null when
+        /// SportMonks didn't ship a venue for the fixture — friendlies
+        /// and a few youth leagues fall through.
+        /// </summary>
+        public string? VenueName { get; init; }
+
+        public string? VenueCity { get; init; }
+
+        /// <summary>
+        /// Comma-separated referee names (main + assistants if multiple
+        /// were assigned). Pulled from the fixture_referees join; null
+        /// when no referee has been published yet.
+        /// </summary>
+        public string? RefereeName { get; init; }
     }
 }

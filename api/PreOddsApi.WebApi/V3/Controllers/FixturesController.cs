@@ -147,6 +147,20 @@ namespace PreOddsApi.WebApi.V3.Controllers
             return OkResponse(items);
         }
 
+        [HttpGet("{id:long}/expected-goals")]
+        public async Task<IActionResult> GetExpectedGoalsAsync(long id, CancellationToken ct)
+        {
+            var item = await _reader.GetFixtureExpectedGoalsAsync(id, ct);
+            return OkResponse(item);
+        }
+
+        [HttpGet("{id:long}/sidelined")]
+        public async Task<IActionResult> GetSidelinedAsync(long id, CancellationToken ct)
+        {
+            var item = await _reader.GetFixtureSidelinedAsync(id, ct);
+            return OkResponse(item);
+        }
+
         private static IReadOnlyList<long> ParseMarketIds(string? raw)
         {
             if (string.IsNullOrWhiteSpace(raw)) return Array.Empty<long>();

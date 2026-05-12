@@ -42,6 +42,14 @@ namespace PreOddsApi.WebApi.V3.Dtos
         public decimal? Iko { get; init; }
 
         /// <summary>
+        /// Raw decimal odd value as the bookmaker quotes it. Re-added behind
+        /// a settings-toggle on the mobile side: by default the UI keeps the
+        /// no-betting framing and hides this, but a user who wants the
+        /// number can flip it on under Settings → Display.
+        /// </summary>
+        public decimal? Value { get; init; }
+
+        /// <summary>
         /// Whether SportMonks has settled this outcome as winning. Null when
         /// the match isn't finished or the market isn't auto-graded — the
         /// mobile UI uses this as a fallback when score-based grading can't

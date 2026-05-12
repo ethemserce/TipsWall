@@ -246,6 +246,110 @@ namespace PreOddsApi.WebApi.V3.Data
             return items;
         }
 
+        public async Task<FixtureSidelinedDto> GetFixtureSidelinedAsync(
+            long fixtureId,
+            CancellationToken ct = default)
+        {
+            // football.fixture_sidelined isn't populated yet (the per-
+            // fixture sidelined sync is off in production), so we fall
+            // back to "currently absent players on either fixture team":
+            // sidelined_players rows with completed=false and an end_date
+            // that hasn't passed the fixture's kickoff. Joining via
+            // fixture_participants gives us the home/away split.
+            const string sql = """
+                with fixture_teams as (
+                    select fp.team_id, fp.location
+                    from football.fixture_participants fp
+                    where fp.fixture_id = @fixture_id
+                ),
+                fixture_meta as (
+                    select coalesce(f.starting_at, now()) as kickoff
+                    from football.fixtures f
+                    where f.id = @fixture_id
+                )
+                select ft.location,
+                       sp.player_id,
+                       p.name             as player_name,
+                       p.image_path       as player_image_path,
+                       pos.developer_name as position_code,
+                       sp.category,
+                       cause.name         as reason,
+                       -- end_date is a Postgres DATE; cast to timestamptz
+                       -- so Npgsql hands us a DateTimeOffset the DTO can
+                       -- accept without a custom converter.
+                       (sp.end_date)::timestamptz as end_date,
+                       sp.games_missed
+                from football.sidelined_players sp
+                join fixture_teams ft on ft.team_id = sp.team_id
+                cross join fixture_meta fm
+                left join football.players p on p.id = sp.player_id
+                left join catalog.types pos on pos.id = p.position_id
+                left join catalog.types cause on cause.id = sp.type_id
+                where sp.completed = false
+                  and (sp.end_date is null or sp.end_date >= (fm.kickoff at time zone 'UTC')::date)
+                order by ft.location, sp.end_date nulls last, sp.id;
+                """;
+
+            await using var connection = await OpenAsync(ct);
+            await using var command = new NpgsqlCommand(sql, connection);
+            command.Parameters.Add(new NpgsqlParameter("fixture_id", fixtureId));
+
+            var home = new List<FixtureSidelinedItemDto>();
+            var away = new List<FixtureSidelinedItemDto>();
+            await using var reader = await command.ExecuteReaderAsync(ct);
+            while (await reader.ReadAsync(ct))
+            {
+                var item = new FixtureSidelinedItemDto
+                {
+                    PlayerId = ReadNullableLong(reader, "player_id"),
+                    PlayerName = ReadNullableString(reader, "player_name"),
+                    PlayerImagePath = ReadNullableString(reader, "player_image_path"),
+                    PositionCode = ReadNullableString(reader, "position_code"),
+                    Category = ReadNullableString(reader, "category"),
+                    Reason = ReadNullableString(reader, "reason"),
+                    EndDate = ReadNullableDateTimeOffset(reader, "end_date"),
+                    GamesMissed = ReadNullableInt(reader, "games_missed")
+                };
+                var location = ReadNullableString(reader, "location") ?? string.Empty;
+                if (string.Equals(location, "home", System.StringComparison.OrdinalIgnoreCase))
+                    home.Add(item);
+                else if (string.Equals(location, "away", System.StringComparison.OrdinalIgnoreCase))
+                    away.Add(item);
+            }
+            return new FixtureSidelinedDto { Home = home, Away = away };
+        }
+
+        public async Task<FixtureExpectedGoalsDto?> GetFixtureExpectedGoalsAsync(
+            long fixtureId,
+            CancellationToken ct = default)
+        {
+            // Cumulative xG per side. SportMonks ships one row per (team
+            // × type_id) where the row's `value` is the running total at
+            // the latest sync; sum across types so we capture both base
+            // xG and any "open-play vs set-piece" splits without making
+            // the client juggle type ids.
+            const string sql = """
+                select coalesce(sum(value) filter (where location = 'home'), 0) as home,
+                       coalesce(sum(value) filter (where location = 'away'), 0) as away,
+                       count(*)                                                 as row_count
+                from football.fixture_expected_goals
+                where fixture_id = @fixture_id;
+                """;
+            await using var connection = await OpenAsync(ct);
+            await using var command = new NpgsqlCommand(sql, connection);
+            command.Parameters.Add(new NpgsqlParameter("fixture_id", fixtureId));
+
+            await using var reader = await command.ExecuteReaderAsync(ct);
+            if (!await reader.ReadAsync(ct)) return null;
+            var rowCount = reader.GetInt64(reader.GetOrdinal("row_count"));
+            if (rowCount == 0) return null;
+            return new FixtureExpectedGoalsDto
+            {
+                Home = ReadNullableDecimal(reader, "home"),
+                Away = ReadNullableDecimal(reader, "away")
+            };
+        }
+
         public async Task<IReadOnlyList<FixtureValueBetDto>> GetFixtureValueBetsAsync(
             long fixtureId,
             CancellationToken ct = default)
