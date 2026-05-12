@@ -1,4 +1,5 @@
-import { useMemo } from 'react';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -27,6 +28,10 @@ interface OddsRatesCardProps {
   // coloured based on whether it would currently settle as a winner.
   // Null while the match hasn't kicked off.
   liveScore?: LiveScore | null;
+  // Starting collapsed state. The odds tab passes `false` for the first
+  // market (so the screen isn't a wall of chevrons) and `true` for the
+  // rest, but the user can toggle either way.
+  initiallyCollapsed?: boolean;
 }
 
 // Softened win/loss tones — easier on the eye than the saturated 500-series
@@ -45,9 +50,11 @@ export function OddsRatesCard({
   startingAt,
   bookmakerId,
   liveScore,
+  initiallyCollapsed = false,
 }: OddsRatesCardProps) {
   const c = useTheme();
   const tryAdd = useTryAddSelection();
+  const [collapsed, setCollapsed] = useState(initiallyCollapsed);
 
   // Track which outcomes from this market are already in the draft so the
   // tip cell can render a "selected" state.
@@ -87,18 +94,30 @@ export function OddsRatesCard({
         styles.card,
         { backgroundColor: c.surface, borderColor: c.border },
       ]}>
-      <View style={styles.titleRow}>
+      <Pressable
+        onPress={() => setCollapsed((v) => !v)}
+        style={styles.titleRow}
+        hitSlop={4}>
         <ThemedText
           style={[styles.title, { color: c.textMuted }]}
           numberOfLines={1}>
           {marketLongName(market.market_id, market.market_name).toLocaleUpperCase('tr-TR')}
         </ThemedText>
-        <MarketInfoButton
-          marketId={market.market_id}
-          fallbackName={market.market_name}
-        />
-      </View>
+        <View style={styles.titleActions}>
+          <MarketInfoButton
+            marketId={market.market_id}
+            fallbackName={market.market_name}
+          />
+          <MaterialCommunityIcons
+            name={collapsed ? 'chevron-down' : 'chevron-up'}
+            size={20}
+            color={c.textMuted}
+          />
+        </View>
+      </Pressable>
 
+      {collapsed ? null : (
+      <>
       <View style={[styles.headerRow, { borderTopColor: c.border }]}>
         <ThemedText
           style={[
@@ -201,12 +220,12 @@ export function OddsRatesCard({
               // catches them while scanning the card.
               isValueBet && {
                 backgroundColor: 'rgba(58, 143, 111, 0.10)',
-                borderBottomWidth: 2,
-                borderBottomColor: c.brand,
+                borderBottomWidth: StyleSheet.hairlineWidth,
+                borderBottomColor: c.brandSoft,
               },
             ]}>
             {isValueBet ? (
-              <View style={[styles.valueAccent, { backgroundColor: c.brand }]} />
+              <View style={[styles.valueAccent, { backgroundColor: c.brandSoft }]} />
             ) : null}
             {/* Tip cell carries the coupon-toggle now (was the odd cell). */}
             <Pressable
@@ -271,6 +290,8 @@ export function OddsRatesCard({
           </View>
         );
       })}
+      </>
+      )}
     </View>
   );
 }
@@ -294,8 +315,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 14,
-    paddingTop: 8,
-    paddingBottom: 6,
+    paddingTop: 10,
+    paddingBottom: 10,
+  },
+  titleActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   title: {
     flexShrink: 1,
@@ -348,7 +374,7 @@ const styles = StyleSheet.create({
     left: 0,
     top: 0,
     bottom: 0,
-    width: 4,
+    width: 2,
   },
   cellGauge: {
     flex: 1,

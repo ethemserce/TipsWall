@@ -4,7 +4,12 @@ import type { FixtureSummary } from '@/src/types/fixture';
 import type {
   FixtureEvent,
   FixtureLineups,
+  FixtureMatchFact,
   FixtureStatistic,
+  FixtureTrend,
+  FixtureTvStation,
+  FixtureValueBet,
+  FixtureWeather,
 } from '@/src/types/fixtureDetailExtras';
 
 async function fetchOk<T>(path: string, params?: Record<string, unknown>): Promise<T> {
@@ -46,4 +51,24 @@ export function getFixtureLineups(fixtureId: number) {
 
 export function getFixtureH2H(fixtureId: number, limit = 10) {
   return fetchOk<FixtureSummary[]>(`/fixtures/${fixtureId}/h2h`, { limit });
+}
+
+export function getFixtureTrends(fixtureId: number) {
+  return fetchOk<FixtureTrend[]>(`/fixtures/${fixtureId}/trends`);
+}
+
+export function getFixtureMatchFacts(fixtureId: number, limit = 30) {
+  return fetchOk<FixtureMatchFact[]>(`/fixtures/${fixtureId}/match-facts`, { limit });
+}
+
+export function getFixtureWeather(fixtureId: number) {
+  return fetchOk<FixtureWeather | null>(`/fixtures/${fixtureId}/weather`);
+}
+
+export function getFixtureTvStations(fixtureId: number) {
+  return fetchOk<FixtureTvStation[]>(`/fixtures/${fixtureId}/tv-stations`);
+}
+
+export function getFixtureValueBets(fixtureId: number) {
+  return fetchOk<FixtureValueBet[]>(`/fixtures/${fixtureId}/value-bets`);
 }

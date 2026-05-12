@@ -10,7 +10,10 @@ import { useTheme } from '@/src/lib/useTheme';
 import type { Country } from '@/src/types/country';
 import type { FixtureSummary } from '@/src/types/fixture';
 import type { FixtureScore } from '@/src/types/fixtureDetail';
-import type { FixtureEvent } from '@/src/types/fixtureDetailExtras';
+import type {
+  FixtureEvent,
+  FixtureWeather,
+} from '@/src/types/fixtureDetailExtras';
 import type { League } from '@/src/types/league';
 
 interface FixtureDetailHeroProps {
@@ -19,6 +22,7 @@ interface FixtureDetailHeroProps {
   country?: Country;
   scores?: FixtureScore[];
   events?: FixtureEvent[];
+  weather?: FixtureWeather | null;
 }
 
 const GOAL_TYPE_CODES = new Set([
@@ -34,6 +38,7 @@ export function FixtureDetailHero({
   country,
   scores,
   events,
+  weather,
 }: FixtureDetailHeroProps) {
   const c = useTheme();
   const { t } = useTranslation();
@@ -70,11 +75,13 @@ export function FixtureDetailHero({
       ]}>
       {kickoffPill ? (
         <View style={styles.kickoffRow}>
+          <WeatherSide weather={weather} side="left" />
           <View style={[styles.kickoffPill, { backgroundColor: c.bg, borderColor: c.border }]}>
             <ThemedText style={[styles.kickoffText, { color: c.text }]}>
               {kickoffPill}
             </ThemedText>
           </View>
+          <WeatherSide weather={weather} side="right" />
         </View>
       ) : null}
 
@@ -262,6 +269,59 @@ function findHalfScore(
   return { home: home.goals, away: away.goals };
 }
 
+// Two-up weather strip flanking the kickoff pill. Left side carries the
+// human-readable conditions (temp + description), right side the dynamic
+// readings (wind + humidity) — kept short so the row stays a single line
+// on a 360dp screen even when the description runs long.
+function WeatherSide({
+  weather,
+  side,
+}: {
+  weather: FixtureWeather | null | undefined;
+  side: 'left' | 'right';
+}) {
+  const c = useTheme();
+  if (!weather) {
+    return <View style={[styles.weatherSide, side === 'left' ? styles.weatherSideLeft : styles.weatherSideRight]} />;
+  }
+  if (side === 'left') {
+    const temp = weather.temperature_evening ?? weather.temperature_day;
+    const unit = weather.metric === 'fahrenheit' ? '°F' : '°C';
+    const tempText = temp != null ? `${Math.round(temp)}${unit}` : null;
+    return (
+      <View style={[styles.weatherSide, styles.weatherSideLeft]}>
+        <View style={styles.weatherTempRow}>
+          {weather.icon ? (
+            <Image
+              source={{ uri: weather.icon }}
+              style={styles.weatherIcon}
+              contentFit="contain"
+            />
+          ) : null}
+          {tempText ? (
+            <ThemedText
+              style={[styles.weatherTemp, { color: c.text }]}
+              numberOfLines={1}>
+              {tempText}
+            </ThemedText>
+          ) : null}
+        </View>
+      </View>
+    );
+  }
+  const wind = weather.wind_speed != null ? `${weather.wind_speed.toFixed(1)} m/s` : null;
+  const humidity = weather.humidity ?? null;
+  return (
+    <View style={[styles.weatherSide, styles.weatherSideRight]}>
+      <ThemedText
+        style={[styles.weatherText, { color: c.textMuted, textAlign: 'right' }]}
+        numberOfLines={1}>
+        {[wind, humidity].filter(Boolean).join(' • ')}
+      </ThemedText>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   container: {
     paddingTop: 12,
@@ -271,7 +331,41 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   kickoffRow: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  weatherSide: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  weatherSideLeft: {
+    justifyContent: 'flex-start',
+  },
+  weatherSideRight: {
+    justifyContent: 'flex-end',
+  },
+  weatherIcon: {
+    width: 22,
+    height: 22,
+  },
+  weatherTempRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  weatherTemp: {
+    fontSize: 16,
+    fontWeight: '700',
+    fontVariant: ['tabular-nums'],
+  },
+  weatherText: {
+    fontSize: 11,
+    fontWeight: '500',
+    flexShrink: 1,
   },
   kickoffPill: {
     paddingHorizontal: 14,

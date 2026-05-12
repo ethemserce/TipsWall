@@ -24,6 +24,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { format, parseISO } from 'date-fns';
 
 import { ThemedText } from '@/components/themed-text';
+import { AiPicksCard } from '@/src/components/AiPicksCard';
+import { AttackMomentumCard } from '@/src/components/AttackMomentumCard';
 import { DetailTabBar, type DetailTab } from '@/src/components/DetailTabBar';
 import { EventTimelineCard } from '@/src/components/EventTimelineCard';
 import { MarketLegendButton } from '@/src/components/MarketLegendButton';
@@ -32,17 +34,24 @@ import { FixtureTopPicksCard } from '@/src/components/FixtureTopPicksCard';
 import { H2HTab } from '@/src/components/H2HTab';
 import { LineupsTab } from '@/src/components/LineupsTab';
 import { MatchInfoCard } from '@/src/components/MatchInfoCard';
+import { MatchInsightsCard } from '@/src/components/MatchInsightsCard';
 import { OddsRatesCard } from '@/src/components/OddsRatesCard';
 import { StandingsTab } from '@/src/components/StandingsTab';
 import { StatsTab } from '@/src/components/StatsTab';
 import { TabError, TabLoading, TabEmpty } from '@/src/components/TabFeedback';
+import { TvStationsCard } from '@/src/components/TvStationsCard';
 import { useCountryLookup } from '@/src/hooks/useCountryLookup';
 import { useFixture } from '@/src/hooks/useFixture';
 import {
   useFixtureEvents,
   useFixtureH2H,
   useFixtureLineups,
+  useFixtureMatchFacts,
   useFixtureStatistics,
+  useFixtureTrends,
+  useFixtureTvStations,
+  useFixtureValueBets,
+  useFixtureWeather,
 } from '@/src/hooks/useFixtureExtras';
 import { useFixtureOddsRates } from '@/src/hooks/useFixtureOddsRates';
 import { useFixtures } from '@/src/hooks/useFixtures';
@@ -68,8 +77,9 @@ const TAB_ORDER: DetailTab[] = [
   'odds',
   'stats',
   'lineups',
-  'h2h',
   'standings',
+  'h2h',
+  'insights',
 ];
 
 // Swipe needs to be both: clearly horizontal (dx significantly > dy) AND
@@ -268,6 +278,14 @@ export function FixtureDetailScreen({ fixtureId }: FixtureDetailScreenProps) {
   const stats = useFixtureStatistics(fixtureId, tab === 'stats');
   const lineups = useFixtureLineups(fixtureId, tab === 'lineups');
   const h2h = useFixtureH2H(fixtureId, 10, tab === 'h2h');
+  // Trial-bundle streams — fetched per tab so we don't pay for trends
+  // while the user is on the standings tab. Weather is the exception
+  // because it lives inside the hero, which is visible on every tab.
+  const trends = useFixtureTrends(fixtureId, tab === 'details');
+  const matchFacts = useFixtureMatchFacts(fixtureId, 30, tab === 'insights');
+  const weather = useFixtureWeather(fixtureId, true);
+  const tvStations = useFixtureTvStations(fixtureId, tab === 'details');
+  const valueBets = useFixtureValueBets(fixtureId, tab === 'details');
   const standings = useLeagueTable(
     data?.fixture.league_id,
     data?.fixture.season_id,
@@ -396,6 +414,7 @@ export function FixtureDetailScreen({ fixtureId }: FixtureDetailScreenProps) {
           country={country}
           scores={data.scores}
           events={events.data}
+          weather={weather.data}
         />
       </View>
       <Reanimated.View style={heroAnimatedStyle}>
@@ -405,6 +424,7 @@ export function FixtureDetailScreen({ fixtureId }: FixtureDetailScreenProps) {
           country={country}
           scores={data.scores}
           events={events.data}
+          weather={weather.data}
         />
       </Reanimated.View>
       </View>
@@ -425,6 +445,11 @@ export function FixtureDetailScreen({ fixtureId }: FixtureDetailScreenProps) {
         }>
         {tab === 'details' ? (
           <>
+            <AttackMomentumCard
+              trends={trends.data}
+              homeName={data.fixture.home_team_name}
+              awayName={data.fixture.away_team_name}
+            />
             <FixtureTopPicksCard
               markets={oddsRates.data ?? []}
               fixtureId={fixtureId}
@@ -437,15 +462,34 @@ export function FixtureDetailScreen({ fixtureId }: FixtureDetailScreenProps) {
               bookmakerId={ODDS_BOOKMAKER_ID}
               upcoming={getStateBucket(data.fixture.state_id) === 'upcoming'}
             />
+            <AiPicksCard
+              bets={valueBets.data}
+              homeName={data.fixture.home_team_name}
+              awayName={data.fixture.away_team_name}
+            />
             {events.data && events.data.length > 0 ? (
               <EventTimelineCard events={events.data} />
             ) : null}
+            <TvStationsCard stations={tvStations.data} />
             <MatchInfoCard
               fixture={data.fixture}
               league={league}
               country={country}
             />
           </>
+        ) : tab === 'insights' ? (
+          matchFacts.isLoading && !matchFacts.data ? (
+            <TabLoading />
+          ) : matchFacts.error && !matchFacts.data ? (
+            <TabError error={matchFacts.error} />
+          ) : !matchFacts.data || matchFacts.data.length === 0 ? (
+            <TabEmpty
+              icon="lightbulb-outline"
+              message={t('fixture.insights.empty')}
+            />
+          ) : (
+            <MatchInsightsCard facts={matchFacts.data} collapsedCount={50} />
+          )
         ) : tab === 'odds' ? (
           <OddsTabContent
             loading={oddsRates.isLoading}
@@ -594,7 +638,7 @@ function OddsTabContent({
       ) : markets.length === 0 ? (
         <TabEmpty icon="tag-outline" message={t('fixture.odds.noOdds')} />
       ) : (
-        markets.map((market) => (
+        markets.map((market, idx) => (
           <OddsRatesCard
             key={market.market_id}
             market={market}
@@ -603,6 +647,7 @@ function OddsTabContent({
             startingAt={startingAt}
             bookmakerId={bookmakerId}
             liveScore={liveScore}
+            initiallyCollapsed={idx > 0}
           />
         ))
       )}

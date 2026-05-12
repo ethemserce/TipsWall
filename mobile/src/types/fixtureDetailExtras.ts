@@ -43,3 +43,58 @@ export interface FixtureLineups {
   home: FixtureTeamLineup | null;
   away: FixtureTeamLineup | null;
 }
+
+export interface FixtureTrendPoint {
+  minute: number | null;
+  side: 'home' | 'away' | null;
+  value: number | null;
+}
+
+export interface FixtureTrend {
+  type_id: number;
+  type_code: string | null;
+  type_name: string | null;
+  points: FixtureTrendPoint[];
+}
+
+export interface FixtureMatchFact {
+  id: number;
+  type_id: number | null;
+  type_name: string | null;
+  category: string | null;
+  scope: string | null;
+  participant: string | null;
+  natural_language: string | null;
+}
+
+export interface FixtureWeather {
+  temperature_day: number | null;
+  temperature_evening: number | null;
+  wind_speed: number | null;
+  wind_direction: number | null;
+  humidity: string | null;
+  pressure: number | null;
+  clouds: string | null;
+  description: string | null;
+  icon: string | null;
+  metric: string | null;
+}
+
+export interface FixtureTvStation {
+  id: number;
+  name: string | null;
+  url: string | null;
+  image_path: string | null;
+}
+
+export interface FixtureValueBet {
+  id: number;
+  type_id: number | null;
+  type_name: string | null;
+  bet: string | null;
+  bookmaker: string | null;
+  fair_odd: number | null;
+  odd: number | null;
+  stake: number | null;
+  is_value: boolean | null;
+}
