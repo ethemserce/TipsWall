@@ -18,6 +18,7 @@ import { AppBrand } from '@/src/components/AppBrand';
 import { useTier } from '@/src/lib/auth/authStore';
 import {
   setLanguageMode,
+  setOddsHidden,
   setThemeMode,
   useSettings,
   type LanguageMode,
@@ -40,7 +41,7 @@ const LANGUAGE_MODES: { mode: LanguageMode }[] = [
 export function SettingsScreen() {
   const c = useTheme();
   const { t } = useTranslation();
-  const { themeMode, languageMode } = useSettings();
+  const { themeMode, languageMode, oddsHidden } = useSettings();
   const tier = useTier();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -242,6 +243,49 @@ export function SettingsScreen() {
           </View>
         </View>
 
+        {/* Display — opt-in surfaces. Default is the no-betting framing
+            (no odd values anywhere); users who want to see the raw odds
+            can flip this on. State lives in settingsStore so every odds
+            card reads the same flag. */}
+        <SectionHeader label={t('settings.display.header')} />
+        <Pressable
+          onPress={() => setOddsHidden(!oddsHidden)}
+          style={[
+            styles.card,
+            { backgroundColor: c.surfaceElevated, borderColor: c.borderSoft },
+          ]}
+          accessibilityRole="switch"
+          accessibilityState={{ checked: !oddsHidden }}>
+          <View style={styles.toggleRow}>
+            <View style={styles.toggleText}>
+              <ThemedText style={[styles.rowTitle, { color: c.text }]}>
+                {t('settings.display.showOdds.label')}
+              </ThemedText>
+              <ThemedText style={[styles.rowHint, { color: c.textMuted }]}>
+                {t('settings.display.showOdds.hint')}
+              </ThemedText>
+            </View>
+            <View
+              style={[
+                styles.toggle,
+                {
+                  backgroundColor: !oddsHidden ? c.brand : c.borderSoft,
+                  borderColor: !oddsHidden ? c.brand : c.border,
+                },
+              ]}>
+              <View
+                style={[
+                  styles.toggleKnob,
+                  {
+                    backgroundColor: c.textInverse,
+                    transform: [{ translateX: !oddsHidden ? 14 : 0 }],
+                  },
+                ]}
+              />
+            </View>
+          </View>
+        </Pressable>
+
         {/* About — positioning disclaimer. The app is a prediction
             tracker, not a betting client; this section is the canonical
             place where that statement lives. */}
@@ -363,6 +407,28 @@ const styles = StyleSheet.create({
   rowHint: {
     fontSize: 12,
     lineHeight: 16,
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  toggleText: {
+    flex: 1,
+    gap: 2,
+  },
+  toggle: {
+    width: 36,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: 2,
+    justifyContent: 'center',
+  },
+  toggleKnob: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
   },
   segment: {
     flexDirection: 'row',

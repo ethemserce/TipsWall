@@ -33,4 +33,10 @@ export interface FixtureSummary {
   away_red_cards?: number | null;
   home_var_active?: boolean | null;
   away_var_active?: boolean | null;
+
+  // Venue + main referee — joined server-side from football.venues and
+  // football.fixture_referees. Null when SportMonks hasn't published
+  // them yet (e.g. youth-league friendlies).
+  venue_name?: string | null;
+  referee_name?: string | null;
 }

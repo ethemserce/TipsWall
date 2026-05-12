@@ -189,7 +189,7 @@
     }
   },
   "tabs": {
-    "home": "Home",
+    "home": "Matches",
     "analysis": "Analysis",
     "leagues": "Leagues",
     "coupons": "My list",
@@ -310,6 +310,13 @@
         "system": "Device",
         "en": "English",
         "tr": "Turkish"
+      }
+    },
+    "display": {
+      "header": "Display",
+      "showOdds": {
+        "label": "Show odds",
+        "hint": "Surfaces odd values on fixture detail and pick cards"
       }
     },
     "about": {
@@ -544,6 +551,8 @@
     },
     "hero": {
       "halfTimeShort": "HT {{home}}-{{away}}",
+      "fullTimeShort": "FT {{home}}-{{away}}",
+      "penaltyShort": "Pen. {{home}}-{{away}}",
       "tbd": "TBD"
     },
     "events": {
@@ -559,6 +568,8 @@
       "length": "Length",
       "leg": "Leg",
       "result": "Result",
+      "venue": "Venue",
+      "referee": "Referee",
       "lengthMinutes": "{{count}} min"
     },
     "momentum": {
@@ -566,6 +577,10 @@
       "dangerousAttacks": "Dangerous Attacks",
       "attacks": "Attacks",
       "shots": "Shots",
+      "shotsTotal": "Total Shots",
+      "shotsOnTarget": "Shots on Target",
+      "possession": "Possession",
+      "expectedGoals": "Expected Goals (xG)",
       "corners": "Corners"
     },
     "insights": {
@@ -594,6 +609,13 @@
       "extraTime": "Extra Time",
       "penalties": "Penalties",
       "fullTime": "Full Time"
+    },
+    "sidelined": {
+      "title": "OUT",
+      "return": "Back: {{date}}",
+      "gamesMissed_one": "{{count}} game ban",
+      "gamesMissed_other": "{{count}} games ban",
+      "unknown": "Unknown"
     },
     "lineups": {
       "notAvailable": "Lineups not available yet.",

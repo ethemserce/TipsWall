@@ -27,7 +27,7 @@ export default function TabLayout() {
         options={{
           title: t('tabs.home'),
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="home-variant" size={size ?? 24} color={color} />
+            <MaterialCommunityIcons name="soccer" size={size ?? 24} color={color} />
           ),
         }}
       />
@@ -53,8 +53,16 @@ export default function TabLayout() {
         name="coupons"
         options={{
           title: t('tabs.coupons'),
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="basket" size={size ?? 24} color={color} />
+          // Yellow when focused so the Tahmin tab stands out from the
+          // rest of the brand-green nav. Inactive falls back to the
+          // shared `tabBarInactiveTintColor`.
+          tabBarActiveTintColor: '#FFC107',
+          tabBarIcon: ({ focused, color, size }) => (
+            <MaterialCommunityIcons
+              name={focused ? 'star' : 'star-outline'}
+              size={size ?? 24}
+              color={focused ? '#FFC107' : color}
+            />
           ),
         }}
       />

@@ -4,20 +4,6 @@
     "appVersionSource": "remote"
   },
   "build": {
-    "_comments": [
-      "Three profiles in increasing strictness: development → preview → production.",
-      "Each layer adds a constraint:",
-      "  - development: dev-client APK with developmentClient=true; you can",
-      "    attach Metro to it and iterate without a rebuild.",
-      "  - preview: internal distribution APK/IPA, production-style bundle",
-      "    but pointed at a non-prod API and signed with a non-store cert so",
-      "    we can hand it to QA.",
-      "  - production: store-bound IPA/AAB. Reads release-mode env vars and",
-      "    uploads to TestFlight / Play Internal via `eas submit`.",
-      "EXPO_PUBLIC_API_BASE_URL is consumed by src/lib/env.ts; falls back to",
-      "localhost when unset (dev convenience).",
-      "EXPO_PUBLIC_SENTRY_DSN gates the Sentry init in src/lib/monitoring.ts."
-    ],
     "development": {
       "developmentClient": true,
       "distribution": "internal",
@@ -37,8 +23,7 @@
       "distribution": "internal",
       "channel": "preview",
       "env": {
-        "EXPO_PUBLIC_API_BASE_URL": "https://api-staging.preodds.example",
-        "EXPO_PUBLIC_SENTRY_DSN": ""
+        "EXPO_PUBLIC_API_BASE_URL": "https://api.tipswall.com"
       },
       "android": {
         "buildType": "apk",
@@ -53,8 +38,7 @@
       "channel": "production",
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_API_BASE_URL": "https://api.preodds.example",
-        "EXPO_PUBLIC_SENTRY_DSN": ""
+        "EXPO_PUBLIC_API_BASE_URL": "https://api.tipswall.com"
       },
       "android": {
         "buildType": "app-bundle"
@@ -66,12 +50,6 @@
   },
   "submit": {
     "production": {
-      "_comments": [
-        "Fill these via `eas secret:create`:",
-        "  ASC_APP_ID, ASC_APPLE_ID for iOS",
-        "  GOOGLE_SERVICE_ACCOUNT_KEY for Android",
-        "Don't commit credentials — eas.json is checked in."
-      ],
       "ios": {
         "ascAppId": "${ASC_APP_ID}",
         "appleTeamId": "${APPLE_TEAM_ID}"

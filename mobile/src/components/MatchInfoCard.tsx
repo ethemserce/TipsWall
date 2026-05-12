@@ -47,6 +47,12 @@ export function MatchInfoCard({ fixture, league, country }: MatchInfoCardProps) 
   if (fixture.leg) {
     rows.push({ label: t('fixture.info.leg'), value: humanize(fixture.leg) });
   }
+  if (fixture.venue_name) {
+    rows.push({ label: t('fixture.info.venue'), value: fixture.venue_name });
+  }
+  if (fixture.referee_name) {
+    rows.push({ label: t('fixture.info.referee'), value: fixture.referee_name });
+  }
   if (fixture.result_info) {
     rows.push({ label: t('fixture.info.result'), value: fixture.result_info });
   }

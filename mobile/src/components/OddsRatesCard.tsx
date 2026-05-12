@@ -9,6 +9,7 @@ import { useTryAddSelection } from '@/src/hooks/useTryAddSelection';
 import { useCouponStore } from '@/src/lib/coupons/store';
 import { outcomeLiveStatus, type LiveScore } from '@/src/lib/liveOutcome';
 import { marketLongName, marketShort, shortenOutcome } from '@/src/lib/marketShort';
+import { useOddsHidden } from '@/src/lib/settings/settingsStore';
 import { useTheme } from '@/src/lib/useTheme';
 import type {
   FixtureOddOutcome,
@@ -55,6 +56,8 @@ export function OddsRatesCard({
   const c = useTheme();
   const tryAdd = useTryAddSelection();
   const [collapsed, setCollapsed] = useState(initiallyCollapsed);
+  const oddsHidden = useOddsHidden();
+  const showOdd = !oddsHidden;
 
   // Track which outcomes from this market are already in the draft so the
   // tip cell can render a "selected" state.
@@ -127,6 +130,11 @@ export function OddsRatesCard({
           ]}>
           TAHMİN
         </ThemedText>
+        {showOdd ? (
+          <ThemedText style={[styles.headerCell, styles.cellOdd, { color: c.textMuted }]}>
+            ORAN
+          </ThemedText>
+        ) : null}
         <ThemedText style={[styles.headerCell, styles.cellGauge, { color: c.textMuted }]}>
           ROI
         </ThemedText>
@@ -201,7 +209,9 @@ export function OddsRatesCard({
             outcomeDisplay: shortenOutcome(rawLabel, market.market_id),
             total: outcome.total,
             handicap: outcome.handicap,
-            oddValue: 0,
+            // Stash the real odd in the coupon so parlay totals can be
+            // computed even when the user has odds hidden in the UI.
+            oddValue: outcome.value ?? 0,
             dso: outcome.winning_percent,
             vbet: outcome.earning_percent,
             iko,
@@ -252,6 +262,7 @@ export function OddsRatesCard({
               <ThemedText
                 style={[
                   styles.cell,
+                  styles.tipText,
                   {
                     color:
                       liveColor ??
@@ -264,6 +275,17 @@ export function OddsRatesCard({
                 {formatLabel(outcome)}
               </ThemedText>
             </Pressable>
+            {showOdd ? (
+              <ThemedText
+                style={[
+                  styles.cell,
+                  styles.cellOdd,
+                  styles.numberValue,
+                  { color: c.text },
+                ]}>
+                {outcome.value != null ? outcome.value.toFixed(2) : '-'}
+              </ThemedText>
+            ) : null}
             <View style={styles.cellGauge}>
               <CircularGauge
                 value={hasSample ? outcome.earning_percent : null}
@@ -358,6 +380,18 @@ const styles = StyleSheet.create({
     flex: 2.4,
     fontWeight: '500',
   },
+  // Tip text leans left inside the pressable cell — the column header
+  // ("TAHMİN") still reads center-aligned because it uses cellLabel +
+  // headerCell.textAlign='center'. Two different alignments on the same
+  // flex column.
+  tipText: {
+    textAlign: 'left',
+    alignSelf: 'flex-start',
+  },
+  cellOdd: {
+    flex: 0.8,
+    textAlign: 'center',
+  },
   // Visual treatment for the tip cell when it's a tap target. Subtle border
   // hints at affordance without competing with the value-bet ★ row accent.
   tipPressable: {
@@ -367,7 +401,7 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'transparent',
     justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: 'flex-start',
   },
   valueAccent: {
     position: 'absolute',

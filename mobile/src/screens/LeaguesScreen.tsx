@@ -27,6 +27,48 @@ import type { League } from '@/src/types/league';
 const normalize = (value: string | null | undefined): string =>
   (value ?? '').toLocaleLowerCase('tr-TR');
 
+// Country priority for the sectioned list. Lower rank = higher up. The
+// Turkish names mirror what catalog.countries returns from SportMonks
+// (server-side default locale); we also key on the English variants so
+// the same ordering holds when the user's device locale is en.
+const COUNTRY_PRIORITY: Record<string, number> = {
+  // Tier 1 — Turkish-speaking + top European leagues
+  türkiye: 0,
+  turkey: 0,
+  ingiltere: 1,
+  england: 1,
+  ispanya: 2,
+  spain: 2,
+  italya: 3,
+  italy: 3,
+  almanya: 4,
+  germany: 4,
+  fransa: 5,
+  france: 5,
+  // Tier 2 — strong European leagues
+  hollanda: 10,
+  netherlands: 10,
+  portekiz: 11,
+  portugal: 11,
+  belçika: 12,
+  belgium: 12,
+  // International (UEFA / FIFA tournaments). SportMonks usually marks
+  // these with a "Europe" / "International" pseudo-country.
+  europe: 20,
+  avrupa: 20,
+  international: 21,
+  uluslararası: 21,
+};
+
+function countryPriority(title: string): number {
+  const key = normalize(title);
+  if (key in COUNTRY_PRIORITY) return COUNTRY_PRIORITY[key];
+  // "Diğer" / "Other" (countryless leagues) sink to the bottom so the
+  // first thing the user sees is a familiar country, not a catch-all.
+  if (key === 'diğer' || key === 'other') return 9999;
+  return 100;
+}
+
 interface LeagueSection {
   countryId: number;
   title: string;
@@ -93,11 +135,22 @@ export function LeaguesScreen() {
         countryId: id,
         title: g.name,
         countryImage: g.image,
-        data: [...g.data].sort((a, b) =>
-          a.name.localeCompare(b.name, 'tr'),
-        ),
+        // Within a country, lower SportMonks "category" = top division
+        // (Premier League is 1, the Football League comes after). Null
+        // categories fall back to alphabetical.
+        data: [...g.data].sort((a, b) => {
+          const aCat = a.category ?? 999;
+          const bCat = b.category ?? 999;
+          if (aCat !== bCat) return aCat - bCat;
+          return a.name.localeCompare(b.name, 'tr');
+        }),
       }))
-      .sort((a, b) => a.title.localeCompare(b.title, 'tr'));
+      .sort((a, b) => {
+        const aPri = countryPriority(a.title);
+        const bPri = countryPriority(b.title);
+        if (aPri !== bPri) return aPri - bPri;
+        return a.title.localeCompare(b.title, 'tr');
+      });
   }, [filtered, countryLookup, t]);
 
   // Hide rows when a section is collapsed, but keep the section header so

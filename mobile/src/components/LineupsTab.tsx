@@ -12,6 +12,8 @@ import type {
   FixtureEvent,
   FixtureLineupPlayer,
   FixtureLineups,
+  FixtureSidelined,
+  FixtureSidelinedItem,
   FixtureTeamLineup,
 } from '@/src/types/fixtureDetailExtras';
 
@@ -24,6 +26,7 @@ interface LineupsTabProps {
   awayName?: string | null;
   homeImagePath?: string | null;
   awayImagePath?: string | null;
+  sidelined?: FixtureSidelined | null;
 }
 
 type Side = 'home' | 'away';
@@ -37,6 +40,7 @@ export function LineupsTab({
   awayName,
   homeImagePath,
   awayImagePath,
+  sidelined,
 }: LineupsTabProps) {
   const { t } = useTranslation();
   const [side, setSide] = useState<Side>('home');
@@ -77,8 +81,130 @@ export function LineupsTab({
       {activeTeam && activeTeam.bench.length > 0 ? (
         <BenchCard team={activeTeam} events={events} />
       ) : null}
+
+      {sidelined ? (
+        <SidelinedCard
+          items={effective === 'home' ? sidelined.home : sidelined.away}
+        />
+      ) : null}
     </>
   );
+}
+
+function SidelinedCard({ items }: { items: FixtureSidelinedItem[] }) {
+  const c = useTheme();
+  const { t, i18n } = useTranslation();
+  if (!items || items.length === 0) return null;
+  return (
+    <View
+      style={[
+        styles.sidelinedCard,
+        { backgroundColor: c.surface, borderColor: c.border },
+      ]}>
+      <View style={styles.sidelinedHeader}>
+        <MaterialCommunityIcons
+          name="medical-bag"
+          size={15}
+          color={c.warning ?? c.textMuted}
+        />
+        <ThemedText style={[styles.sidelinedTitle, { color: c.textMuted }]}>
+          {t('fixture.sidelined.title')}
+        </ThemedText>
+        <View style={styles.spacer} />
+        <ThemedText style={[styles.sidelinedCount, { color: c.textMuted }]}>
+          {items.length}
+        </ThemedText>
+      </View>
+      {items.map((it, i) => (
+        <View
+          key={`${it.player_id ?? 'p'}-${i}`}
+          style={[
+            styles.sidelinedRow,
+            i > 0 && {
+              borderTopWidth: StyleSheet.hairlineWidth,
+              borderTopColor: c.border,
+            },
+          ]}>
+          {it.player_image_path ? (
+            <Image
+              source={{ uri: it.player_image_path }}
+              style={styles.sidelinedAvatar}
+              contentFit="cover"
+            />
+          ) : (
+            <View
+              style={[
+                styles.sidelinedAvatar,
+                { backgroundColor: c.borderSoft },
+              ]}
+            />
+          )}
+          <View style={styles.sidelinedTextCol}>
+            <ThemedText
+              style={[styles.sidelinedName, { color: c.text }]}
+              numberOfLines={1}>
+              {it.player_name ?? '—'}
+            </ThemedText>
+            <ThemedText
+              style={[styles.sidelinedReason, { color: c.textMuted }]}
+              numberOfLines={1}>
+              {formatSidelinedReason(it, t, i18n.language)}
+            </ThemedText>
+          </View>
+          {it.position_code ? (
+            <View
+              style={[
+                styles.sidelinedPosChip,
+                { backgroundColor: c.borderSoft },
+              ]}>
+              <ThemedText
+                style={[styles.sidelinedPosText, { color: c.textMuted }]}>
+                {shortPos(it.position_code)}
+              </ThemedText>
+            </View>
+          ) : null}
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function shortPos(code: string): string {
+  // catalog.types.developer_name is uppercase ("GOALKEEPER", "DEFENDER",
+  // ...). The chip is tight; first three chars read cleanly enough
+  // (GOA / DEF / MID / ATT) without an ad-hoc i18n table.
+  const upper = code.toUpperCase();
+  if (upper.startsWith('GOAL')) return 'KAL';
+  if (upper.startsWith('DEF')) return 'DEF';
+  if (upper.startsWith('MID')) return 'OOS';
+  if (upper.startsWith('ATT') || upper.startsWith('FORW') || upper.startsWith('STRIKER'))
+    return 'FOR';
+  return upper.slice(0, 3);
+}
+
+function formatSidelinedReason(
+  item: FixtureSidelinedItem,
+  t: (key: string, opts?: Record<string, unknown>) => string,
+  language: string,
+): string {
+  const parts: string[] = [];
+  if (item.reason) parts.push(item.reason);
+  else if (item.category) parts.push(item.category);
+  if (item.end_date) {
+    try {
+      const d = new Date(item.end_date);
+      const formatted = d.toLocaleDateString(
+        language.startsWith('tr') ? 'tr-TR' : 'en-GB',
+        { day: 'numeric', month: 'short' },
+      );
+      parts.push(t('fixture.sidelined.return', { date: formatted }));
+    } catch {
+      // Skip malformed dates rather than crash the row.
+    }
+  } else if (item.games_missed && item.games_missed > 0) {
+    parts.push(t('fixture.sidelined.gamesMissed', { count: item.games_missed }));
+  }
+  return parts.join(' · ') || t('fixture.sidelined.unknown');
 }
 
 function FormationSummary({
@@ -355,6 +481,66 @@ function BenchRow({
 }
 
 const styles = StyleSheet.create({
+  sidelinedCard: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  sidelinedHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
+  },
+  spacer: {
+    flex: 1,
+  },
+  sidelinedTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+  },
+  sidelinedCount: {
+    fontSize: 11,
+    fontWeight: '700',
+    fontVariant: ['tabular-nums'],
+  },
+  sidelinedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 8,
+  },
+  sidelinedAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+  },
+  sidelinedTextCol: {
+    flex: 1,
+    gap: 1,
+  },
+  sidelinedName: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  sidelinedReason: {
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  sidelinedPosChip: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  sidelinedPosText: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.4,
+  },
   formationRow: {
     marginHorizontal: 16,
     marginTop: 16,

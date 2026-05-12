@@ -7,6 +7,11 @@ export type LanguageMode = 'system' | 'en' | 'tr';
 export interface SettingsSnapshot {
   themeMode: ThemeMode;
   languageMode: LanguageMode;
+  // When true, every UI surface that would otherwise expose an odd
+  // value (OddsRatesCard's odd cell, AiPicksCard's odd line) hides it.
+  // Tip text and stats stay visible — this isn't a "hide everything",
+  // just an "no-betting framing" toggle the user can opt out of.
+  oddsHidden: boolean;
   hydrated: boolean;
 }
 
@@ -17,6 +22,7 @@ const STORAGE_KEY = 'preodds.settings.v1';
 const DEFAULTS: Omit<SettingsSnapshot, 'hydrated'> = {
   themeMode: 'system',
   languageMode: 'system',
+  oddsHidden: false,
 };
 
 let state: SettingsSnapshot = { ...DEFAULTS, hydrated: false };
@@ -28,10 +34,10 @@ function emit() {
 
 async function persist() {
   try {
-    const { themeMode, languageMode } = state;
+    const { themeMode, languageMode, oddsHidden } = state;
     await AsyncStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify({ themeMode, languageMode }),
+      JSON.stringify({ themeMode, languageMode, oddsHidden }),
     );
   } catch {
     // Persistence is best-effort; an in-memory miss is fine — defaults reload.
@@ -57,6 +63,10 @@ async function hydrate() {
           parsed.languageMode === 'system'
             ? parsed.languageMode
             : DEFAULTS.languageMode,
+        oddsHidden:
+          typeof parsed.oddsHidden === 'boolean'
+            ? parsed.oddsHidden
+            : DEFAULTS.oddsHidden,
         hydrated: true,
       };
     } else {
@@ -95,6 +105,13 @@ export function setLanguageMode(mode: LanguageMode): void {
   void persist();
 }
 
+export function setOddsHidden(hidden: boolean): void {
+  if (state.oddsHidden === hidden) return;
+  state = { ...state, oddsHidden: hidden };
+  emit();
+  void persist();
+}
+
 export function useSettings(): SettingsSnapshot {
   const [snapshot, setSnapshot] = useState<SettingsSnapshot>(state);
   useEffect(() => {
@@ -111,6 +128,10 @@ export function useThemeMode(): ThemeMode {
 
 export function useLanguageMode(): LanguageMode {
   return useSettings().languageMode;
+}
+
+export function useOddsHidden(): boolean {
+  return useSettings().oddsHidden;
 }
 
 // Given a user-selected mode, resolves to a concrete 'light' | 'dark' the

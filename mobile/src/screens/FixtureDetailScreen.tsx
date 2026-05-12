@@ -44,9 +44,11 @@ import { useCountryLookup } from '@/src/hooks/useCountryLookup';
 import { useFixture } from '@/src/hooks/useFixture';
 import {
   useFixtureEvents,
+  useFixtureExpectedGoals,
   useFixtureH2H,
   useFixtureLineups,
   useFixtureMatchFacts,
+  useFixtureSidelined,
   useFixtureStatistics,
   useFixtureTrends,
   useFixtureTvStations,
@@ -117,15 +119,21 @@ export function FixtureDetailScreen({ fixtureId }: FixtureDetailScreenProps) {
   // content (e.g. a goal scored in the 70th minute) makes the wrapper
   // grow to fit.
   const scrollY = useSharedValue(0);
-  const [heroHeight, setHeroHeight] = useState<number | null>(null);
-  const onHeroLayout = useCallback((e: LayoutChangeEvent) => {
-    const h = e.nativeEvent.layout.height;
-    if (h > 0) {
-      setHeroHeight((prev) =>
-        prev != null && Math.abs(prev - h) < 1 ? prev : h,
-      );
-    }
-  }, []);
+  // Hero height lives in a shared value (not React state) so a late
+  // measurement — events arriving with goals, weather row appearing —
+  // doesn't trigger a JS re-render that resnaps the useAnimatedStyle
+  // worklet mid-frame. The visible flicker the user reports when
+  // scrolling fast was that resnap.
+  const heroHeightSV = useSharedValue(0);
+  const onHeroLayout = useCallback(
+    (e: LayoutChangeEvent) => {
+      const h = e.nativeEvent.layout.height;
+      if (h > 0 && Math.abs(heroHeightSV.value - h) >= 1) {
+        heroHeightSV.value = h;
+      }
+    },
+    [heroHeightSV],
+  );
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (e) => {
       scrollY.value = e.contentOffset.y;
@@ -133,12 +141,18 @@ export function FixtureDetailScreen({ fixtureId }: FixtureDetailScreenProps) {
   });
 
   const heroAnimatedStyle = useAnimatedStyle(() => {
-    if (heroHeight == null) return { overflow: 'hidden' };
+    const h = heroHeightSV.value;
+    if (h === 0) {
+      // First few frames before onLayout fires — let the wrapper take
+      // its natural size so the hero shows immediately at full height
+      // rather than blinking from 0 → measured.
+      return { opacity: 1, overflow: 'hidden' };
+    }
     return {
       height: interpolate(
         scrollY.value,
         [0, HERO_COLLAPSE_RANGE],
-        [heroHeight, 0],
+        [h, 0],
         Extrapolation.CLAMP,
       ),
       opacity: interpolate(
@@ -277,11 +291,13 @@ export function FixtureDetailScreen({ fixtureId }: FixtureDetailScreenProps) {
   });
   const stats = useFixtureStatistics(fixtureId, tab === 'stats');
   const lineups = useFixtureLineups(fixtureId, tab === 'lineups');
+  const sidelined = useFixtureSidelined(fixtureId, tab === 'lineups');
   const h2h = useFixtureH2H(fixtureId, 10, tab === 'h2h');
   // Trial-bundle streams — fetched per tab so we don't pay for trends
   // while the user is on the standings tab. Weather is the exception
   // because it lives inside the hero, which is visible on every tab.
   const trends = useFixtureTrends(fixtureId, tab === 'details');
+  const expectedGoals = useFixtureExpectedGoals(fixtureId, tab === 'details');
   const matchFacts = useFixtureMatchFacts(fixtureId, 30, tab === 'insights');
   const weather = useFixtureWeather(fixtureId, true);
   const tvStations = useFixtureTvStations(fixtureId, tab === 'details');
@@ -447,6 +463,7 @@ export function FixtureDetailScreen({ fixtureId }: FixtureDetailScreenProps) {
           <>
             <AttackMomentumCard
               trends={trends.data}
+              expectedGoals={expectedGoals.data ?? null}
               homeName={data.fixture.home_team_name}
               awayName={data.fixture.away_team_name}
             />
@@ -531,6 +548,7 @@ export function FixtureDetailScreen({ fixtureId }: FixtureDetailScreenProps) {
             awayName={data.fixture.away_team_name}
             homeImagePath={data.fixture.home_team_image_path}
             awayImagePath={data.fixture.away_team_image_path}
+            sidelined={sidelined.data ?? null}
           />
         ) : tab === 'h2h' ? (
           <H2HTab
@@ -658,7 +676,11 @@ function OddsTabContent({
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   content: {
-    paddingBottom: 32,
+    // Bottom inset large enough that the last card clears both the iOS
+    // home-indicator strip and the tab bar even on edge-to-edge Android
+    // devices that draw under the gesture area. 32px was hiding ~half
+    // of the final card on phones with a gesture bar.
+    paddingBottom: 96,
   },
   center: {
     flex: 1,

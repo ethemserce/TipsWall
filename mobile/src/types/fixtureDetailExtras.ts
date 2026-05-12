@@ -87,6 +87,27 @@ export interface FixtureTvStation {
   image_path: string | null;
 }
 
+export interface FixtureExpectedGoals {
+  home: number | null;
+  away: number | null;
+}
+
+export interface FixtureSidelinedItem {
+  player_id: number | null;
+  player_name: string | null;
+  player_image_path: string | null;
+  position_code: string | null;
+  category: string | null;
+  reason: string | null;
+  end_date: string | null;
+  games_missed: number | null;
+}
+
+export interface FixtureSidelined {
+  home: FixtureSidelinedItem[];
+  away: FixtureSidelinedItem[];
+}
+
 export interface FixtureValueBet {
   id: number;
   type_id: number | null;

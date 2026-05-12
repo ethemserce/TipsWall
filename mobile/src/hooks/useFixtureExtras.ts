@@ -2,9 +2,11 @@ import { useQuery } from '@tanstack/react-query';
 
 import {
   getFixtureEvents,
+  getFixtureExpectedGoals,
   getFixtureH2H,
   getFixtureLineups,
   getFixtureMatchFacts,
+  getFixtureSidelined,
   getFixtureStatistics,
   getFixtureTrends,
   getFixtureTvStations,
@@ -80,6 +82,22 @@ export function useFixtureValueBets(fixtureId: number, enabled = true) {
   return useQuery({
     queryKey: ['fixture-value-bets', fixtureId],
     queryFn: () => getFixtureValueBets(fixtureId),
+    enabled: enabled && fixtureId > 0,
+  });
+}
+
+export function useFixtureExpectedGoals(fixtureId: number, enabled = true) {
+  return useQuery({
+    queryKey: ['fixture-expected-goals', fixtureId],
+    queryFn: () => getFixtureExpectedGoals(fixtureId),
+    enabled: enabled && fixtureId > 0,
+  });
+}
+
+export function useFixtureSidelined(fixtureId: number, enabled = true) {
+  return useQuery({
+    queryKey: ['fixture-sidelined', fixtureId],
+    queryFn: () => getFixtureSidelined(fixtureId),
     enabled: enabled && fixtureId > 0,
   });
 }

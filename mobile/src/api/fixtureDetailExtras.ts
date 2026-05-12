@@ -3,8 +3,10 @@ import type { ApiResponse } from '@/src/types/api';
 import type { FixtureSummary } from '@/src/types/fixture';
 import type {
   FixtureEvent,
+  FixtureExpectedGoals,
   FixtureLineups,
   FixtureMatchFact,
+  FixtureSidelined,
   FixtureStatistic,
   FixtureTrend,
   FixtureTvStation,
@@ -71,4 +73,14 @@ export function getFixtureTvStations(fixtureId: number) {
 
 export function getFixtureValueBets(fixtureId: number) {
   return fetchOk<FixtureValueBet[]>(`/fixtures/${fixtureId}/value-bets`);
+}
+
+export function getFixtureExpectedGoals(fixtureId: number) {
+  return fetchOk<FixtureExpectedGoals | null>(
+    `/fixtures/${fixtureId}/expected-goals`,
+  );
+}
+
+export function getFixtureSidelined(fixtureId: number) {
+  return fetchOk<FixtureSidelined>(`/fixtures/${fixtureId}/sidelined`);
 }

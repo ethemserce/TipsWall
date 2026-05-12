@@ -28,6 +28,11 @@ export function useLiveTicker(enabled = true) {
       if (!envelope) return;
       // Refresh anything keyed by 'fixtures' (list endpoints).
       queryClient.invalidateQueries({ queryKey: ['fixtures'] });
+      // Signals (analysis page) embed fixture-level state — live_minute,
+      // scores — in each row, so they need the same nudge or the user
+      // sees stale minutes after a few seconds even though the home tab
+      // shows the latest. Invalidate only refetches active observers.
+      queryClient.invalidateQueries({ queryKey: ['signals'] });
       // Also nudge the per-fixture detail cache so any list view that reads
       // fixture-level state (live score / kickoff state) — e.g. CouponsScreen
       // — picks up the change. Invalidate is cheap when the query isn't

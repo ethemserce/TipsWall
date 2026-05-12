@@ -11,6 +11,9 @@ export interface FixtureOddOutcome {
   earning_percent: number | null;
   iko: number | null;
   winning?: boolean | null;
+  // Raw decimal odd value. Hidden by default per the no-betting framing;
+  // surfaced when Settings → Display → "Oranları göster" is on.
+  value?: number | null;
 }
 
 export interface FixtureOddsMarket {

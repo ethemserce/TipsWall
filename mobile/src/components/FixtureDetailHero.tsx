@@ -55,17 +55,56 @@ export function FixtureDetailHero({
     ? format(parseISO(fixture.starting_at), 'HH:mm')
     : null;
 
+  // SportMonks state IDs that imply the match extended past 90'. Once
+  // we cross into ET/AET/PEN/FT pen. the score line stops telling the
+  // whole story — viewers want to see the regulation result (MS) and
+  // halftime (İY) under it, plus the shootout dots when it went there.
+  const stateId = fixture.state_id ?? 0;
+  const inOrAfterET =
+    stateId === 6 ||  // ET in progress
+    stateId === 7 ||  // AET
+    stateId === 8 ||  // FT pen.
+    stateId === 19 || // PEN shootout
+    stateId === 21 || // AP
+    stateId === 22;   // ETB
+  const inShootout = stateId === 19 || stateId === 8;
+
   // Halftime score: only show once 1st half is over (state_id 2 == in 1H).
   const firstHalfPart =
     scored && fixture.state_id !== 2
       ? findHalfScore(scores, '1ST_HALF')
       : null;
+  // Full-90 result before extra time kicked in. SportMonks ships this
+  // under description "FULLTIME" (or "NORMAL_TIME" on some plans);
+  // try both so the row appears regardless of feed shape.
+  const fullTimePart = inOrAfterET
+    ? findHalfScore(scores, 'FULLTIME') ??
+      findHalfScore(scores, 'NORMAL_TIME') ??
+      findHalfScore(scores, '2ND_HALF')
+    : null;
+  // Penalty shootout running count, when the feed publishes one.
+  const penaltyPart = inShootout
+    ? findHalfScore(scores, 'PENALTY_SHOOTOUT') ??
+      findHalfScore(scores, 'PENALTIES')
+    : null;
 
   const goals = (events ?? []).filter((e) =>
     GOAL_TYPE_CODES.has((e.type_code ?? '').toUpperCase()),
   );
   const homeGoals = goals.filter((g) => g.participant_location === 'home');
   const awayGoals = goals.filter((g) => g.participant_location === 'away');
+
+  // Per-side penalty shootout attempts. SportMonks emits events with
+  // type_code "PENALTY_SHOOTOUT" / "PENALTY_SHOOTOUT_GOAL" /
+  // "PENALTY_SHOOTOUT_MISSED" during state 19; we accept both compact
+  // forms and split outcomes by the event's `result` field where
+  // available, falling back to type_code text.
+  const homeShootout = inShootout
+    ? collectShootoutAttempts(events, 'home')
+    : [];
+  const awayShootout = inShootout
+    ? collectShootoutAttempts(events, 'away')
+    : [];
 
   return (
     <View
@@ -90,6 +129,7 @@ export function FixtureDetailHero({
           teamId={fixture.home_team_id}
           name={fixture.home_team_name}
           imagePath={fixture.home_team_image_path}
+          penaltyAttempts={inShootout ? homeShootout : null}
         />
 
         <View style={styles.centerColumn}>
@@ -127,12 +167,41 @@ export function FixtureDetailHero({
               ]}>
               {live && fixture.live_minute != null
                 ? `${fixture.live_minute}'`
-                : firstHalfPart
-                  ? t('fixture.hero.halfTimeShort', {
-                      home: firstHalfPart.home,
-                      away: firstHalfPart.away,
-                    })
-                  : stateLabel}
+                : stateLabel || null}
+            </ThemedText>
+          ) : null}
+          {/* Sub-scores: during/after extra time we show the regulation
+              result (MS) and halftime (İY) under the live minute so the
+              big score's context is unambiguous. Penalty shootout gets
+              its own running count row when the feed publishes one. */}
+          {scored && fullTimePart ? (
+            <ThemedText
+              style={[styles.subScore, { color: c.textMuted }]}
+              numberOfLines={1}>
+              {t('fixture.hero.fullTimeShort', {
+                home: fullTimePart.home,
+                away: fullTimePart.away,
+              })}
+            </ThemedText>
+          ) : null}
+          {scored && firstHalfPart ? (
+            <ThemedText
+              style={[styles.subScore, { color: c.textMuted }]}
+              numberOfLines={1}>
+              {t('fixture.hero.halfTimeShort', {
+                home: firstHalfPart.home,
+                away: firstHalfPart.away,
+              })}
+            </ThemedText>
+          ) : null}
+          {penaltyPart ? (
+            <ThemedText
+              style={[styles.subScore, { color: c.textMuted }]}
+              numberOfLines={1}>
+              {t('fixture.hero.penaltyShort', {
+                home: penaltyPart.home,
+                away: penaltyPart.away,
+              })}
             </ThemedText>
           ) : null}
         </View>
@@ -141,6 +210,7 @@ export function FixtureDetailHero({
           teamId={fixture.away_team_id}
           name={fixture.away_team_name}
           imagePath={fixture.away_team_image_path}
+          penaltyAttempts={inShootout ? awayShootout : null}
         />
       </View>
 
@@ -210,10 +280,14 @@ function TeamColumn({
   teamId,
   name,
   imagePath,
+  penaltyAttempts,
 }: {
   teamId: number | null | undefined;
   name: string | null | undefined;
   imagePath: string | null | undefined;
+  // Boolean array of per-side shootout outcomes (true = scored). Null
+  // when the match isn't in a shootout — the dot row is hidden then.
+  penaltyAttempts: boolean[] | null;
 }) {
   const c = useTheme();
   const { t } = useTranslation();
@@ -250,8 +324,63 @@ function TeamColumn({
         numberOfLines={2}>
         {name ?? t('fixture.hero.tbd')}
       </ThemedText>
+      {penaltyAttempts ? (
+        <PenaltyDots attempts={penaltyAttempts} />
+      ) : null}
     </View>
   );
+}
+
+function PenaltyDots({ attempts }: { attempts: boolean[] }) {
+  const c = useTheme();
+  // Regulation shootout is 5 spot kicks per side; sudden-death rounds
+  // beyond that extend the row inline so a 6th attempt simply pushes
+  // the trailing empty slots out of the way.
+  const slots = Math.max(5, attempts.length);
+  return (
+    <View style={styles.penaltyRow}>
+      {Array.from({ length: slots }).map((_, i) => {
+        const attempt = i < attempts.length ? attempts[i] : null;
+        const bg =
+          attempt === true
+            ? c.success
+            : attempt === false
+              ? c.danger
+              : c.borderSoft;
+        return (
+          <View
+            key={i}
+            style={[styles.penaltyDot, { backgroundColor: bg }]}
+          />
+        );
+      })}
+    </View>
+  );
+}
+
+// Per-side penalty attempts during a shootout. Returns boolean array
+// (true = scored, false = missed) in chronological order, capped at
+// the 5-spot regulation length the UI renders.
+function collectShootoutAttempts(
+  events: FixtureEvent[] | undefined,
+  side: 'home' | 'away',
+): boolean[] {
+  if (!events) return [];
+  const out: boolean[] = [];
+  for (const e of events) {
+    if (e.participant_location !== side) continue;
+    const code = (e.type_code ?? '').toUpperCase();
+    if (!code.includes('PENALTY_SHOOTOUT')) continue;
+    // Three flavors observed in the wild — accept any of them. Default
+    // to "missed" if we can't tell, so a stray event doesn't fake a
+    // shootout goal.
+    const scored =
+      code.includes('GOAL') ||
+      (e.result ?? '').toUpperCase() === 'GOAL' ||
+      (e.result ?? '').toUpperCase() === 'SCORED';
+    out.push(scored);
+  }
+  return out;
 }
 
 function findHalfScore(
@@ -445,6 +574,24 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 0.4,
     marginTop: 2,
+  },
+  subScore: {
+    fontSize: 11,
+    fontWeight: '600',
+    fontVariant: ['tabular-nums'],
+    letterSpacing: 0.3,
+    marginTop: 1,
+  },
+  penaltyRow: {
+    flexDirection: 'row',
+    gap: 4,
+    marginTop: 6,
+    justifyContent: 'center',
+  },
+  penaltyDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   goalSplit: {
     flexDirection: 'row',

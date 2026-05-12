@@ -189,7 +189,7 @@
     }
   },
   "tabs": {
-    "home": "Anasayfa",
+    "home": "Maçlar",
     "analysis": "Analiz",
     "leagues": "Ligler",
     "coupons": "Tahmin",
@@ -310,6 +310,13 @@
         "system": "Telefon ayarı",
         "en": "İngilizce",
         "tr": "Türkçe"
+      }
+    },
+    "display": {
+      "header": "Görünüm",
+      "showOdds": {
+        "label": "Oranları göster",
+        "hint": "Maç detayında ve tahmin kartlarında oran değerlerini görünür yapar"
       }
     },
     "about": {
@@ -548,6 +555,8 @@
     },
     "hero": {
       "halfTimeShort": "İY {{home}}-{{away}}",
+      "fullTimeShort": "MS {{home}}-{{away}}",
+      "penaltyShort": "Pen. {{home}}-{{away}}",
       "tbd": "TBD"
     },
     "info": {
@@ -559,13 +568,19 @@
       "length": "Süre",
       "leg": "Etap",
       "result": "Sonuç",
+      "venue": "Stat",
+      "referee": "Hakem",
       "lengthMinutes": "{{count}} dk"
     },
     "momentum": {
       "title": "Momentum",
-      "dangerousAttacks": "Tehlikeli Ataklar",
+      "dangerousAttacks": "Tehlikeli Atak",
       "attacks": "Ataklar",
       "shots": "Şutlar",
+      "shotsTotal": "Toplam Şut",
+      "shotsOnTarget": "İsabetli Şut",
+      "possession": "Topa Sahip Olma",
+      "expectedGoals": "Beklenen Gol (xG)",
       "corners": "Kornerler"
     },
     "insights": {
@@ -594,6 +609,13 @@
       "extraTime": "Uzatma",
       "penalties": "Penaltılar",
       "fullTime": "Maç Sonu"
+    },
+    "sidelined": {
+      "title": "EKSİKLER",
+      "return": "Dönüş: {{date}}",
+      "gamesMissed_one": "{{count}} maç ceza",
+      "gamesMissed_other": "{{count}} maç ceza",
+      "unknown": "Bilinmiyor"
     },
     "lineups": {
       "notAvailable": "Kadrolar henüz açıklanmadı.",

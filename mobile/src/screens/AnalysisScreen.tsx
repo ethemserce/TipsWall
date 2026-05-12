@@ -30,6 +30,7 @@ import { LeagueSectionSkeleton } from '@/src/components/Skeleton';
 import { useCountryLookup } from '@/src/hooks/useCountryLookup';
 import { useFixtureLookup } from '@/src/hooks/useFixtureLookup';
 import { useLeagueLookup } from '@/src/hooks/useLeagueLookup';
+import { useLiveTicker } from '@/src/hooks/useLiveTicker';
 import { useMarkets } from '@/src/hooks/useMarkets';
 import { useSignals } from '@/src/hooks/useSignals';
 import { getStateBucket } from '@/src/lib/fixtureState';
@@ -66,6 +67,12 @@ export function AnalysisScreen() {
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [filters, setFilters] = useState<AnalysisFilterState>(DEFAULT_FILTERS);
   const [filtersOpen, setFiltersOpen] = useState(false);
+
+  // SignalR push subscriber. Idempotent if Home is already mounted —
+  // the underlying connection is a singleton, handlers stack. With it
+  // here, the analysis screen still gets fresh live_minute when the
+  // user deep-links straight into the tab without visiting Matches.
+  useLiveTicker();
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const searchInputRef = useRef<TextInput | null>(null);
