@@ -27,6 +27,15 @@ RUN dotnet publish PreOddsApi.WebApi/PreOddsApi.WebApi.csproj \
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
+
+# `wget` is what docker-compose's healthcheck calls. The aspnet base
+# image ships without wget/curl by default, so the HEALTHCHECK was
+# exiting 127 and the container stayed "unhealthy" forever. Adding
+# wget is ~700KB vs. installing curl (~2MB).
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends wget \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY --from=build /app/publish .
 
 # Run as the unprivileged `app` user shipped by the .NET 8 aspnet image.
