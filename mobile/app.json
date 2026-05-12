@@ -20,7 +20,7 @@
     "android": {
       "package": "com.tipswall.app",
       "adaptiveIcon": {
-        "backgroundColor": "#3a8f6f",
+        "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/images/android-icon-foreground-dark.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
