@@ -34,6 +34,7 @@ namespace SportMonks.Football.FixtureWorker.Services
             public const string InplayOdds = "worker.football.inplay-odds";
             public const string Analytics = "worker.football.analytics";
             public const string AccountPurge = "worker.football.account-purge";
+            public const string ExpectedXg = "worker.football.expected-xg";
         }
 
         private static readonly string[] FixtureSyncIncludes =
@@ -156,6 +157,7 @@ namespace SportMonks.Football.FixtureWorker.Services
         private readonly ISportMonksInplayOddsWriter _inplayOddsWriter;
         private readonly ISportMonksPredictionsWriter _predictionsWriter;
         private readonly ISportMonksValueBetsWriter _valueBetsWriter;
+        private readonly ISportMonksFixtureExpectedGoalsWriter _expectedGoalsWriter;
         private readonly ISportMonksMatchFactsWriter _matchFactsWriter;
         private readonly IAnalyticsEngine _analyticsEngine;
         private readonly IFixtureLiveBridge _liveBridge;
@@ -184,6 +186,7 @@ namespace SportMonks.Football.FixtureWorker.Services
             ISportMonksInplayOddsWriter inplayOddsWriter,
             ISportMonksPredictionsWriter predictionsWriter,
             ISportMonksValueBetsWriter valueBetsWriter,
+            ISportMonksFixtureExpectedGoalsWriter expectedGoalsWriter,
             ISportMonksMatchFactsWriter matchFactsWriter,
             IAnalyticsEngine analyticsEngine,
             IFixtureLiveBridge liveBridge,
@@ -209,6 +212,7 @@ namespace SportMonks.Football.FixtureWorker.Services
             _inplayOddsWriter = inplayOddsWriter;
             _predictionsWriter = predictionsWriter;
             _valueBetsWriter = valueBetsWriter;
+            _expectedGoalsWriter = expectedGoalsWriter;
             _matchFactsWriter = matchFactsWriter;
             _analyticsEngine = analyticsEngine;
             _liveBridge = liveBridge;
@@ -288,7 +292,12 @@ namespace SportMonks.Football.FixtureWorker.Services
             // Mid-frequency catch-up. Fixture-today picks up brand-new fixtures
             // and ones that haven't ticked yet (kickoff in 30 min, etc.) — the
             // live tier above only sees fixtures with a recent state change.
+            // TV stations is also small + idempotent enough to live here:
+            // letting it ride alongside the nightly chain was getting it
+            // skipped whenever an earlier nightly job deadlocked.
             await MaybeRunFixtureTodayAsync(cancellationToken);
+            await MaybeRunTvStationsAsync(cancellationToken);
+            await MaybeRunExpectedXgAsync(cancellationToken);
             await MaybeRunNewsAsync(cancellationToken);
             await MaybeRunStandingsAsync(cancellationToken);
             await MaybeRunLatestPrematchOddsAsync(cancellationToken);
@@ -296,14 +305,39 @@ namespace SportMonks.Football.FixtureWorker.Services
 
         private async Task RunNightlyTickAsync(CancellationToken cancellationToken)
         {
-            // Heavy lifting. Reference data, transfers, TV schedule, the full
-            // backlog window so every finished match settles, then analytics.
-            await MaybeRunReferenceDataAsync(cancellationToken);
-            await MaybeRunTransfersAsync(cancellationToken);
-            await MaybeRunTvStationsAsync(cancellationToken);
-            await MaybeRunFixtureBacklogAsync(cancellationToken);
-            await MaybeRunAnalyticsAsync(cancellationToken);
-            await MaybeRunAccountPurgeAsync(cancellationToken);
+            // Heavy lifting. Reference data, transfers, the full backlog
+            // window so every finished match settles, then analytics.
+            //
+            // Each step lives in its own try/catch because the nightly
+            // chain is once-per-day: if reference-data deadlocks on the
+            // `football.teams` index (it can race the live tier's fixture
+            // upserts), letting that propagate would skip every later
+            // step — transfers, analytics, account-purge — for the next
+            // 24 hours.
+            await RunNightlyStepAsync("reference",       MaybeRunReferenceDataAsync, cancellationToken);
+            await RunNightlyStepAsync("transfers",       MaybeRunTransfersAsync,     cancellationToken);
+            await RunNightlyStepAsync("fixture-backlog", MaybeRunFixtureBacklogAsync, cancellationToken);
+            await RunNightlyStepAsync("analytics",       MaybeRunAnalyticsAsync,     cancellationToken);
+            await RunNightlyStepAsync("account-purge",   MaybeRunAccountPurgeAsync,  cancellationToken);
+        }
+
+        private async Task RunNightlyStepAsync(
+            string name,
+            Func<CancellationToken, Task> step,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                await step(cancellationToken);
+            }
+            catch (Exception exc)
+            {
+                _logger.LogError(
+                    exc,
+                    "[nightly:{Step}] step failed: {Message}",
+                    name,
+                    exc.Message);
+            }
         }
 
         private async Task MaybeRunReferenceDataAsync(CancellationToken cancellationToken)
@@ -352,6 +386,39 @@ namespace SportMonks.Football.FixtureWorker.Services
 
             await ExecuteTransferReferences(cancellationToken);
             _scheduler.RecordRun(ScheduleKey.Transfers);
+        }
+
+        private async Task MaybeRunExpectedXgAsync(CancellationToken cancellationToken)
+        {
+            if (!GetBoolean("SportMonksExpectedXgSync:Enabled", false) ||
+                !GetBoolean("SportMonksExpectedXgSync:SyncFixtureXg", true))
+                return;
+
+            var interval = GetInteger("SportMonksWorkerSettings:ExpectedXgIntervalSeconds", 1800);
+            if (!_scheduler.ShouldRun(ScheduleKey.ExpectedXg, interval))
+                return;
+
+            await ExecuteExpectedXgAsync(cancellationToken);
+            _scheduler.RecordRun(ScheduleKey.ExpectedXg);
+        }
+
+        private async Task ExecuteExpectedXgAsync(CancellationToken cancellationToken)
+        {
+            // The xG endpoint isn't fixture-scoped; one paginated call
+            // returns rows for every fixture SportMonks tracks expected
+            // goals for. Walk pages with the standard sync runner and
+            // batch-upsert per page so a transient failure mid-walk only
+            // loses the in-flight page.
+            var request = SportMonksApiRequest.Create("expected/fixtures");
+            var rows = (await _syncRunner.GetAllAsync<FixtureExpectedGoals>(
+                SportMonksSyncJobDefinition.Create(
+                    "sportmonks.football.expected-fixtures",
+                    "football.fixture_expected_goals",
+                    "Sync SportMonks football expected-goals per fixture."),
+                request,
+                cancellationToken: cancellationToken)).ToList();
+
+            await _expectedGoalsWriter.UpsertExpectedGoalsAsync(rows, cancellationToken);
         }
 
         private async Task MaybeRunTvStationsAsync(CancellationToken cancellationToken)

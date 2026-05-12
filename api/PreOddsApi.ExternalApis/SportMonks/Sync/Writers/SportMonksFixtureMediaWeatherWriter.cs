@@ -49,14 +49,17 @@ namespace PreOddsApi.ExternalApis.SportMonks.Sync.Writers
 
                 foreach (var tvStation in tvStationList)
                 {
-                    await UpsertTvStationAsync(connection, transaction, tvStation, cancellationToken);
+                    // Standalone /tv-stations shape: `Id` is already the
+                    // canonical broadcaster id, TvstationId is null.
+                    var canonicalId = tvStation.TvstationId ?? tvStation.Id;
+                    await UpsertTvStationAsync(connection, transaction, canonicalId, tvStation, cancellationToken);
 
                     foreach (var country in tvStation.Countries ?? Enumerable.Empty<Country>())
                     {
                         if (await UpsertTvStationCountryAsync(
                                 connection,
                                 transaction,
-                                tvStation.Id,
+                                canonicalId,
                                 country,
                                 cancellationToken))
                         {
@@ -107,20 +110,48 @@ namespace PreOddsApi.ExternalApis.SportMonks.Sync.Writers
                 {
                     foreach (var tvStation in fixture.TvStations ?? Enumerable.Empty<TvStation>())
                     {
-                        if (tvStation == null || tvStation.Id == 0)
+                        if (tvStation == null)
                         {
                             continue;
                         }
 
-                        await UpsertTvStationAsync(connection, transaction, tvStation, cancellationToken);
+                        // Resolve the canonical broadcaster id: the fixture
+                        // include's `id` is the per-link row, while
+                        // `tvstation_id` points at the actual ESPN/Bein
+                        // broadcaster. Fall back to `Id` for callers that
+                        // hand us the standalone /tv-stations shape.
+                        var canonicalId = tvStation.TvstationId ?? tvStation.Id;
+                        if (canonicalId == 0)
+                        {
+                            continue;
+                        }
+
+                        await UpsertTvStationAsync(connection, transaction, canonicalId, tvStation, cancellationToken);
                         tvStationCount++;
+
+                        // Inline country link: fixture-include carries the
+                        // country_id on the row itself rather than a nested
+                        // countries[] (that only shows up on the standalone
+                        // endpoint), so attach it directly.
+                        if (tvStation.CountryId.HasValue && tvStation.CountryId.Value > 0)
+                        {
+                            if (await UpsertTvStationCountryByIdAsync(
+                                    connection,
+                                    transaction,
+                                    canonicalId,
+                                    tvStation.CountryId.Value,
+                                    cancellationToken))
+                            {
+                                countryLinkCount++;
+                            }
+                        }
 
                         foreach (var country in tvStation.Countries ?? Enumerable.Empty<Country>())
                         {
                             if (await UpsertTvStationCountryAsync(
                                     connection,
                                     transaction,
-                                    tvStation.Id,
+                                    canonicalId,
                                     country,
                                     cancellationToken))
                             {
@@ -132,7 +163,7 @@ namespace PreOddsApi.ExternalApis.SportMonks.Sync.Writers
                                 connection,
                                 transaction,
                                 fixture.Id,
-                                tvStation.Id,
+                                canonicalId,
                                 cancellationToken))
                         {
                             fixtureTvStationCount++;
@@ -169,11 +200,18 @@ namespace PreOddsApi.ExternalApis.SportMonks.Sync.Writers
         private static async Task UpsertTvStationAsync(
             NpgsqlConnection connection,
             NpgsqlTransaction transaction,
+            long canonicalId,
             TvStation tvStation,
             CancellationToken cancellationToken)
         {
             await using var command = connection.CreateCommand();
             command.Transaction = transaction;
+            // Fixture-include rows carry no name/url/image_path, so we stamp
+            // a placeholder name on insert and let the standalone
+            // /tv-stations sync overwrite it with the real broadcaster
+            // name on its next pass. `coalesce(nullif(...))` on update
+            // prevents a fixture-only sync from clobbering a real name
+            // with a placeholder if the row order ever flips.
             command.CommandText = """
                 insert into football.tv_stations (
                     id,
@@ -188,18 +226,43 @@ namespace PreOddsApi.ExternalApis.SportMonks.Sync.Writers
                     @image_path,
                     now())
                 on conflict (id) do update set
-                    name = excluded.name,
+                    name = case
+                        when excluded.name like 'tv-station-%' then football.tv_stations.name
+                        else excluded.name
+                    end,
                     url = coalesce(excluded.url, football.tv_stations.url),
                     image_path = coalesce(excluded.image_path, football.tv_stations.image_path),
                     last_synced_at = now(),
                     updated_at = now();
                 """;
-            command.Parameters.Add(Parameter("id", tvStation.Id));
-            command.Parameters.Add(Parameter("name", GetRequiredName(tvStation.Name, "tv-station", tvStation.Id)));
+            command.Parameters.Add(Parameter("id", canonicalId));
+            command.Parameters.Add(Parameter("name", GetRequiredName(tvStation.Name, "tv-station", canonicalId)));
             command.Parameters.Add(TextParameter("url", NullIfWhiteSpace(tvStation.Url)));
             command.Parameters.Add(TextParameter("image_path", NullIfWhiteSpace(tvStation.ImagePath)));
 
             await command.ExecuteNonQueryAsync(cancellationToken);
+        }
+
+        private static async Task<bool> UpsertTvStationCountryByIdAsync(
+            NpgsqlConnection connection,
+            NpgsqlTransaction transaction,
+            long tvStationId,
+            long countryId,
+            CancellationToken cancellationToken)
+        {
+            await using var command = connection.CreateCommand();
+            command.Transaction = transaction;
+            command.CommandText = """
+                insert into football.tv_station_countries (tv_station_id, country_id)
+                select tv.id, ct.id
+                from football.tv_stations tv
+                cross join catalog.countries ct
+                where tv.id = @tv_station_id and ct.id = @country_id
+                on conflict (tv_station_id, country_id) do nothing;
+                """;
+            command.Parameters.Add(Parameter("tv_station_id", tvStationId));
+            command.Parameters.Add(Parameter("country_id", countryId));
+            return await command.ExecuteNonQueryAsync(cancellationToken) > 0;
         }
 
         private static async Task<bool> UpsertTvStationCountryAsync(

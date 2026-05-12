@@ -7,6 +7,20 @@ namespace PreOddsApi.Entities.SportMonks.Football
 {
     public class TvStation : SportMonksBaseEntity
     {
+        // SportMonks reuses the same C# class for two different JSON shapes:
+        //  - /v3/football/tv-stations: { id: 37, name: "ESPN", ... } where
+        //    `id` is the canonical broadcaster id.
+        //  - fixture-include `tvstations`: { id: 118282498, tvstation_id: 37,
+        //    country_id: 5, ... } where `id` is the per-(fixture,country)
+        //    link row and `tvstation_id` points at the canonical broadcaster.
+        // TvstationId is null on the standalone shape — callers should
+        // resolve a canonical id with `TvstationId ?? Id`.
+        [JsonProperty("tvstation_id")]
+        public long? TvstationId { get; set; }
+
+        [JsonProperty("country_id")]
+        public long? CountryId { get; set; }
+
         [JsonProperty("name")]
         public string Name { get; set; }
 

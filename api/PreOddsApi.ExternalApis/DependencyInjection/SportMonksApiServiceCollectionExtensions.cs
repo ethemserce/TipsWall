@@ -36,6 +36,7 @@ namespace PreOddsApi.ExternalApis.DependencyInjection
             services.AddSingleton<ISportMonksInplayOddsWriter, SportMonksInplayOddsWriter>();
             services.AddSingleton<ISportMonksPredictionsWriter, SportMonksPredictionsWriter>();
             services.AddSingleton<ISportMonksValueBetsWriter, SportMonksValueBetsWriter>();
+            services.AddSingleton<ISportMonksFixtureExpectedGoalsWriter, SportMonksFixtureExpectedGoalsWriter>();
             services.AddSingleton<ISportMonksMatchFactsWriter, SportMonksMatchFactsWriter>();
             services.AddSingleton<IAnalyticsEngine, PostgresAnalyticsEngine>();
             services.AddSingleton<
