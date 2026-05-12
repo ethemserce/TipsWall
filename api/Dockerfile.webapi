@@ -17,7 +17,6 @@ COPY PreOddsApi.Core.Data.EntityFramework/*.csproj PreOddsApi.Core.Data.EntityFr
 COPY PreOddsApi.DataLayer/*.csproj PreOddsApi.DataLayer/
 COPY PreOddsApi.Entities/*.csproj PreOddsApi.Entities/
 COPY PreOddsApi.ExternalApis/*.csproj PreOddsApi.ExternalApis/
-COPY PreOddsApi.Framework.Core/*.csproj PreOddsApi.Framework.Core/
 COPY PreOddsApi.Utils/*.csproj PreOddsApi.Utils/
 RUN dotnet restore PreOddsApi.WebApi/PreOddsApi.WebApi.csproj
 
