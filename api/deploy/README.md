@@ -201,3 +201,4 @@ block (or remove it and let managed defaults kick in).
 
 Everything else (GitHub Actions, GHCR, Caddy, Let's Encrypt, Sentry
 free tier, UptimeRobot) is free.
+2026-05-12 18:59:22 UTC
