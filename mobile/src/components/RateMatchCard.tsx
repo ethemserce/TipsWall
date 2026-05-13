@@ -4,6 +4,8 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { useOddsHidden } from '@/src/lib/settings/settingsStore';
+
 import { ThemedText } from '@/components/themed-text';
 import { CircularGauge } from '@/src/components/CircularGauge';
 import { useTryAddSelection } from '@/src/hooks/useTryAddSelection';
@@ -45,6 +47,11 @@ export function RateMatchCard({
   const { t } = useTranslation();
   const router = useRouter();
   const tryAdd = useTryAddSelection();
+  // Settings → "Oranları göster" reveals the ORAN column. The signals
+  // endpoint doesn't ship odd_value as its own field but encodes it in
+  // outcome_key as the last colon-separated part (label:total:handicap:
+  // odd_value with 4 decimals), so we parse it back here.
+  const showOdd = !useOddsHidden();
 
   const homeName = fixture?.fixture.home_team_name ?? null;
   const awayName = fixture?.fixture.away_team_name ?? null;
@@ -221,6 +228,11 @@ export function RateMatchCard({
           ]}>
           {t('markets.cols.pick')}
         </ThemedText>
+        {showOdd ? (
+          <ThemedText style={[styles.headerCell, styles.cellOdd, { color: c.textMuted }]}>
+            {t('markets.cols.odd')}
+          </ThemedText>
+        ) : null}
         <ThemedText style={[styles.headerCell, styles.cellGauge, { color: c.textMuted }]}>
           {t('markets.cols.roi')}
         </ThemedText>
@@ -328,6 +340,12 @@ export function RateMatchCard({
                 {formatLabel(s, market)}
               </ThemedText>
             </Pressable>
+            {showOdd ? (
+              <ThemedText
+                style={[styles.cell, styles.cellOdd, styles.numberValue, { color: c.text }]}>
+                {parseOddFromOutcomeKey(s.outcome_key) ?? '-'}
+              </ThemedText>
+            ) : null}
             <View style={styles.cellGauge}>
               <CircularGauge
                 value={hasSample ? s.earning_percent : null}
@@ -668,8 +686,25 @@ const styles = StyleSheet.create({
     flex: 0.5,
     textAlign: 'center',
   },
+  cellOdd: {
+    flex: 0.7,
+    textAlign: 'center',
+  },
   numberValue: {
     fontVariant: ['tabular-nums'],
     fontWeight: '600',
   },
 });
+
+// outcome_key carries "label:total:handicap:odd_value(4dp)" — split out
+// the 4-decimal odd at the tail so the ORAN column can show it without
+// a separate API field. Returns a tidy "1.61" string or null when the
+// key shape isn't what we expect.
+function parseOddFromOutcomeKey(key: string | null | undefined): string | null {
+  if (!key) return null;
+  const parts = key.split(':');
+  if (parts.length < 4) return null;
+  const v = parseFloat(parts[parts.length - 1]);
+  if (!Number.isFinite(v)) return null;
+  return v.toFixed(2);
+}

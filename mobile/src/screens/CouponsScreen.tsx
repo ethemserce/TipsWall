@@ -41,6 +41,23 @@ const DATE_FILTERS: { key: DateFilter; i18nKey: string }[] = [
   { key: 'month', i18nKey: 'coupons.dateFilter.month' },
 ];
 
+// 1st-half score for the finished-match badge. Mirrors the helper inside
+// FixtureDetailHero — split here to avoid pulling that whole component
+// into the coupon screen just for one lookup.
+function findFirstHalfScore(
+  scores: FixtureDetail['scores'] | undefined,
+): { home: number; away: number } | null {
+  if (!scores) return null;
+  const home = scores.find(
+    (s) => s.description === '1ST_HALF' && s.participant_location === 'home',
+  );
+  const away = scores.find(
+    (s) => s.description === '1ST_HALF' && s.participant_location === 'away',
+  );
+  if (home?.goals == null || away?.goals == null) return null;
+  return { home: home.goals, away: away.goals };
+}
+
 function applyDateFilter(coupons: Coupon[], filter: DateFilter): Coupon[] {
   if (filter === 'all') return coupons;
   const now = new Date();
@@ -107,13 +124,13 @@ export function CouponsScreen() {
   // we're already fetching (via useFixtureLookup below) actually re-pull.
   useLiveTicker();
 
-  // Pull fresh fixture state for every selection in a coupon that's still
-  // pending. Settled coupons (won/lost) don't need live tracking — their
-  // outcome is final regardless of score updates.
+  // Pull fresh fixture state for every selection on every coupon. Pending
+  // coupons need the live score; settled coupons need the finished score +
+  // 1st-half score for the "MS / İY" badge. Cheap because useFixtureLookup
+  // caches per id and only refetches when the screen is mounted.
   const liveFixtureIds = useMemo(() => {
     const ids = new Set<number>();
     for (const coupon of saved) {
-      if (couponOutcome(coupon).state !== 'pending') continue;
       for (const sel of coupon.selections) ids.add(sel.fixtureId);
     }
     return Array.from(ids);
@@ -536,8 +553,13 @@ function CouponCard({
           ? getStateBucket(fixture.fixture.state_id)
           : null;
         const isLive = bucket === 'live';
+        const isFinished = bucket === 'finished';
+        // Treat anything that hasn't reached live / finished as upcoming
+        // even when SportMonks leaks a betWinning flag in early — user
+        // doesn't want pre-kickoff matches to render green/red.
+        const isUpcoming = bucket === 'upcoming' || !started;
         const liveScore: LiveScore | null =
-          (isLive || bucket === 'finished') &&
+          (isLive || isFinished) &&
           fixture?.fixture.home_score != null &&
           fixture?.fixture.away_score != null
             ? {
@@ -545,9 +567,10 @@ function CouponCard({
                 away: fixture.fixture.away_score,
               }
             : null;
-        // While the match is live, color the odd by what the bet *would* do
-        // if the match ended right now. Final settled flag (s.betWinning)
-        // wins over live evaluation since it's authoritative.
+        // While the match is live, colour the odd by what the bet *would*
+        // do if the match ended right now. Final settled flag
+        // (s.betWinning) wins over the live evaluation since it's
+        // authoritative.
         const liveStatus =
           isLive && liveScore
             ? outcomeLiveStatus(
@@ -560,11 +583,12 @@ function CouponCard({
                 liveScore,
               )
             : null;
-        const won =
-          (started && s.betWinning === true) || liveStatus === 'win';
-        const lost =
-          (started && s.betWinning === false) || liveStatus === 'loss';
-        const settled = s.betWinning === true || s.betWinning === false;
+        const won = !isUpcoming &&
+          ((isFinished && s.betWinning === true) || liveStatus === 'win');
+        const lost = !isUpcoming &&
+          ((isFinished && s.betWinning === false) || liveStatus === 'loss');
+        const settled = isFinished &&
+          (s.betWinning === true || s.betWinning === false);
         // Live but no verdict yet → keep the clock so the user knows it's
         // still in motion even though the odd is already coloured.
         const iconName = settled
@@ -581,13 +605,22 @@ function CouponCard({
             : isLive
               ? c.live ?? c.brand
               : c.textMuted;
-        const liveBadge =
-          isLive && liveScore
-            ? `${liveScore.home}-${liveScore.away}${
-                fixture?.fixture.live_minute != null
-                  ? ` · ${fixture.fixture.live_minute}'`
-                  : ''
-              }`
+        // Score badge:
+        //   live      → "2-1 · 67'"
+        //   finished  → "2-1 (İY 1-0)" with 1st-half score when available
+        const firstHalf = isFinished
+          ? findFirstHalfScore(fixture?.scores)
+          : null;
+        const liveBadge = isLive && liveScore
+          ? `${liveScore.home}-${liveScore.away}${
+              fixture?.fixture.live_minute != null
+                ? ` · ${fixture.fixture.live_minute}'`
+                : ''
+            }`
+          : isFinished && liveScore
+            ? firstHalf
+              ? `${liveScore.home}-${liveScore.away} (İY ${firstHalf.home}-${firstHalf.away})`
+              : `${liveScore.home}-${liveScore.away}`
             : null;
         return (
           <View
@@ -610,7 +643,9 @@ function CouponCard({
                   <ThemedText
                     style={[
                       styles.liveBadge,
-                      { color: c.live ?? c.brand },
+                      // Live → orange-y `c.live`. Finished → muted text
+                      // so the score reads as historical, not in-motion.
+                      { color: isLive ? c.live ?? c.brand : c.textMuted },
                     ]}>
                     {liveBadge}
                   </ThemedText>
