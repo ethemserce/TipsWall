@@ -941,10 +941,18 @@ namespace SportMonks.Football.FixtureWorker.Services
             // small — pagination still happens inside GetAllAsync per day.
             // Today / live windows are always single-day so the loop is a
             // no-op for them.
-            var includes = label == "backlog"
+            var isBacklog = label == "backlog";
+            var includes = isBacklog
                 ? BacklogLightIncludes
                 : BuildFixtureSyncIncludes().ToArray();
             var endpointBase = GetFixtureByDateRangeEndpoint().TrimEnd('/');
+            // Backlog single-day responses can still spike past 1 GB when the
+            // day carries 60+ fixtures (Saturday MLS + EPL weekend) — every
+            // fixture brings 14+ embedded entities with odds. Force a small
+            // per_page so pagination shards the JSON into bite-sized chunks.
+            // 10 felt right in tests: a 100-fixture Saturday becomes 10 pages
+            // of ~5-10 MB each, well under the worker's 1.28 G cap.
+            var perPage = isBacklog ? "10" : null;
 
             for (var date = fromDate; date <= toDate; date = date.AddDays(1))
             {
@@ -952,6 +960,8 @@ namespace SportMonks.Football.FixtureWorker.Services
                 var endpoint = $"{endpointBase}/{dateStr}/{dateStr}";
                 var request = SportMonksApiRequest.Create(endpoint)
                     .WithInclude(includes);
+                if (perPage != null)
+                    request.WithQueryParameter("per_page", perPage);
                 if (timezone != null)
                     request.WithTimezone(timezone);
 
