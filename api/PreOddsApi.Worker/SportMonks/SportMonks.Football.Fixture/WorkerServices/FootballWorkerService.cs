@@ -887,13 +887,16 @@ namespace SportMonks.Football.FixtureWorker.Services
             await _newsWriter.UpsertNewsAsync(news, cancellationToken);
         }
 
-        // Minimal include set for the nightly backlog window — drop the
-        // expensive nested rows (lineups + formations + weather + trends +
-        // pressure + odds + market + bookmaker). Pulse already syncs those
-        // per-fixture for today's matches; backlog only needs metadata +
-        // scores + events to seed the upcoming window. With this list the
-        // raw_payloads INSERT for a 7-day range stays under the Postgres
-        // command-timeout budget (was 30s+, fixed at ~1s).
+        // Include set for the nightly backlog window. We keep odds here
+        // because /v3/football/odds/pre-match/latest only returns rows
+        // that were UPDATED recently — fixtures that never had a first
+        // odds row land never become "latest" and stay odds-less in the
+        // DB, so the only reliable way to seed upcoming-fixture odds is
+        // to ask for them inline with the fixture window.
+        //
+        // We drop lineups/formations/weather/trends/pressure to keep the
+        // payload (and the raw_payloads INSERT) bounded; pulse re-fetches
+        // those per-fixture for today's matches anyway.
         private static readonly string[] BacklogLightIncludes =
         [
             "sport",
@@ -908,6 +911,9 @@ namespace SportMonks.Football.FixtureWorker.Services
             "events",
             "statistics",
             "referees",
+            "odds",
+            "odds.market",
+            "odds.bookmaker",
         ];
 
         private async Task ExecuteFixtureWindow(

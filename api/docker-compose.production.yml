@@ -123,8 +123,11 @@ services:
       migrator:
         condition: service_completed_successfully
     environment:
-      PREODDS_POSTGRES_CONNECTION: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-preodds};Username=${POSTGRES_USER:-preodds};Password=${POSTGRES_PASSWORD}"
-      ConnectionStrings__PreOddsApiPostgresDb: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-preodds};Username=${POSTGRES_USER:-preodds};Password=${POSTGRES_PASSWORD}"
+      # Command Timeout=180 because the backlog raw_payloads INSERT can
+      # carry multi-MB SportMonks responses; the default 30s was hitting
+      # NpgsqlException "Timeout during reading attempt" during streaming.
+      PREODDS_POSTGRES_CONNECTION: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-preodds};Username=${POSTGRES_USER:-preodds};Password=${POSTGRES_PASSWORD};Command Timeout=180"
+      ConnectionStrings__PreOddsApiPostgresDb: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-preodds};Username=${POSTGRES_USER:-preodds};Password=${POSTGRES_PASSWORD};Command Timeout=180"
       SportMonks__ApiToken: ${SPORTMONKS_API_TOKEN:?required}
       WORKER_HEALTH_PORT: "8080"
       # xG ingestion is currently unbounded (~125k rows, paged in
