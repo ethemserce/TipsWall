@@ -48,7 +48,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1280M
+          memory: 1500M
 
   migrator:
     image: ghcr.io/${GHCR_OWNER:?required}/tipswall-migrator:${IMAGE_TAG:-latest}
@@ -140,10 +140,19 @@ services:
       # transfer data; sidelined is what we need (and it ships from a
       # different endpoint). Disable until a windowed transfer call lands.
       SportMonksTransferSidelinedSync__SyncLatestTransfers: "false"
+      # /players + /coaches + /rivals are reference-data dumps with no
+      # date filter — players alone is 89k+ rows per nightly run. Weekly
+      # re-sync is wasteful while we're unblocking the rest of the chain.
+      SportMonksPlayerReferenceSync__Enabled: "false"
+      # 14 days × every league × full include deserialises into >1.5GB
+      # of strings and OOMs the worker. Cap forward window at 5 days
+      # until ExecuteFixtureWindow streams per-day chunks.
+      SportMonksFixtureBacklogSync__DaysForward: "5"
+      SportMonksFixtureBacklogSync__DaysBack: "1"
     deploy:
       resources:
         limits:
-          memory: 1536M
+          memory: 1280M
 
   worker-odds:
     image: ghcr.io/${GHCR_OWNER:?required}/tipswall-worker-odds:${IMAGE_TAG:-latest}
