@@ -134,6 +134,15 @@ namespace PreOddsApi.ExternalApis.Analytics
                     inner join odds.markets m on m.id = o.market_id
                     where o.winning is not null
                       and coalesce(m.has_winning_calculations, false) = true
+                      -- SportMonks ships `winning=false` on rows that haven't
+                      -- been settled yet (state_id=1, NotStarted, also on
+                      -- in-play states 2/3/22 mid-match). Those rows were
+                      -- inflating "lost" counts — a Yes vs No bug-check on
+                      -- 2026-05-13 showed 1658 fixture-pairs where Yes and
+                      -- No were both winning=false, 1580 of them on yet-
+                      -- unplayed matches. Only count finished states:
+                      --   5 = Full Time, 7 = AET, 8 = FT pen.
+                      and f.state_id in (5, 7, 8)
                 ),
                 windowed as (
                     select b.*, w.code as window_code
