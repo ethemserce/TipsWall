@@ -29,16 +29,21 @@ namespace PreOddsApi.WebApi.V3.Data
 
         // SportMonks state_id buckets — kept in one place so every status
         // filter and live-marker reads from the same source of truth.
-        //   live: 2 InPlay, 3 HT, 4 ET, 6 ETInPlay, 19 Break, 22 AwaitingExtra,
-        //         25 ETBreak, 26 PenLive
-        //   finished: 5 FT, 7 AET, 8 FT_PEN
-        //   upcoming: 1 NotStarted
-        // States outside these (cancelled, postponed, awarded, etc.) are
-        // intentionally not surfaced through the simple status filter — the
-        // mobile UI doesn't show buckets for them.
-        private static readonly long[] LiveStateIds = { 2, 3, 4, 6, 19, 22, 25, 26 };
-        private static readonly long[] FinishedStateIds = { 5, 7, 8 };
-        private static readonly long[] UpcomingStateIds = { 1 };
+        // Verified against catalog.states 2026-05-13:
+        //   live: 2 1H, 3 HT, 4 BRK, 6 INPLAY_ET, 9 INPLAY_PEN, 21 ETB,
+        //         22 2H, 23 INPLAY_ET_2H, 25 PEN_BREAK
+        //         (19 AWAITING_UPDATES kept live because the feed is
+        //          gapped mid-match, not over)
+        //   finished: 5 FT, 7 AET, 8 FT_PEN, 14 WO, 17 AWARDED
+        //   upcoming: 1 NS, 13 TBA, 16 DELAYED, 26 PENDING
+        // The earlier list had 19/26 marked live (wrong: 19 is AU but the
+        // gapped-feed argument keeps it; 26 PENDING is not started yet)
+        // and 22 was claimed as ETB when it's actually the regulation
+        // 2nd half — same bug that made the hero show MS during 2nd half.
+        private static readonly long[] LiveStateIds =
+            { 2, 3, 4, 6, 9, 19, 21, 22, 23, 25 };
+        private static readonly long[] FinishedStateIds = { 5, 7, 8, 14, 17 };
+        private static readonly long[] UpcomingStateIds = { 1, 13, 16, 26 };
 
         public async Task<(IReadOnlyList<FixtureSummaryDto> Items, int Total)> GetFixturesAsync(
             DateTime? date,
@@ -212,7 +217,7 @@ namespace PreOddsApi.WebApi.V3.Data
                           and participant_id = home_p.team_id
                           and type_id in (10, 1697)
                           and created_at > now() - interval '90 seconds'
-                          and f.state_id in (2, 3, 4, 6, 19, 20, 22, 25, 26)
+                          and f.state_id in (2, 3, 4, 6, 9, 19, 21, 22, 23, 25)
                     ) as active
                 ) home_var on true
                 left join lateral (
@@ -222,7 +227,7 @@ namespace PreOddsApi.WebApi.V3.Data
                           and participant_id = away_p.team_id
                           and type_id in (10, 1697)
                           and created_at > now() - interval '90 seconds'
-                          and f.state_id in (2, 3, 4, 6, 19, 20, 22, 25, 26)
+                          and f.state_id in (2, 3, 4, 6, 9, 19, 21, 22, 23, 25)
                     ) as active
                 ) away_var on true
                 {where}
@@ -344,7 +349,7 @@ namespace PreOddsApi.WebApi.V3.Data
                           and participant_id = home_p.team_id
                           and type_id in (10, 1697)
                           and created_at > now() - interval '90 seconds'
-                          and f.state_id in (2, 3, 4, 6, 19, 20, 22, 25, 26)
+                          and f.state_id in (2, 3, 4, 6, 9, 19, 21, 22, 23, 25)
                     ) as active
                 ) home_var on true
                 left join lateral (
@@ -354,7 +359,7 @@ namespace PreOddsApi.WebApi.V3.Data
                           and participant_id = away_p.team_id
                           and type_id in (10, 1697)
                           and created_at > now() - interval '90 seconds'
-                          and f.state_id in (2, 3, 4, 6, 19, 20, 22, 25, 26)
+                          and f.state_id in (2, 3, 4, 6, 9, 19, 21, 22, 23, 25)
                     ) as active
                 ) away_var on true
                 where f.id = @id

@@ -55,23 +55,33 @@ export function FixtureDetailHero({
     ? format(parseISO(fixture.starting_at), 'HH:mm')
     : null;
 
-  // SportMonks state IDs that imply the match extended past 90'. Once
-  // we cross into ET/AET/PEN/FT pen. the score line stops telling the
-  // whole story — viewers want to see the regulation result (MS) and
-  // halftime (İY) under it, plus the shootout dots when it went there.
+  // SportMonks state IDs (verified against catalog.states):
+  //   2  INPLAY_1ST_HALF             3  HT
+  //   4  BREAK                       5  FT
+  //   6  INPLAY_ET                   7  AET
+  //   8  FT_PEN (after penalties)    9  INPLAY_PENALTIES
+  //   21 EXTRA_TIME_BREAK            22 INPLAY_2ND_HALF
+  //   23 INPLAY_ET_SECOND_HALF       25 PEN_BREAK
+  //
+  // The earlier version had 22 listed as "ETB" and 19 as "PEN shootout",
+  // both wrong — 22 is the in-play 2nd half and 19 is "Awaiting Updates".
+  // The bug surfaced as the full-time (MS) sub-score appearing while
+  // the match was still in regulation 2nd half.
   const stateId = fixture.state_id ?? 0;
   const inOrAfterET =
-    stateId === 6 ||  // ET in progress
-    stateId === 7 ||  // AET
-    stateId === 8 ||  // FT pen.
-    stateId === 19 || // PEN shootout
-    stateId === 21 || // AP
-    stateId === 22;   // ETB
-  const inShootout = stateId === 19 || stateId === 8;
+    stateId === 6  || // INPLAY_ET (1st half of ET)
+    stateId === 7  || // AET (finished)
+    stateId === 8  || // FT_PEN (finished after penalties)
+    stateId === 9  || // INPLAY_PENALTIES (shootout in progress)
+    stateId === 21 || // ETB (extra time break)
+    stateId === 23 || // INPLAY_ET_SECOND_HALF
+    stateId === 25;   // PEN_BREAK
+  const inShootout = stateId === 8 || stateId === 9 || stateId === 25;
 
-  // Halftime score: only show once 1st half is over (state_id 2 == in 1H).
+  // Halftime score: hide while 1st half is still in play (state 2). All
+  // other in-play / finished states show it.
   const firstHalfPart =
-    scored && fixture.state_id !== 2
+    scored && stateId !== 2
       ? findHalfScore(scores, '1ST_HALF')
       : null;
   // Full-90 result before extra time kicked in. SportMonks ships this
