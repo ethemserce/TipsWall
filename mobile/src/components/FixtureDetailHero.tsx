@@ -1,6 +1,7 @@
 import { format, parseISO } from 'date-fns';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, View } from 'react-native';
 
@@ -54,6 +55,27 @@ export function FixtureDetailHero({
   const kickoffTime = fixture.starting_at
     ? format(parseISO(fixture.starting_at), 'HH:mm')
     : null;
+
+  // Live-second counter. SportMonks publishes live_minute as an integer
+  // (~1/min push). We tick locally between minute updates so the clock
+  // doesn't sit on the same value for 60 seconds. Each new live_minute
+  // resets the counter to 0 — worst case the JS clock drifts a few
+  // seconds against the official one between pushes; close enough for
+  // a live indicator, and miles better than a stationary "45'".
+  const minute = fixture.live_minute;
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    setTick(0);
+  }, [minute]);
+  useEffect(() => {
+    if (!live || minute == null) return undefined;
+    const id = setInterval(() => setTick((s) => s + 1), 1000);
+    return () => clearInterval(id);
+  }, [live, minute]);
+  const liveMinuteLabel =
+    live && minute != null
+      ? `${minute}:${Math.min(59, tick).toString().padStart(2, '0')}`
+      : null;
 
   // SportMonks state IDs (verified against catalog.states):
   //   2  INPLAY_1ST_HALF             3  HT
@@ -213,9 +235,7 @@ export function FixtureDetailHero({
                 styles.statusText,
                 { color: live ? c.live : c.textMuted },
               ]}>
-              {live && fixture.live_minute != null
-                ? `${fixture.live_minute}'`
-                : stateLabel || null}
+              {liveMinuteLabel ?? stateLabel ?? null}
             </ThemedText>
           ) : null}
         </View>
