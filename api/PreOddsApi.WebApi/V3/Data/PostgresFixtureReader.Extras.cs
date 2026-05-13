@@ -423,7 +423,7 @@ namespace PreOddsApi.WebApi.V3.Data
                 left join football.teams away_t on away_t.id = away_p.team_id
                 left join football.venues v on v.id = f.venue_id
                 left join lateral (
-                    -- Strip the 'referee-{id}' placeholder that the writer
+                    -- Strip the "referee-<id>" placeholder that the writer
                     -- inserts when SportMonks doesn't return a real name
                     -- (Growth plan limitation) — see PostgresFixtureReader.cs
                     -- for the matching comment in the list query.

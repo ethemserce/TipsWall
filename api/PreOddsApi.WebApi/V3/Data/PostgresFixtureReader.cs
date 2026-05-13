@@ -160,10 +160,12 @@ namespace PreOddsApi.WebApi.V3.Data
                     -- documents type ids stably.
                     -- SportMonks Growth plan doesn't return referee names
                     -- in the fixture include, so the upstream writer falls
-                    -- back to 'referee-{id}' to satisfy the NOT NULL on
-                    -- football.referees.name. Strip that placeholder here
-                    -- so the API returns null instead of a synthetic id —
-                    -- the mobile UI shows nothing when the name is null.
+                    -- back to a "referee-<id>" placeholder to satisfy the
+                    -- NOT NULL on football.referees.name. Strip that
+                    -- placeholder here so the API returns null instead of
+                    -- a synthetic id — the mobile UI shows nothing when
+                    -- the name is null. (No curly braces in this comment:
+                    -- the SQL lives in an interpolated raw string.)
                     select nullif(r.name, 'referee-' || r.id::text) as name
                     from football.fixture_referees fr
                     join football.referees r on r.id = fr.referee_id
@@ -295,10 +297,12 @@ namespace PreOddsApi.WebApi.V3.Data
                 left join lateral (
                     -- SportMonks Growth plan doesn't return referee names
                     -- in the fixture include, so the upstream writer falls
-                    -- back to 'referee-{id}' to satisfy the NOT NULL on
-                    -- football.referees.name. Strip that placeholder here
-                    -- so the API returns null instead of a synthetic id —
-                    -- the mobile UI shows nothing when the name is null.
+                    -- back to a "referee-<id>" placeholder to satisfy the
+                    -- NOT NULL on football.referees.name. Strip that
+                    -- placeholder here so the API returns null instead of
+                    -- a synthetic id — the mobile UI shows nothing when
+                    -- the name is null. (No curly braces in this comment:
+                    -- the SQL lives in an interpolated raw string.)
                     select nullif(r.name, 'referee-' || r.id::text) as name
                     from football.fixture_referees fr
                     join football.referees r on r.id = fr.referee_id
