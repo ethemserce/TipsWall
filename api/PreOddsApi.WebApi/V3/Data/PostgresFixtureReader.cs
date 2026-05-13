@@ -27,6 +27,19 @@ namespace PreOddsApi.WebApi.V3.Data
             _dataSource = dataSource;
         }
 
+        // SportMonks state_id buckets — kept in one place so every status
+        // filter and live-marker reads from the same source of truth.
+        //   live: 2 InPlay, 3 HT, 4 ET, 6 ETInPlay, 19 Break, 22 AwaitingExtra,
+        //         25 ETBreak, 26 PenLive
+        //   finished: 5 FT, 7 AET, 8 FT_PEN
+        //   upcoming: 1 NotStarted
+        // States outside these (cancelled, postponed, awarded, etc.) are
+        // intentionally not surfaced through the simple status filter — the
+        // mobile UI doesn't show buckets for them.
+        private static readonly long[] LiveStateIds = { 2, 3, 4, 6, 19, 22, 25, 26 };
+        private static readonly long[] FinishedStateIds = { 5, 7, 8 };
+        private static readonly long[] UpcomingStateIds = { 1 };
+
         public async Task<(IReadOnlyList<FixtureSummaryDto> Items, int Total)> GetFixturesAsync(
             DateTime? date,
             DateTime? fromDate,
@@ -35,6 +48,7 @@ namespace PreOddsApi.WebApi.V3.Data
             long? seasonId,
             long? teamId,
             long? stateId,
+            string? status,
             int page,
             int perPage,
             CancellationToken ct = default)
@@ -76,6 +90,22 @@ namespace PreOddsApi.WebApi.V3.Data
             {
                 clauses.Add("f.state_id = @state_id");
                 parameters.Add(new NpgsqlParameter("state_id", stateId.Value));
+            }
+
+            if (!string.IsNullOrWhiteSpace(status))
+            {
+                var bucket = status.Trim().ToLowerInvariant() switch
+                {
+                    "live"     => LiveStateIds,
+                    "finished" => FinishedStateIds,
+                    "upcoming" => UpcomingStateIds,
+                    _          => Array.Empty<long>(),
+                };
+                if (bucket.Length > 0)
+                {
+                    clauses.Add("f.state_id = any(@status_state_ids)");
+                    parameters.Add(new NpgsqlParameter("status_state_ids", bucket));
+                }
             }
 
             var teamJoin = string.Empty;

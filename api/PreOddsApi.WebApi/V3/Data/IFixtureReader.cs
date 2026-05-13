@@ -16,6 +16,7 @@ namespace PreOddsApi.WebApi.V3.Data
             long? seasonId,
             long? teamId,
             long? stateId,
+            string? status,
             int page,
             int perPage,
             CancellationToken ct = default);

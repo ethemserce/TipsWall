@@ -31,6 +31,7 @@ namespace PreOddsApi.WebApi.V3.Controllers
             [FromQuery(Name = "season_id")] long? seasonId,
             [FromQuery(Name = "team_id")] long? teamId,
             [FromQuery(Name = "state_id")] long? stateId,
+            [FromQuery(Name = "status")] string? status,
             [FromQuery] PagedRequest paging,
             CancellationToken ct)
         {
@@ -38,7 +39,7 @@ namespace PreOddsApi.WebApi.V3.Controllers
                 return BadRequestResponse("from_date must be before or equal to to_date.");
 
             var (items, total) = await _reader.GetFixturesAsync(
-                date, fromDate, toDate, leagueId, seasonId, teamId, stateId,
+                date, fromDate, toDate, leagueId, seasonId, teamId, stateId, status,
                 paging.NormalizedPage, paging.NormalizedPerPage, ct);
 
             return OkPagedResponse(items, paging.NormalizedPage, paging.NormalizedPerPage, total);
