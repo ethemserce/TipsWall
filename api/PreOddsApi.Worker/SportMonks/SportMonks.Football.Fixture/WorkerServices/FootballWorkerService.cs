@@ -887,6 +887,29 @@ namespace SportMonks.Football.FixtureWorker.Services
             await _newsWriter.UpsertNewsAsync(news, cancellationToken);
         }
 
+        // Minimal include set for the nightly backlog window — drop the
+        // expensive nested rows (lineups + formations + weather + trends +
+        // pressure + odds + market + bookmaker). Pulse already syncs those
+        // per-fixture for today's matches; backlog only needs metadata +
+        // scores + events to seed the upcoming window. With this list the
+        // raw_payloads INSERT for a 7-day range stays under the Postgres
+        // command-timeout budget (was 30s+, fixed at ~1s).
+        private static readonly string[] BacklogLightIncludes =
+        [
+            "sport",
+            "league",
+            "season",
+            "stage",
+            "round",
+            "state",
+            "venue",
+            "participants",
+            "scores",
+            "events",
+            "statistics",
+            "referees",
+        ];
+
         private async Task ExecuteFixtureWindow(
             int daysBack,
             int daysForward,
@@ -912,8 +935,14 @@ namespace SportMonks.Football.FixtureWorker.Services
             var toValue = toDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
             var endpoint = $"{GetFixtureByDateRangeEndpoint().TrimEnd('/')}/{fromValue}/{toValue}";
 
+            // Backlog uses a slim include set to keep the response (and the
+            // raw_payloads INSERT) bounded; today / live keep the full set
+            // because pulse re-runs per-fixture queries that need them.
+            var includes = label == "backlog"
+                ? BacklogLightIncludes
+                : BuildFixtureSyncIncludes().ToArray();
             var request = SportMonksApiRequest.Create(endpoint)
-                .WithInclude(BuildFixtureSyncIncludes().ToArray());
+                .WithInclude(includes);
 
             if (timezone != null)
                 request.WithTimezone(timezone);
