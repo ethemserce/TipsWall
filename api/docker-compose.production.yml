@@ -132,6 +132,11 @@ services:
       # and starving the rest of the pulse + nightly chain. Keep it off
       # at the env layer until the worker is taught a date window.
       SportMonksExpectedXgSync__Enabled: "false"
+      # /transfers/latest is also unbounded — ~1800+ pages per nightly
+      # run, blocks fixture-backlog from running. Mobile UI doesn't use
+      # transfer data; sidelined is what we need (and it ships from a
+      # different endpoint). Disable until a windowed transfer call lands.
+      SportMonksTransferSidelinedSync__SyncLatestTransfers: "false"
     deploy:
       resources:
         limits:
