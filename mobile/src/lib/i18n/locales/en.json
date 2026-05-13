@@ -658,6 +658,7 @@
     "stats": {
       "title": "Statistics",
       "notAvailable": "No statistics for this match yet.",
+      "possessionTitle": "BALL POSSESSION",
       "types": {
         "BALL_POSSESSION": "Ball Possession %",
         "SHOTS_TOTAL": "Total Shots",

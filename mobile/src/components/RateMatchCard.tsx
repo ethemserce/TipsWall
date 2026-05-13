@@ -639,7 +639,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   cellLabel: {
-    flex: 2.4,
+    // Was 2.4 — the pick column was stealing too much width vs. the
+    // numeric metric columns. 1.6 still fits "1.5+ Goals" without
+    // wrapping but leaves room for ROI/HIT/IMP/KZ/KY to breathe.
+    flex: 1.6,
     paddingLeft: 6,
   },
   // Tip cell doubles as the coupon add/remove tap target now (was the odd

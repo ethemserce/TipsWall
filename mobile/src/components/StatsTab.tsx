@@ -22,15 +22,88 @@ export function StatsTab({ loading, error, stats }: StatsTabProps) {
   if (loading && stats.length === 0) return <TabLoading />;
   if (stats.length === 0) return <TabEmpty icon="chart-bar" message={t('fixture.stats.notAvailable')} />;
 
+  // Pull ball-possession out of the list and surface it as a hero stat
+  // up top. It's the single most-read metric in a match and the regular
+  // value-and-bar row buries it among 15+ other rows. Hero treatment:
+  // big percentages, a thick split bar with brand vs muted accents.
+  const possessionStat = stats.find(
+    (s) => (s.type_code ?? '').toUpperCase() === 'BALL_POSSESSION',
+  );
+  const otherStats = stats.filter(
+    (s) => (s.type_code ?? '').toUpperCase() !== 'BALL_POSSESSION',
+  );
+
+  return (
+    <>
+      {possessionStat ? <PossessionHero stat={possessionStat} /> : null}
+      <View
+        style={[
+          styles.card,
+          { backgroundColor: c.surface, borderColor: c.border },
+        ]}>
+        {otherStats.map((s) => (
+          <StatRow key={s.type_id} stat={s} />
+        ))}
+      </View>
+    </>
+  );
+}
+
+function PossessionHero({ stat }: { stat: FixtureStatistic }) {
+  const c = useTheme();
+  const { t, i18n } = useTranslation();
+  const home = stat.home_value ?? 0;
+  const away = stat.away_value ?? 0;
+  const total = home + away;
+  // SportMonks usually ships percentages already summing to ~100 — but
+  // some feeds emit fractions (0.56/0.44) or raw counts. Normalise to
+  // a 0-100 share each side so the bar always reads correctly.
+  const homePct = total > 0 ? Math.round((home / total) * 100) : 50;
+  const awayPct = 100 - homePct;
+  // %56 in TR, 56% in EN — keeps the typographic convention right.
+  const isTr = i18n.language?.toLowerCase().startsWith('tr');
+  const fmt = (p: number) => (isTr ? `%${p}` : `${p}%`);
+
   return (
     <View
       style={[
-        styles.card,
-        { backgroundColor: c.surface, borderColor: c.border },
+        styles.possessionCard,
+        {
+          backgroundColor: c.surfaceElevated,
+          borderColor: c.brand,
+        },
       ]}>
-      {stats.map((s) => (
-        <StatRow key={s.type_id} stat={s} />
-      ))}
+      <ThemedText style={[styles.possessionLabel, { color: c.brand }]}>
+        {t('fixture.stats.possessionTitle', { defaultValue: isTr ? 'TOPLA OYNAMA' : 'BALL POSSESSION' })}
+      </ThemedText>
+      <View style={styles.possessionValues}>
+        <ThemedText style={[styles.possessionPct, { color: c.text }]}>
+          {fmt(homePct)}
+        </ThemedText>
+        <ThemedText style={[styles.possessionPct, { color: c.text }]}>
+          {fmt(awayPct)}
+        </ThemedText>
+      </View>
+      <View style={[styles.possessionBar, { backgroundColor: c.border }]}>
+        <View
+          style={[
+            styles.possessionFillHome,
+            {
+              backgroundColor: c.brand,
+              width: `${homePct}%`,
+            },
+          ]}
+        />
+        <View
+          style={[
+            styles.possessionFillAway,
+            {
+              backgroundColor: c.brandSoft,
+              width: `${awayPct}%`,
+            },
+          ]}
+        />
+      </View>
     </View>
   );
 }
@@ -181,5 +254,45 @@ const styles = StyleSheet.create({
   barDivider: {
     width: 1,
     height: 4,
+  },
+  possessionCard: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    paddingHorizontal: 18,
+    paddingTop: 14,
+    paddingBottom: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 12,
+    gap: 8,
+  },
+  possessionLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.6,
+    textAlign: 'center',
+  },
+  possessionValues: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
+  },
+  possessionPct: {
+    fontSize: 28,
+    fontWeight: '900',
+    fontVariant: ['tabular-nums'],
+    letterSpacing: -0.5,
+  },
+  possessionBar: {
+    height: 10,
+    borderRadius: 5,
+    flexDirection: 'row',
+    overflow: 'hidden',
+  },
+  possessionFillHome: {
+    height: 10,
+  },
+  possessionFillAway: {
+    height: 10,
   },
 });

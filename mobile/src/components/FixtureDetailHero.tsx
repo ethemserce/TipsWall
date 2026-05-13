@@ -159,21 +159,14 @@ export function FixtureDetailHero({
             </ThemedText>
           )}
 
-          {scored ? (
-            <ThemedText
-              style={[
-                styles.statusText,
-                { color: live ? c.live : c.textMuted },
-              ]}>
-              {live && fixture.live_minute != null
-                ? `${fixture.live_minute}'`
-                : stateLabel || null}
-            </ThemedText>
-          ) : null}
-          {/* Sub-scores: during/after extra time we show the regulation
-              result (MS) and halftime (İY) under the live minute so the
-              big score's context is unambiguous. Penalty shootout gets
-              its own running count row when the feed publishes one. */}
+          {/* Sub-scores come BEFORE the minute label now — user feedback:
+              "üstte skor, altında MS, altında İY, en altta dakika". For
+              a 1st-half live match firstHalfPart is null (state == 2),
+              so only the minute shows; for 2nd-half live we get score +
+              halftime + minute; for full-time we drop the minute and
+              just show score + halftime; ET shows score + regulation +
+              halftime + minute / state label. Penalty shootout adds
+              its own row when the feed publishes one. */}
           {scored && fullTimePart ? (
             <ThemedText
               style={[styles.subScore, { color: c.textMuted }]}
@@ -202,6 +195,17 @@ export function FixtureDetailHero({
                 home: penaltyPart.home,
                 away: penaltyPart.away,
               })}
+            </ThemedText>
+          ) : null}
+          {scored && (live || stateId === 7 || stateId === 8) ? (
+            <ThemedText
+              style={[
+                styles.statusText,
+                { color: live ? c.live : c.textMuted },
+              ]}>
+              {live && fixture.live_minute != null
+                ? `${fixture.live_minute}'`
+                : stateLabel || null}
             </ThemedText>
           ) : null}
         </View>

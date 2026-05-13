@@ -658,6 +658,7 @@
     "stats": {
       "title": "İstatistikler",
       "notAvailable": "Bu maç için istatistik bulunmuyor.",
+      "possessionTitle": "TOPLA OYNAMA",
       "types": {
         "BALL_POSSESSION": "Topla Oynama %",
         "SHOTS_TOTAL": "Toplam Şut",
