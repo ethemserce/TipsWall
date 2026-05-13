@@ -30,6 +30,11 @@ export function AiPicksCard({ bets, homeName, awayName }: AiPicksCardProps) {
 
   if (items.length === 0) return null;
 
+  // Mirror the header's badge to whatever's inside the card — if any of
+  // the visible picks is flagged as a value bet, surface that on the
+  // title row too so the user doesn't have to scan the chips to know.
+  const hasValuePick = items.some((b) => b.is_value);
+
   return (
     <View
       style={[
@@ -42,6 +47,19 @@ export function AiPicksCard({ bets, homeName, awayName }: AiPicksCardProps) {
         <ThemedText style={[styles.title, { color: c.brand }]}>
           {t('fixture.aiPicks.title')}
         </ThemedText>
+        {hasValuePick ? (
+          <View style={[styles.headerBadge, { backgroundColor: c.brand }]}>
+            <MaterialCommunityIcons
+              name="star-four-points"
+              size={11}
+              color={c.textInverse}
+            />
+            <ThemedText
+              style={[styles.headerBadgeText, { color: c.textInverse }]}>
+              {t('fixture.aiPicks.valueBadge')}
+            </ThemedText>
+          </View>
+        ) : null}
       </View>
       {items.map((b, i) => {
         const confidence = Math.round(clamp01(b.stake ?? 0) * 100);
@@ -128,6 +146,20 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     letterSpacing: 0.4,
+    flex: 1,
+  },
+  headerBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+  },
+  headerBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.6,
   },
   row: {
     flexDirection: 'row',

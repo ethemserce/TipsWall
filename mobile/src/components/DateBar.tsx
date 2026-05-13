@@ -4,6 +4,7 @@ import { enUS, tr as trLocale } from 'date-fns/locale';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal, Pressable, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/src/lib/useTheme';
@@ -73,6 +74,7 @@ function CalendarModal({
 }) {
   const c = useTheme();
   const { t, i18n } = useTranslation();
+  const insets = useSafeAreaInsets();
   const locale = dfLocale(i18n.language);
   const [cursor, setCursor] = useState(() => startOfMonth(selectedDate));
 
@@ -85,7 +87,15 @@ function CalendarModal({
       animationType="slide"
       onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose} />
-      <View style={[styles.sheet, { backgroundColor: c.bg, borderColor: c.border }]}>
+      <View
+        style={[
+          styles.sheet,
+          {
+            backgroundColor: c.bg,
+            borderColor: c.border,
+            paddingBottom: Math.max(24, insets.bottom + 16),
+          },
+        ]}>
         <View style={styles.sheetHandle}>
           <View style={[styles.handleBar, { backgroundColor: c.border }]} />
         </View>

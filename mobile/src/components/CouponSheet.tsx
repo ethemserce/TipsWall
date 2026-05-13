@@ -2,6 +2,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { format, parseISO } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { useDraftSuggestions, type DraftSuggestion } from '@/src/hooks/useDraftSuggestions';
@@ -23,6 +24,7 @@ interface CouponSheetProps {
 export function CouponSheet({ visible, onClose }: CouponSheetProps) {
   const c = useTheme();
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const draft = useCouponStore((s) => s.draft);
   const suggestions = useDraftSuggestions(draft.selections);
 
@@ -47,7 +49,11 @@ export function CouponSheet({ visible, onClose }: CouponSheetProps) {
           onPress={(e) => e.stopPropagation()}
           style={[
             styles.sheet,
-            { backgroundColor: c.surface, borderColor: c.border },
+            {
+              backgroundColor: c.surface,
+              borderColor: c.border,
+              paddingBottom: Math.max(12, insets.bottom + 8),
+            },
           ]}>
           <View style={styles.handle}>
             <View style={[styles.handleBar, { backgroundColor: c.border }]} />

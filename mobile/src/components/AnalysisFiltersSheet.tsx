@@ -2,6 +2,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { Slider } from '@/src/components/Slider';
@@ -166,6 +167,10 @@ export function AnalysisFiltersSheet({
 }: AnalysisFiltersSheetProps) {
   const c = useTheme();
   const { t } = useTranslation();
+  // Android gesture / nav bar lives inside the modal frame, so the sheet's
+  // own paddingBottom has to clear it. iOS reports 34 here for the home
+  // indicator; both flow through useSafeAreaInsets.
+  const insets = useSafeAreaInsets();
 
   // Edits live in a local draft. Parent (committed) state only updates when
   // the user taps UYGULA; closing via backdrop / handle discards. Each open
@@ -225,7 +230,11 @@ export function AnalysisFiltersSheet({
           onPress={(e) => e.stopPropagation()}
           style={[
             styles.sheet,
-            { backgroundColor: c.surface, borderColor: c.border },
+            {
+              backgroundColor: c.surface,
+              borderColor: c.border,
+              paddingBottom: Math.max(12, insets.bottom + 8),
+            },
           ]}>
           <View style={styles.handle}>
             <View style={[styles.handleBar, { backgroundColor: c.border }]} />
