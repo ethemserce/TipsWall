@@ -144,11 +144,10 @@ services:
       # date filter — players alone is 89k+ rows per nightly run. Weekly
       # re-sync is wasteful while we're unblocking the rest of the chain.
       SportMonksPlayerReferenceSync__Enabled: "false"
-      # 14 days × every league × full include deserialises into >1.5GB
-      # of strings and OOMs the worker. Cap forward window at 5 days
-      # until ExecuteFixtureWindow streams per-day chunks.
-      SportMonksFixtureBacklogSync__DaysForward: "5"
-      SportMonksFixtureBacklogSync__DaysBack: "1"
+      # NOTE: SportMonksFixtureBacklogSync__DaysForward/DaysBack used to
+      # cap the window at 5/1 here because the single-shot multi-day
+      # call was OOM'ing. ExecuteFixtureWindow now loops per-day, so the
+      # backlog can run at the appsettings default (14 fwd / 2 back).
     deploy:
       resources:
         limits:

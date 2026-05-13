@@ -933,36 +933,43 @@ namespace SportMonks.Football.FixtureWorker.Services
                 fromDate,
                 toDate);
 
-            // SportMonks `fixtures/between/{from}/{to}` returns the whole window
-            // in one paginated call, so a 16-day backlog goes from 16 outbound
-            // requests down to 1 (+pagination follow-ups). The previous per-day
-            // loop is preserved in git history as 4c4b042's parent.
-            var fromValue = fromDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-            var toValue = toDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-            var endpoint = $"{GetFixtureByDateRangeEndpoint().TrimEnd('/')}/{fromValue}/{toValue}";
-
-            // Backlog uses a slim include set to keep the response (and the
-            // raw_payloads INSERT) bounded; today / live keep the full set
-            // because pulse re-runs per-fixture queries that need them.
+            // Backlog historically called `fixtures/between/{from}/{to}` as a
+            // single multi-day window with full includes, but the response
+            // for 7+ days × every league × odds was multi-MB and OOM'd the
+            // worker (and then sigkilled postgres while it tried to INSERT
+            // the raw_payloads blob). Loop per-day so each request stays
+            // small — pagination still happens inside GetAllAsync per day.
+            // Today / live windows are always single-day so the loop is a
+            // no-op for them.
             var includes = label == "backlog"
                 ? BacklogLightIncludes
                 : BuildFixtureSyncIncludes().ToArray();
-            var request = SportMonksApiRequest.Create(endpoint)
-                .WithInclude(includes);
+            var endpointBase = GetFixtureByDateRangeEndpoint().TrimEnd('/');
 
-            if (timezone != null)
-                request.WithTimezone(timezone);
+            for (var date = fromDate; date <= toDate; date = date.AddDays(1))
+            {
+                var dateStr = date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+                var endpoint = $"{endpointBase}/{dateStr}/{dateStr}";
+                var request = SportMonksApiRequest.Create(endpoint)
+                    .WithInclude(includes);
+                if (timezone != null)
+                    request.WithTimezone(timezone);
 
-            var fixtures = (await _syncRunner.GetAllAsync<Fixture>(
-                SportMonksSyncJobDefinition.Create(
-                    "sportmonks.football.fixtures.by-date-range",
-                    "football.fixture",
-                    "Sync SportMonks football fixtures across a date window."),
-                request,
-                cursorKey: endpoint,
-                cancellationToken: cancellationToken)).ToList();
+                var dayFixtures = (await _syncRunner.GetAllAsync<Fixture>(
+                    SportMonksSyncJobDefinition.Create(
+                        "sportmonks.football.fixtures.by-date-range",
+                        "football.fixture",
+                        "Sync SportMonks football fixtures across a date window."),
+                    request,
+                    cursorKey: endpoint,
+                    cancellationToken: cancellationToken)).ToList();
 
-            await ProcessFixturesAsync(fixtures, label, cancellationToken);
+                // Persist per-day so the next iteration starts with a clear
+                // managed-object graph. Keeping every day's fixtures in RAM
+                // until the end was the OOM trigger on 7-day windows.
+                if (dayFixtures.Count > 0)
+                    await ProcessFixturesAsync(dayFixtures, label, cancellationToken);
+            }
         }
 
         private async Task ProcessFixturesAsync(
