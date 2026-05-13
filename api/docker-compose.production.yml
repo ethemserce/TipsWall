@@ -127,10 +127,15 @@ services:
       ConnectionStrings__PreOddsApiPostgresDb: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-preodds};Username=${POSTGRES_USER:-preodds};Password=${POSTGRES_PASSWORD}"
       SportMonks__ApiToken: ${SPORTMONKS_API_TOKEN:?required}
       WORKER_HEALTH_PORT: "8080"
+      # xG ingestion is currently unbounded (~125k rows, paged in
+      # /expected/fixtures). It was burning the SportMonks 3000/hr quota
+      # and starving the rest of the pulse + nightly chain. Keep it off
+      # at the env layer until the worker is taught a date window.
+      SportMonksExpectedXgSync__Enabled: "false"
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: 1024M
 
   worker-odds:
     image: ghcr.io/${GHCR_OWNER:?required}/tipswall-worker-odds:${IMAGE_TAG:-latest}

@@ -127,7 +127,7 @@ namespace PreOddsApi.WebApi.V3.Data
                     from football.fixture_referees fr
                     join football.referees r on r.id = fr.referee_id
                     where fr.fixture_id = f.id
-                    order by fr.id
+                    order by fr.referee_id
                     limit 1
                 ) main_ref on true
                 left join lateral (
@@ -256,7 +256,7 @@ namespace PreOddsApi.WebApi.V3.Data
                     from football.fixture_referees fr
                     join football.referees r on r.id = fr.referee_id
                     where fr.fixture_id = f.id
-                    order by fr.id
+                    order by fr.referee_id
                     limit 1
                 ) main_ref on true
                 left join lateral (
