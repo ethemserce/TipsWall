@@ -13,11 +13,13 @@ import { useTheme } from '@/src/lib/useTheme';
 // HIT/ROI/IMP replace the older DSO/VBET/IKO labels — the underlying metric
 // keys (and the values stored on coupons) stay the same so legacy data
 // surfaces under the new column names without migration.
-const METRIC_KEYS: { short: string; key: 'dso' | 'vbet' | 'iko' | 'kzky' }[] = [
-  { short: 'HIT', key: 'dso' },
-  { short: 'ROI', key: 'vbet' },
-  { short: 'IMP', key: 'iko' },
-  { short: 'W / L', key: 'kzky' },
+// Short codes live in the i18n bundle so they can switch shape per
+// locale (W / L in EN, KZ / KY in TR). HIT / ROI / IMP are universal.
+const METRIC_KEYS: { key: 'dso' | 'vbet' | 'iko' | 'kzky' }[] = [
+  { key: 'dso' },
+  { key: 'vbet' },
+  { key: 'iko' },
+  { key: 'kzky' },
 ];
 
 const MARKET_KEYS: { short: string; key: string }[] = [
@@ -80,11 +82,11 @@ export function MarketLegendButton() {
               </ThemedText>
               {METRIC_KEYS.map((m) => (
                 <View
-                  key={m.short}
+                  key={m.key}
                   style={[styles.metricRow, { borderTopColor: c.border }]}>
                   <View style={styles.metricHead}>
                     <ThemedText style={[styles.short, { color: c.brand }]}>
-                      {m.short}
+                      {t(`legend.metrics.${m.key}.short`)}
                     </ThemedText>
                     <ThemedText style={[styles.long, { color: c.text }]}>
                       {t(`legend.metrics.${m.key}.long`)}

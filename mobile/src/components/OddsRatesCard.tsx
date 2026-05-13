@@ -1,5 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -54,6 +55,7 @@ export function OddsRatesCard({
   initiallyCollapsed = false,
 }: OddsRatesCardProps) {
   const c = useTheme();
+  const { t, i18n } = useTranslation();
   const tryAdd = useTryAddSelection();
   const [collapsed, setCollapsed] = useState(initiallyCollapsed);
   const oddsHidden = useOddsHidden();
@@ -104,7 +106,7 @@ export function OddsRatesCard({
         <ThemedText
           style={[styles.title, { color: c.textMuted }]}
           numberOfLines={1}>
-          {marketLongName(market.market_id, market.market_name).toLocaleUpperCase('tr-TR')}
+          {marketLongName(market.market_id, i18n.language, market.market_name).toLocaleUpperCase(i18n.language === 'tr' ? 'tr-TR' : 'en-US')}
         </ThemedText>
         <View style={styles.titleActions}>
           <MarketInfoButton
@@ -126,29 +128,30 @@ export function OddsRatesCard({
           style={[
             styles.headerCell,
             styles.cellLabel,
+            styles.headerCellPick,
             { color: c.textMuted },
           ]}>
-          TAHMİN
+          {t('markets.cols.pick')}
         </ThemedText>
         {showOdd ? (
           <ThemedText style={[styles.headerCell, styles.cellOdd, { color: c.textMuted }]}>
-            ORAN
+            {t('markets.cols.odd')}
           </ThemedText>
         ) : null}
         <ThemedText style={[styles.headerCell, styles.cellGauge, { color: c.textMuted }]}>
-          ROI
+          {t('markets.cols.roi')}
         </ThemedText>
         <ThemedText style={[styles.headerCell, styles.cellGauge, { color: c.textMuted }]}>
-          HIT
+          {t('markets.cols.hit')}
         </ThemedText>
         <ThemedText style={[styles.headerCell, styles.cellGauge, { color: c.textMuted }]}>
-          IMP
+          {t('markets.cols.imp')}
         </ThemedText>
         <ThemedText style={[styles.headerCell, styles.cellNarrow, { color: c.textMuted }]}>
-          W
+          {t('markets.cols.win')}
         </ThemedText>
         <ThemedText style={[styles.headerCell, styles.cellNarrow, { color: c.textMuted }]}>
-          L
+          {t('markets.cols.loss')}
         </ThemedText>
       </View>
 
@@ -363,6 +366,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.4,
     textAlign: 'center',
+  },
+  // Pick column header reads left-aligned to match the tip cell below
+  // (cellLabel + tipText also lean left). Other column headers stay
+  // center-aligned over their numeric values.
+  headerCellPick: {
+    textAlign: 'left',
   },
   row: {
     flexDirection: 'row',

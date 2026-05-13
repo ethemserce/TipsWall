@@ -110,8 +110,14 @@ const KZ_MAX_BY_WINDOW: Record<WindowCode, number> = {
   all: 10,
 };
 
+// Hard floor of 3 — below that the win/loss split isn't statistically
+// meaningful (0/1 or 1/0 makes the hit-rate jump 0 → 100%). Same number
+// as KZ_MIN_WITH_VALUE so value-only mode falls through to the same
+// minimum; user feedback was that lower samples produced noisy picks.
+const KZ_MIN_BASE = 3;
+
 function kzFloor(state: AnalysisFilterState): number {
-  return state.valueOnly ? KZ_MIN_WITH_VALUE : 1;
+  return Math.max(KZ_MIN_BASE, state.valueOnly ? KZ_MIN_WITH_VALUE : 0);
 }
 
 function kzCeiling(state: AnalysisFilterState): number {

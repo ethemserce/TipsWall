@@ -161,20 +161,24 @@
     "marketsHeader": "MARKET KISALTMALARI",
     "metrics": {
       "dso": {
+        "short": "HIT",
         "long": "Tutturma Yüzdesi (HIT)",
         "description": "Geçmiş örneklemde bu tahminin tutma yüzdesi. 5 maçtan 3'ünde tuttuysa %60."
       },
       "vbet": {
+        "short": "ROI",
         "long": "Beklenen Getiri (ROI)",
         "description": "Geçmiş örneklemde bu tahminin sistemce ölçülen verimi. Pozitif değer sistem tarafından değerli olarak işaretlenir."
       },
       "iko": {
+        "short": "IMP",
         "long": "Sistem Olasılığı (IMP)",
         "description": "Marj temizlenmiş olasılık tahmini. Aynı market içinde tüm sonuçlar 100'e tamamlanır. HIT, IMP'den büyükse değer vardır."
       },
       "kzky": {
-        "long": "Kazanan / Kaybeden",
-        "description": "Geçmiş örneklemde tutmuş ve tutmamış maç sayıları (win_count / lost_count)."
+        "short": "KZ / KY",
+        "long": "Kazanan / Kaybeden (KZ / KY)",
+        "description": "Geçmiş örneklemde aynı oranla bu tahminin kaç kez kazandığı (KZ) ve kaç kez kaybettiği (KY). Toplamı 3'ten az olan istatistikler bu sayfada gösterilmez — anlamlı olmuyor."
       }
     },
     "markets": {
@@ -450,6 +454,22 @@
     "tbd": "TBD",
     "fallback": "Market #{{id}}",
     "noInfo": "Bu market için açıklama henüz eklenmemiş.",
+    "cols": {
+      "pick": "TAHMİN",
+      "odd": "ORAN",
+      "roi": "ROI",
+      "hit": "HIT",
+      "imp": "IMP",
+      "win": "KZ",
+      "loss": "KY"
+    },
+    "colInfo": {
+      "roi": "Yatırılan tutarın ortalama getirisi (Return On Investment). Yüksekse her bahis başına daha çok kâr.",
+      "hit": "Tutturma oranı (Hit rate). Yüzdesel olarak ne sıklıkla kazandığı.",
+      "imp": "Oranın ima ettiği olasılık (Implied probability). Oranlar yüksekse bu düşer.",
+      "win": "Kazanan örnek sayısı (KZ). Geçmişte bu oranla aynı pick'in kaç kez tuttuğu.",
+      "loss": "Kaybeden örnek sayısı (KY). Aynı pick'in kaç kez tutmadığı."
+    },
     "info": {
       "1": {
         "title": "Maç Sonucu",

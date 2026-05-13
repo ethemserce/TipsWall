@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 
 import {
   getFixtureEvents,
@@ -71,9 +72,15 @@ export function useFixtureWeather(fixtureId: number, enabled = true) {
 }
 
 export function useFixtureTvStations(fixtureId: number, enabled = true) {
+  // Filter TV stations down to broadcasters licensed in the user's
+  // country. Turkish users only get TR-licensed channels (TRT, beIN,
+  // S Sport, Exxen, ...). For non-TR users we don't filter — leaving the
+  // global list visible until we wire up a proper geo-IP detector.
+  const { i18n } = useTranslation();
+  const countryIso = i18n.language?.startsWith('tr') ? 'TR' : undefined;
   return useQuery({
-    queryKey: ['fixture-tv-stations', fixtureId],
-    queryFn: () => getFixtureTvStations(fixtureId),
+    queryKey: ['fixture-tv-stations', fixtureId, countryIso ?? 'all'],
+    queryFn: () => getFixtureTvStations(fixtureId, countryIso),
     enabled: enabled && fixtureId > 0,
   });
 }

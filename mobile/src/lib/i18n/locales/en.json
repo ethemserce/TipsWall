@@ -161,20 +161,24 @@
     "marketsHeader": "MARKET CODES",
     "metrics": {
       "dso": {
+        "short": "HIT",
         "long": "Hit Rate (HIT)",
         "description": "Historical hit rate of this pick. 3 of 5 matches = 60%."
       },
       "vbet": {
+        "short": "ROI",
         "long": "Expected Return (ROI)",
         "description": "Average return on this pick across the sample. Positive = system sees it as undervalued."
       },
       "iko": {
+        "short": "IMP",
         "long": "Implied Probability (IMP)",
         "description": "Implied probability with the market margin stripped. Outcomes within a market sum to 100. HIT > IMP = value."
       },
       "kzky": {
-        "long": "Won / Lost",
-        "description": "Historical win and loss counts (win_count / lost_count)."
+        "short": "W / L",
+        "long": "Won / Lost (W / L)",
+        "description": "How many times this same pick has won (W) and lost (L) historically at the same odd. Samples with a total below 3 are hidden — too noisy to read."
       }
     },
     "markets": {
@@ -450,6 +454,22 @@
     "tbd": "TBD",
     "fallback": "Market #{{id}}",
     "noInfo": "No description has been added for this market yet.",
+    "cols": {
+      "pick": "PICK",
+      "odd": "ODD",
+      "roi": "ROI",
+      "hit": "HIT",
+      "imp": "IMP",
+      "win": "W",
+      "loss": "L"
+    },
+    "colInfo": {
+      "roi": "Average return on each unit staked (Return On Investment). Higher means more profit per bet.",
+      "hit": "Strike rate — how often this pick has landed historically.",
+      "imp": "Implied probability of the odd (1 / odd, no-vig). Falls as the odd rises.",
+      "win": "Winning sample count. How many times this exact pick + odd has won in the past.",
+      "loss": "Losing sample count. How many times the same pick + odd has lost."
+    },
     "info": {
       "1": {
         "title": "Match Result",

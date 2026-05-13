@@ -1,6 +1,7 @@
 import { format, parseISO } from 'date-fns';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -41,6 +42,7 @@ export function RateMatchCard({
   primaryMetric,
 }: RateMatchCardProps) {
   const c = useTheme();
+  const { t } = useTranslation();
   const router = useRouter();
   const tryAdd = useTryAddSelection();
 
@@ -217,22 +219,22 @@ export function RateMatchCard({
             styles.headerLabelLeft,
             { color: c.textMuted },
           ]}>
-          TAHMİN
+          {t('markets.cols.pick')}
         </ThemedText>
         <ThemedText style={[styles.headerCell, styles.cellGauge, { color: c.textMuted }]}>
-          ROI
+          {t('markets.cols.roi')}
         </ThemedText>
         <ThemedText style={[styles.headerCell, styles.cellGauge, { color: c.textMuted }]}>
-          HIT
+          {t('markets.cols.hit')}
         </ThemedText>
         <ThemedText style={[styles.headerCell, styles.cellGauge, { color: c.textMuted }]}>
-          IMP
+          {t('markets.cols.imp')}
         </ThemedText>
         <ThemedText style={[styles.headerCell, styles.cellNarrow, { color: c.textMuted }]}>
-          W
+          {t('markets.cols.win')}
         </ThemedText>
         <ThemedText style={[styles.headerCell, styles.cellNarrow, { color: c.textMuted }]}>
-          L
+          {t('markets.cols.loss')}
         </ThemedText>
       </View>
 

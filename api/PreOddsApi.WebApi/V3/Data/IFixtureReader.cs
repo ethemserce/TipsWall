@@ -62,6 +62,7 @@ namespace PreOddsApi.WebApi.V3.Data
 
         Task<IReadOnlyList<FixtureTvStationDto>> GetFixtureTvStationsAsync(
             long fixtureId,
+            string? countryIso,
             CancellationToken ct = default);
 
         Task<IReadOnlyList<FixtureValueBetDto>> GetFixtureValueBetsAsync(

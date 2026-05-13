@@ -14,10 +14,11 @@ export const MARKET_SHORT: Record<number, string> = {
   80: 'A/Ü',
 };
 
-// Turkish long-form names for the market headers. Card titles previously
+// Long-form market names for card headers. Card titles previously
 // surfaced SportMonks' raw English market.name ("Fulltime Result", "Both
-// Teams To Score") — these Turkish equivalents replace that on the UI,
-// keyed by market_id so we don't depend on the upstream string.
+// Teams To Score") — these tables replace that on the UI, keyed by
+// market_id so we don't depend on the upstream string. Pick the table
+// at render time via the active i18n language.
 export const MARKET_LONG_TR: Record<number, string> = {
   1: 'Maç Sonucu',
   10: 'Beraberlikte İade',
@@ -36,21 +37,43 @@ export const MARKET_LONG_TR: Record<number, string> = {
   80: 'Toplam Gol Alt / Üst',
 };
 
+export const MARKET_LONG_EN: Record<number, string> = {
+  1: 'Match Result',
+  10: 'Draw No Bet',
+  14: 'Both Teams To Score',
+  18: 'Home Exact Score',
+  19: 'Away Exact Score',
+  31: 'Half Time / Full Time',
+  33: 'Half Time Exact Score',
+  38: 'Second Half Exact Score',
+  39: 'Away Wins Both Halves',
+  41: 'Home Wins Both Halves',
+  44: 'Total Goals Odd / Even',
+  50: 'Home Clean Sheet',
+  51: 'Away Clean Sheet',
+  52: 'Double Chance',
+  80: 'Total Goals Over / Under',
+};
+
 export function marketShort(marketId: number, fallbackName?: string | null): string {
   return MARKET_SHORT[marketId] ?? fallbackName ?? `M${marketId}`;
 }
 
 /**
- * Long-form Turkish market label for card headers. Falls back to the
- * SportMonks-supplied English name when we don't have a translation —
- * better to show *something* than to break the header for unmapped
- * markets the worker happens to sync.
+ * Long-form market label for card headers, localised to the caller's
+ * language. Falls back to the SportMonks-supplied English name when we
+ * don't have a translation — better to show *something* than to break
+ * the header for unmapped markets the worker happens to sync.
  */
 export function marketLongName(
   marketId: number,
+  lang: string | undefined,
   fallbackName?: string | null,
 ): string {
-  return MARKET_LONG_TR[marketId] ?? fallbackName ?? `Market #${marketId}`;
+  const table = lang && lang.toLowerCase().startsWith('tr')
+    ? MARKET_LONG_TR
+    : MARKET_LONG_EN;
+  return table[marketId] ?? fallbackName ?? `Market #${marketId}`;
 }
 
 /**

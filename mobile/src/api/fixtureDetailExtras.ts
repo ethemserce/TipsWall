@@ -67,8 +67,9 @@ export function getFixtureWeather(fixtureId: number) {
   return fetchOk<FixtureWeather | null>(`/fixtures/${fixtureId}/weather`);
 }
 
-export function getFixtureTvStations(fixtureId: number) {
-  return fetchOk<FixtureTvStation[]>(`/fixtures/${fixtureId}/tv-stations`);
+export function getFixtureTvStations(fixtureId: number, countryIso?: string) {
+  const qs = countryIso ? `?country_iso=${encodeURIComponent(countryIso)}` : '';
+  return fetchOk<FixtureTvStation[]>(`/fixtures/${fixtureId}/tv-stations${qs}`);
 }
 
 export function getFixtureValueBets(fixtureId: number) {

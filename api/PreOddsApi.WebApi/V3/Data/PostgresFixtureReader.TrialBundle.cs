@@ -205,9 +205,10 @@ namespace PreOddsApi.WebApi.V3.Data
 
         public async Task<IReadOnlyList<FixtureTvStationDto>> GetFixtureTvStationsAsync(
             long fixtureId,
+            string? countryIso,
             CancellationToken ct = default)
         {
-            // Two real-world issues we filter for:
+            // Three real-world issues we filter for:
             //  - SportMonks's per-fixture `include=tvStations` ships only ids
             //    without names, so the writer stamps a `tv-station-{id}`
             //    placeholder. We hide those until the standalone
@@ -216,13 +217,32 @@ namespace PreOddsApi.WebApi.V3.Data
             //    rights-holder globally (600+ channels). Cap at 20 so the
             //    UI surfaces a digestible "where to watch" list rather than
             //    a worldwide broadcaster directory.
-            const string sql = """
+            //  - countryIso narrows the list to broadcasters licensed in
+            //    the user's country (mobile passes 'TR' for Turkish users,
+            //    nothing for everyone else). Stations have a many-to-many
+            //    country join, so we EXISTS in via tv_station_countries.
+            var countryClause = string.Empty;
+            if (!string.IsNullOrWhiteSpace(countryIso))
+            {
+                countryClause = """
+                      and exists (
+                          select 1
+                          from football.tv_station_countries tsc
+                          join catalog.countries c on c.id = tsc.country_id
+                          where tsc.tv_station_id = tv.id
+                            and upper(c.iso2) = upper(@country_iso)
+                      )
+                    """;
+            }
+
+            var sql = $"""
                 select tv.id, tv.name, tv.url, tv.image_path
                 from football.fixture_tv_stations fts
                 join football.tv_stations tv on tv.id = fts.tv_station_id
                 where fts.fixture_id = @fixture_id
                   and tv.name is not null
                   and tv.name not like 'tv-station-%'
+                  {countryClause}
                 order by tv.name
                 limit 20;
                 """;
@@ -230,6 +250,10 @@ namespace PreOddsApi.WebApi.V3.Data
             await using var connection = await OpenAsync(ct);
             await using var command = new NpgsqlCommand(sql, connection);
             command.Parameters.Add(new NpgsqlParameter("fixture_id", fixtureId));
+            if (!string.IsNullOrWhiteSpace(countryIso))
+            {
+                command.Parameters.Add(new NpgsqlParameter("country_iso", countryIso.Trim()));
+            }
 
             var items = new List<FixtureTvStationDto>();
             await using var reader = await command.ExecuteReaderAsync(ct);

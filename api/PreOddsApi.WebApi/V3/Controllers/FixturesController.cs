@@ -135,9 +135,12 @@ namespace PreOddsApi.WebApi.V3.Controllers
         }
 
         [HttpGet("{id:long}/tv-stations")]
-        public async Task<IActionResult> GetTvStationsAsync(long id, CancellationToken ct)
+        public async Task<IActionResult> GetTvStationsAsync(
+            long id,
+            [FromQuery(Name = "country_iso")] string? countryIso,
+            CancellationToken ct)
         {
-            var items = await _reader.GetFixtureTvStationsAsync(id, ct);
+            var items = await _reader.GetFixtureTvStationsAsync(id, countryIso, ct);
             return OkResponse(items);
         }
 
