@@ -153,7 +153,13 @@ namespace PreOddsApi.WebApi.V3.Data
                     -- is the main centre official in every sample I've
                     -- spot-checked. Worth refining once SportMonks
                     -- documents type ids stably.
-                    select r.name
+                    -- SportMonks Growth plan doesn't return referee names
+                    -- in the fixture include, so the upstream writer falls
+                    -- back to 'referee-{id}' to satisfy the NOT NULL on
+                    -- football.referees.name. Strip that placeholder here
+                    -- so the API returns null instead of a synthetic id —
+                    -- the mobile UI shows nothing when the name is null.
+                    select nullif(r.name, 'referee-' || r.id::text) as name
                     from football.fixture_referees fr
                     join football.referees r on r.id = fr.referee_id
                     where fr.fixture_id = f.id
@@ -282,7 +288,13 @@ namespace PreOddsApi.WebApi.V3.Data
                 left join football.teams away_t on away_t.id = away_p.team_id
                 left join football.venues v on v.id = f.venue_id
                 left join lateral (
-                    select r.name
+                    -- SportMonks Growth plan doesn't return referee names
+                    -- in the fixture include, so the upstream writer falls
+                    -- back to 'referee-{id}' to satisfy the NOT NULL on
+                    -- football.referees.name. Strip that placeholder here
+                    -- so the API returns null instead of a synthetic id —
+                    -- the mobile UI shows nothing when the name is null.
+                    select nullif(r.name, 'referee-' || r.id::text) as name
                     from football.fixture_referees fr
                     join football.referees r on r.id = fr.referee_id
                     where fr.fixture_id = f.id
