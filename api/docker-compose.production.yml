@@ -85,7 +85,11 @@ services:
       PREODDS_GOOGLE_CLIENT_ID_IOS: ${PREODDS_GOOGLE_CLIENT_ID_IOS:-}
       PREODDS_GOOGLE_CLIENT_ID_ANDROID: ${PREODDS_GOOGLE_CLIENT_ID_ANDROID:-}
       PREODDS_GOOGLE_CLIENT_ID_WEB: ${PREODDS_GOOGLE_CLIENT_ID_WEB:-}
-      Sentry__Dsn: ${SENTRY_DSN_BACKEND:-}
+      # Program.cs reads SENTRY_DSN directly via Environment.GetEnvironmentVariable
+      # (the double-underscore IConfiguration form Sentry__Dsn was inert).
+      # Empty string → SDK no-ops, so this is safe to commit even before
+      # the user fills SENTRY_DSN_BACKEND in .env.
+      SENTRY_DSN: ${SENTRY_DSN_BACKEND:-}
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8080/health/live"]
       interval: 30s
@@ -110,6 +114,12 @@ services:
       ConnectionStrings__PreOddsApiPostgresDb: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-preodds};Username=${POSTGRES_USER:-preodds};Password=${POSTGRES_PASSWORD}"
       SportMonks__ApiToken: ${SPORTMONKS_API_TOKEN:?required}
       WORKER_HEALTH_PORT: "8080"
+      # WorkerObservability.cs reads SENTRY_DSN directly. Empty string
+      # → Serilog Sentry sink no-ops, so safe even before the DSN is
+      # filled in .env. Wire all three workers so unhandled exceptions
+      # (like the OOM / 429 cascades we hit on 2026-05-13) ship to
+      # Sentry once the user provisions a project.
+      SENTRY_DSN: ${SENTRY_DSN_BACKEND:-}
     deploy:
       resources:
         limits:
@@ -130,6 +140,12 @@ services:
       ConnectionStrings__PreOddsApiPostgresDb: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-preodds};Username=${POSTGRES_USER:-preodds};Password=${POSTGRES_PASSWORD};Command Timeout=180"
       SportMonks__ApiToken: ${SPORTMONKS_API_TOKEN:?required}
       WORKER_HEALTH_PORT: "8080"
+      # WorkerObservability.cs reads SENTRY_DSN directly. Empty string
+      # → Serilog Sentry sink no-ops, so safe even before the DSN is
+      # filled in .env. Wire all three workers so unhandled exceptions
+      # (like the OOM / 429 cascades we hit on 2026-05-13) ship to
+      # Sentry once the user provisions a project.
+      SENTRY_DSN: ${SENTRY_DSN_BACKEND:-}
       # xG ingestion is currently unbounded (~125k rows, paged in
       # /expected/fixtures). It was burning the SportMonks 3000/hr quota
       # and starving the rest of the pulse + nightly chain. Keep it off
@@ -165,6 +181,12 @@ services:
       ConnectionStrings__PreOddsApiPostgresDb: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-preodds};Username=${POSTGRES_USER:-preodds};Password=${POSTGRES_PASSWORD}"
       SportMonks__ApiToken: ${SPORTMONKS_API_TOKEN:?required}
       WORKER_HEALTH_PORT: "8080"
+      # WorkerObservability.cs reads SENTRY_DSN directly. Empty string
+      # → Serilog Sentry sink no-ops, so safe even before the DSN is
+      # filled in .env. Wire all three workers so unhandled exceptions
+      # (like the OOM / 429 cascades we hit on 2026-05-13) ship to
+      # Sentry once the user provisions a project.
+      SENTRY_DSN: ${SENTRY_DSN_BACKEND:-}
     deploy:
       resources:
         limits:
