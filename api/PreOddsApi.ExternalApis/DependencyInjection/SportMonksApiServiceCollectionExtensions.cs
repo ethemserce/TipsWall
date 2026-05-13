@@ -17,7 +17,12 @@ namespace PreOddsApi.ExternalApis.DependencyInjection
 
             services.AddSingleton(options);
             services.AddSingleton<ISportMonksSyncRunner, SportMonksSyncRunner>();
-            services.AddSingleton<ISyncJobScheduler, SyncJobScheduler>();
+            // PostgresSyncJobScheduler persists last-run timestamps so
+            // worker restarts don't re-fire every job (in-process state
+            // reset on every container recreate, burning the SportMonks
+            // rate-limit budget for no reason). Reads MAX(completed_at)
+            // per job from sync.job_runs; writes through on RecordRun.
+            services.AddSingleton<ISyncJobScheduler, PostgresSyncJobScheduler>();
             services.AddSingleton<ISportMonksCatalogReferenceWriter, SportMonksCatalogReferenceWriter>();
             services.AddSingleton<ISportMonksCompetitionReferenceWriter, SportMonksCompetitionReferenceWriter>();
             services.AddSingleton<ISportMonksFootballCoreReferenceWriter, SportMonksFootballCoreReferenceWriter>();
