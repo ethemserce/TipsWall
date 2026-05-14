@@ -211,6 +211,17 @@ export function toggleSelection(
   };
   persist();
   emit();
+  // Fire-and-forget — consent gate inside the wrapper makes this a no-op
+  // until the user opts in. Imported lazily to avoid a require cycle
+  // between store.ts and the analytics module.
+  void import('@/src/lib/analytics').then(({ analytics }) =>
+    analytics.track('add_to_tip_list', {
+      fixture_id: selection.fixtureId,
+      market_id: selection.marketId,
+      outcome_label: selection.outcomeLabel,
+      draft_size: state.draft.selections.length,
+    }),
+  );
   return { ok: true };
 }
 

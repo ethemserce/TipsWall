@@ -3,15 +3,19 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
+import { useEffect } from 'react';
 import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { AnalyticsConsentBanner } from '@/src/components/AnalyticsConsentBanner';
 import { CouponBadge } from '@/src/components/CouponBadge';
 import { LiveStatusBanner } from '@/src/components/LiveStatusBanner';
 import { QuotaLimitModal } from '@/src/components/QuotaLimitModal';
 import { ToastHost } from '@/src/components/ToastHost';
 import { useAutoSettleSavedCoupons } from '@/src/hooks/useCouponSettlement';
+import { useTrackScreens } from '@/src/hooks/useTrackScreens';
+import { analytics } from '@/src/lib/analytics';
 import '@/src/lib/i18n';
 import { initMonitoring } from '@/src/lib/monitoring';
 import { queryClient } from '@/src/lib/queryClient';
@@ -56,6 +60,19 @@ function RootShell({ statusBarStyle }: { statusBarStyle: 'light' | 'dark' }) {
   // fixture / league detail pushed on top of (tabs).
   useAutoSettleSavedCoupons();
 
+  // Analytics bootstrap: hydrate the persisted consent choice, then push
+  // it down to the Firebase SDK. Subsequent toggles in Settings call
+  // analytics.syncCollectionFromConsent() directly. screen_view events
+  // ride the path change via useTrackScreens — the consent gate inside
+  // each call keeps them silent until the user opts in.
+  useEffect(() => {
+    void (async () => {
+      await analytics.hydrate();
+      await analytics.syncCollectionFromConsent();
+    })();
+  }, []);
+  useTrackScreens();
+
   return (
     <View style={{ flex: 1 }}>
       <LiveStatusBanner />
@@ -80,6 +97,7 @@ function RootShell({ statusBarStyle }: { statusBarStyle: 'light' | 'dark' }) {
       <CouponBadge />
       <ToastHost />
       <QuotaLimitModal />
+      <AnalyticsConsentBanner />
       <StatusBar style={statusBarStyle} />
     </View>
   );

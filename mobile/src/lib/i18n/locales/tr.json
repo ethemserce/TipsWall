@@ -1,4 +1,12 @@
 {
+  "analytics": {
+    "consent": {
+      "title": "Kullanım verisi",
+      "body": "TipsWall'ı geliştirmek için anonim kullanım verisi (hangi ekranlar açılıyor, hangi özellikler tıklanıyor) toplamak istiyoruz. Kişisel veri toplanmaz, istediğin zaman Ayarlar'dan kapatabilirsin.",
+      "accept": "Kabul ediyorum",
+      "deny": "Hayır, teşekkürler"
+    }
+  },
   "common": {
     "loading": "Yükleniyor…",
     "tbd": "—",
@@ -322,6 +330,10 @@
         "label": "Oranları göster",
         "hint": "Maç detayında ve tahmin kartlarında oran değerlerini görünür yapar"
       }
+    },
+    "analytics": {
+      "label": "Kullanım verisi paylaş",
+      "hint": "Anonim kullanım istatistikleri toplanır. Kişisel veri içermez; istediğinde kapatabilirsin."
     },
     "about": {
       "header": "Hakkında",

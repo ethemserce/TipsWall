@@ -1,6 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Alert,
@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { deleteAccount, logout } from '@/src/api/auth';
 import { AppBrand } from '@/src/components/AppBrand';
+import { analytics, consentStore } from '@/src/lib/analytics';
 import { useTier } from '@/src/lib/auth/authStore';
 import {
   setLanguageMode,
@@ -45,6 +46,10 @@ export function SettingsScreen() {
   const tier = useTier();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  // Mirror the consent store with a local snapshot so toggling redraws.
+  const [analyticsConsent, setAnalyticsConsent] = useState(consentStore.getState());
+  useEffect(() => consentStore.subscribe(() => setAnalyticsConsent(consentStore.getState())), []);
+  const analyticsOn = analyticsConsent === 'granted';
 
   const handleLogout = async () => {
     try {
@@ -279,6 +284,55 @@ export function SettingsScreen() {
                   {
                     backgroundColor: c.textInverse,
                     transform: [{ translateX: !oddsHidden ? 14 : 0 }],
+                  },
+                ]}
+              />
+            </View>
+          </View>
+        </Pressable>
+
+        {/* Analytics — KVKK opt-in toggle. Mirrors the consent state from
+            the AnalyticsConsentBanner; flipping here is the canonical
+            way to opt back out (or back in) after the banner was
+            dismissed. The wrapper handles SDK collection enable/disable
+            and clears the user id on opt-out. */}
+        <Pressable
+          onPress={() => {
+            if (analyticsOn) void analytics.denyConsent();
+            else void analytics.grantConsent();
+          }}
+          style={[
+            styles.card,
+            { backgroundColor: c.surfaceElevated, borderColor: c.borderSoft },
+          ]}
+          accessibilityRole="switch"
+          accessibilityState={{ checked: analyticsOn }}>
+          <View style={styles.toggleRow}>
+            <View style={styles.toggleText}>
+              <ThemedText style={[styles.rowTitle, { color: c.text }]}>
+                {t('settings.analytics.label', { defaultValue: 'Kullanım verisi paylaş' })}
+              </ThemedText>
+              <ThemedText style={[styles.rowHint, { color: c.textMuted }]}>
+                {t('settings.analytics.hint', {
+                  defaultValue:
+                    'Anonim kullanım istatistikleri toplanır. Kişisel veri içermez; istediğinde kapatabilirsin.',
+                })}
+              </ThemedText>
+            </View>
+            <View
+              style={[
+                styles.toggle,
+                {
+                  backgroundColor: analyticsOn ? c.brand : c.borderSoft,
+                  borderColor: analyticsOn ? c.brand : c.border,
+                },
+              ]}>
+              <View
+                style={[
+                  styles.toggleKnob,
+                  {
+                    backgroundColor: c.textInverse,
+                    transform: [{ translateX: analyticsOn ? 14 : 0 }],
                   },
                 ]}
               />

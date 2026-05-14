@@ -1,6 +1,7 @@
 import type { AxiosError } from 'axios';
 
 import { apiClient, ApiClientError } from '@/src/api/client';
+import { analytics } from '@/src/lib/analytics';
 import { clearTokens, setTokens, getAuthSnapshot } from '@/src/lib/auth/authStore';
 import type { ApiResponse } from '@/src/types/api';
 
@@ -55,6 +56,7 @@ export async function socialSignIn(
     id_token: idToken,
   });
   await setTokens(body.access_token, body.refresh_token);
+  void analytics.track('login', { method: provider });
   return body;
 }
 
@@ -68,6 +70,7 @@ export async function login(
     password,
   });
   await setTokens(body.access_token, body.refresh_token);
+  void analytics.track('login', { method: 'password' });
   return body;
 }
 
@@ -75,6 +78,7 @@ export async function login(
 export async function signup(payload: SignupPayload): Promise<AuthResponse> {
   const body = await postAuth<AuthResponse>('/auth/signup', payload);
   await setTokens(body.access_token, body.refresh_token);
+  void analytics.track('sign_up', { method: 'password' });
   return body;
 }
 

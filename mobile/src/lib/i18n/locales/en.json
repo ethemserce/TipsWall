@@ -1,4 +1,12 @@
 {
+  "analytics": {
+    "consent": {
+      "title": "Usage data",
+      "body": "To improve TipsWall we'd like to collect anonymous usage data (which screens you open, which features you tap). No personal information is collected. You can switch it off any time from Settings.",
+      "accept": "I accept",
+      "deny": "No, thanks"
+    }
+  },
   "common": {
     "loading": "Loading…",
     "tbd": "TBD",
@@ -322,6 +330,10 @@
         "label": "Show odds",
         "hint": "Surfaces odd values on fixture detail and pick cards"
       }
+    },
+    "analytics": {
+      "label": "Share usage data",
+      "hint": "Anonymous usage stats only — no personal data, opt out any time."
     },
     "about": {
       "header": "About",
