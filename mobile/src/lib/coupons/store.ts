@@ -176,7 +176,15 @@ export function isInDraft(s: Pick<CouponSelection, 'fixtureId' | 'marketId' | 'o
   return state.draft.selections.some((x) => selectionKey(x) === k);
 }
 
-export function toggleSelection(selection: Omit<CouponSelection, 'id'>) {
+// Hard cap on a single coupon. Parlays past 5 legs are mathematically
+// unhittable and the UI compresses badly. User-facing cap so the toast
+// can stay generic; useTryAddSelection translates this into a quota
+// modal.
+export const MAX_COUPON_SELECTIONS = 5;
+
+export function toggleSelection(
+  selection: Omit<CouponSelection, 'id'>,
+): { ok: boolean; reason?: 'max-reached' } {
   const k = selectionKey(selection);
   const exists = state.draft.selections.find((s) => selectionKey(s) === k);
   if (exists) {
@@ -185,18 +193,25 @@ export function toggleSelection(selection: Omit<CouponSelection, 'id'>) {
       selections: state.draft.selections.filter((s) => selectionKey(s) !== k),
       updatedAt: new Date().toISOString(),
     };
-  } else {
-    state.draft = {
-      ...state.draft,
-      selections: [
-        ...state.draft.selections,
-        { ...selection, id: cryptoRandom() },
-      ],
-      updatedAt: new Date().toISOString(),
-    };
+    persist();
+    emit();
+    return { ok: true };
   }
+  // Adding — block at the cap. Removing is always allowed (above).
+  if (state.draft.selections.length >= MAX_COUPON_SELECTIONS) {
+    return { ok: false, reason: 'max-reached' };
+  }
+  state.draft = {
+    ...state.draft,
+    selections: [
+      ...state.draft.selections,
+      { ...selection, id: cryptoRandom() },
+    ],
+    updatedAt: new Date().toISOString(),
+  };
   persist();
   emit();
+  return { ok: true };
 }
 
 export function removeSelection(id: string) {

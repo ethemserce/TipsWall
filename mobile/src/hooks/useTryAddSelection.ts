@@ -1,9 +1,12 @@
 import { useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Alert } from 'react-native';
 
 import { claimGuestQuotaSlot } from '@/src/api/guestQuota';
 import { useTier } from '@/src/lib/auth/authStore';
 import {
   isInDraft,
+  MAX_COUPON_SELECTIONS,
   toggleSelection as toggleSelectionRaw,
 } from '@/src/lib/coupons/store';
 import type { CouponSelection } from '@/src/lib/coupons/types';
@@ -24,11 +27,12 @@ import { openQuotaLimitModal } from '@/src/lib/quotaModal';
  */
 export function useTryAddSelection() {
   const tier = useTier();
+  const { t } = useTranslation();
 
   return useCallback(
     async (
       selection: Omit<CouponSelection, 'id'>,
-    ): Promise<{ ok: boolean; reason?: 'quota' | 'error' }> => {
+    ): Promise<{ ok: boolean; reason?: 'quota' | 'error' | 'max-reached' }> => {
       const alreadyInDraft = isInDraft(selection);
       if (alreadyInDraft) {
         toggleSelectionRaw(selection);
@@ -52,9 +56,22 @@ export function useTryAddSelection() {
         }
       }
 
-      toggleSelectionRaw(selection);
+      const result = toggleSelectionRaw(selection);
+      if (!result.ok && result.reason === 'max-reached') {
+        // 5-leg parlay cap. Native alert keeps the message stuck on
+        // screen long enough to be readable; no toast library yet.
+        Alert.alert(
+          t('coupons.maxLimit.title', { defaultValue: 'Maksimum 5 maç' }),
+          t('coupons.maxLimit.body', {
+            defaultValue:
+              'Bir tahmin listesine en fazla 5 maç ekleyebilirsin. Yeni bir maç eklemek için önce mevcutlardan birini çıkar.',
+            max: MAX_COUPON_SELECTIONS,
+          }),
+        );
+        return { ok: false, reason: 'max-reached' };
+      }
       return { ok: true };
     },
-    [tier],
+    [tier, t],
   );
 }

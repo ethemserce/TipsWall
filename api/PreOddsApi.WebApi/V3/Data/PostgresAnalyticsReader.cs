@@ -217,7 +217,18 @@ namespace PreOddsApi.WebApi.V3.Data
                        and s.market_id   = c.market_id
                        and s.outcome_key = c.outcome_key
                        and s.feed_type   = c.feed_type
-                       and s.as_of_date  = current_date{windowFilter}
+                       -- Fallback to the latest as_of_date when today's
+                       -- snapshot hasn't been generated yet. The nightly
+                       -- snapshot drifts later every day (24h-interval
+                       -- scheduler off the last completion); without
+                       -- this fallback the signals query returns 0 rows
+                       -- between 00:00 and ~21:00 every day. The cron-
+                       -- triggered admin rebuild at 02:00 keeps the
+                       -- difference within a couple of hours.
+                       and s.as_of_date  = (
+                           select max(as_of_date)
+                           from analytics.odd_analysis_snapshots
+                       ){windowFilter}
                 ),
                 scored as (
                     -- Wilson lower bound at z=1.96 (95% one-sided): penalises
