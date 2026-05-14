@@ -16,6 +16,7 @@ import {
   ActivityIndicator,
   Pressable,
   RefreshControl,
+  ScrollView,
   SectionList,
   StyleSheet,
   View,
@@ -25,10 +26,16 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { FixtureCard } from '@/src/components/FixtureCard';
 import { FixturePeekOverlay } from '@/src/components/FixturePeekOverlay';
+import { StandingsTab } from '@/src/components/StandingsTab';
+import { TabEmpty } from '@/src/components/TabFeedback';
+import { TeamSquadCard } from '@/src/components/TeamSquadCard';
+import { TeamStatsCard } from '@/src/components/TeamStatsCard';
 import { useCountryLookup } from '@/src/hooks/useCountryLookup';
 import { useFixtures } from '@/src/hooks/useFixtures';
+import { useLeagueTable } from '@/src/hooks/useLeagueTable';
 import { useTeam } from '@/src/hooks/useTeam';
-import { getStateBucket } from '@/src/lib/fixtureState';
+import { useTeamSeasonStats } from '@/src/hooks/useTeamSeasonStats';
+import { useTeamSquad } from '@/src/hooks/useTeamSquad';
 import { useTheme } from '@/src/lib/useTheme';
 import type { FixtureSummary } from '@/src/types/fixture';
 
@@ -36,11 +43,16 @@ interface TeamDetailScreenProps {
   teamId: number;
 }
 
-// Pull a generous window — teams play across multiple competitions, so a
-// month back / two months forward gives the user a meaningful "recent +
-// upcoming" view without season pagination.
 const PAST_WINDOW_DAYS = 30;
 const FUTURE_WINDOW_DAYS = 60;
+
+type TeamTab = 'stats' | 'matches' | 'squad' | 'standings';
+const TAB_ORDER: { key: TeamTab; i18nKey: string; defaultLabel: string }[] = [
+  { key: 'stats', i18nKey: 'team.tabs.stats', defaultLabel: 'İstatistikler' },
+  { key: 'matches', i18nKey: 'team.tabs.matches', defaultLabel: 'Maçlar' },
+  { key: 'squad', i18nKey: 'team.tabs.squad', defaultLabel: 'Kadro' },
+  { key: 'standings', i18nKey: 'team.tabs.standings', defaultLabel: 'Sıralama' },
+];
 
 interface MatchesSection {
   title: string;
@@ -50,6 +62,7 @@ interface MatchesSection {
 export function TeamDetailScreen({ teamId }: TeamDetailScreenProps) {
   const c = useTheme();
   const { t } = useTranslation();
+  const [tab, setTab] = useState<TeamTab>('stats');
 
   const teamQuery = useTeam(teamId);
   const team = teamQuery.data;
@@ -62,6 +75,14 @@ export function TeamDetailScreen({ teamId }: TeamDetailScreenProps) {
   const country = team?.country_id
     ? countryLookup.get(team.country_id)
     : undefined;
+
+  // Season stats — first row is the team's primary league (analytics
+  // table sorts by as_of_date desc + league_id). Drives StatsCard +
+  // primes StandingsTab with the right league + season.
+  const statsQuery = useTeamSeasonStats(teamId);
+  const primaryStats = statsQuery.data?.[0] ?? null;
+
+  const squadQuery = useTeamSquad(teamId);
 
   const today = useMemo(() => new Date(), []);
   const fromDate = useMemo(
@@ -80,7 +101,6 @@ export function TeamDetailScreen({ teamId }: TeamDetailScreenProps) {
   });
   const fixtures = fixturesQuery.data?.items ?? [];
 
-  // Same date-grouping rhythm as the home + league screens.
   const sections = useMemo<MatchesSection[]>(() => {
     if (fixtures.length === 0) return [];
     const groups = new Map<string, FixtureSummary[]>();
@@ -104,7 +124,7 @@ export function TeamDetailScreen({ teamId }: TeamDetailScreenProps) {
               : isYesterday(date)
                 ? t('coupons.dateLabel.yesterday')
                 : isTomorrow(date)
-                  ? t('team.dateLabel.tomorrow')
+                  ? t('team.dateLabel.tomorrow', { defaultValue: 'Yarın' })
                   : format(date, 'dd MMM yyyy');
         return {
           title,
@@ -115,42 +135,13 @@ export function TeamDetailScreen({ teamId }: TeamDetailScreenProps) {
       });
   }, [fixtures, t]);
 
-  // Stat snapshot — counts + W/D/L for finished matches involving this team.
-  const stats = useMemo(() => {
-    let played = 0;
-    let wins = 0;
-    let draws = 0;
-    let losses = 0;
-    let goalsFor = 0;
-    let goalsAgainst = 0;
-    let upcoming = 0;
-    let live = 0;
-    for (const f of fixtures) {
-      const bucket = getStateBucket(f.state_id);
-      if (bucket === 'live') live++;
-      else if (bucket === 'upcoming') upcoming++;
-      if (
-        (bucket === 'finished' || bucket === 'live') &&
-        f.home_score != null &&
-        f.away_score != null
-      ) {
-        const isHome = f.home_team_id === teamId;
-        const isAway = f.away_team_id === teamId;
-        if (!isHome && !isAway) continue;
-        if (bucket === 'finished') {
-          played++;
-          const us = isHome ? f.home_score : f.away_score;
-          const them = isHome ? f.away_score : f.home_score;
-          goalsFor += us;
-          goalsAgainst += them;
-          if (us > them) wins++;
-          else if (us < them) losses++;
-          else draws++;
-        }
-      }
-    }
-    return { played, wins, draws, losses, goalsFor, goalsAgainst, upcoming, live };
-  }, [fixtures, teamId]);
+  // Standings hook — only fetch when standings tab is active and we
+  // know the league + season (otherwise the call would 404).
+  const standingsQuery = useLeagueTable(
+    primaryStats?.league_id,
+    primaryStats?.season_id,
+    tab === 'standings',
+  );
 
   // Long-press peek mirrors the home + league screens.
   const [peekFixture, setPeekFixture] = useState<FixtureSummary | null>(null);
@@ -225,6 +216,7 @@ export function TeamDetailScreen({ teamId }: TeamDetailScreenProps) {
                 style={[styles.headerSub, { color: c.textMuted }]}
                 numberOfLines={1}>
                 {country.name}
+                {team?.founded ? ` · ${team.founded}` : ''}
               </ThemedText>
             ) : null}
           </View>
@@ -232,11 +224,37 @@ export function TeamDetailScreen({ teamId }: TeamDetailScreenProps) {
         <View style={styles.headerBack} />
       </View>
 
+      <View style={[styles.tabBar, { borderBottomColor: c.border, backgroundColor: c.surface }]}>
+        {TAB_ORDER.map((tabDef) => {
+          const active = tab === tabDef.key;
+          return (
+            <Pressable
+              key={tabDef.key}
+              onPress={() => setTab(tabDef.key)}
+              style={styles.tabBtn}>
+              <ThemedText
+                style={[
+                  styles.tabLabel,
+                  {
+                    color: active ? c.brand : c.textMuted,
+                    fontWeight: active ? '800' : '600',
+                  },
+                ]}>
+                {t(tabDef.i18nKey, { defaultValue: tabDef.defaultLabel })}
+              </ThemedText>
+              {active ? (
+                <View style={[styles.tabUnderline, { backgroundColor: c.brand }]} />
+              ) : null}
+            </Pressable>
+          );
+        })}
+      </View>
+
       {teamQuery.isLoading && !team ? (
         <View style={styles.center}>
           <ActivityIndicator color={c.brand} />
         </View>
-      ) : (
+      ) : tab === 'matches' ? (
         <SectionList
           sections={sections}
           keyExtractor={(f) => String(f.id)}
@@ -269,24 +287,16 @@ export function TeamDetailScreen({ teamId }: TeamDetailScreenProps) {
           )}
           renderSectionHeader={({ section }) => (
             <View style={[styles.sectionHeader, { backgroundColor: c.bg }]}>
-              <ThemedText
-                style={[styles.sectionHeaderText, { color: c.textMuted }]}>
+              <ThemedText style={[styles.sectionHeaderText, { color: c.textMuted }]}>
                 {section.title.toLocaleUpperCase('tr-TR')}
               </ThemedText>
-              <View
-                style={[
-                  styles.sectionCountBadge,
-                  { backgroundColor: c.brandSoft },
-                ]}>
+              <View style={[styles.sectionCountBadge, { backgroundColor: c.brandSoft }]}>
                 <ThemedText style={[styles.sectionCountText, { color: c.brand }]}>
                   {section.data.length}
                 </ThemedText>
               </View>
             </View>
           )}
-          ListHeaderComponent={
-            <StatsBlock stats={stats} />
-          }
           stickySectionHeadersEnabled={false}
           contentContainerStyle={styles.list}
           refreshControl={
@@ -297,20 +307,79 @@ export function TeamDetailScreen({ teamId }: TeamDetailScreenProps) {
             />
           }
           ListEmptyComponent={
-            <View style={styles.center}>
-              <View style={[styles.emptyIcon, { backgroundColor: c.brandSoft }]}>
-                <MaterialCommunityIcons
-                  name="calendar-blank-outline"
-                  size={28}
-                  color={c.brand}
-                />
-              </View>
-              <ThemedText style={[styles.errorTitle, { color: c.text }]}>
-                {t('team.matches.empty')}
-              </ThemedText>
-            </View>
+            <TabEmpty
+              icon="calendar-blank-outline"
+              message={t('team.matches.empty')}
+            />
           }
         />
+      ) : (
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={
+                tab === 'stats'
+                  ? statsQuery.isFetching
+                  : tab === 'squad'
+                    ? squadQuery.isFetching
+                    : standingsQuery.isFetching
+              }
+              onRefresh={() => {
+                if (tab === 'stats') statsQuery.refetch();
+                else if (tab === 'squad') squadQuery.refetch();
+                else if (tab === 'standings') standingsQuery.refetch();
+              }}
+              tintColor={c.brand}
+            />
+          }>
+          {tab === 'stats' ? (
+            primaryStats ? (
+              <TeamStatsCard stats={primaryStats} />
+            ) : statsQuery.isLoading ? (
+              <View style={styles.center}>
+                <ActivityIndicator color={c.brand} />
+              </View>
+            ) : (
+              <TabEmpty
+                icon="chart-bar"
+                message={t('team.stats.empty', {
+                  defaultValue: 'Bu takım için sezon istatistiği henüz hesaplanmadı.',
+                })}
+              />
+            )
+          ) : tab === 'squad' ? (
+            squadQuery.data && squadQuery.data.length > 0 ? (
+              <TeamSquadCard
+                squad={squadQuery.data}
+                onPlayerPress={(playerId) => {
+                  // Player detail screen lands in a later commit (B).
+                  // Until then surface a no-op so the tap target lives
+                  // in the source already.
+                  void playerId;
+                }}
+              />
+            ) : squadQuery.isLoading ? (
+              <View style={styles.center}>
+                <ActivityIndicator color={c.brand} />
+              </View>
+            ) : (
+              <TabEmpty
+                icon="account-group-outline"
+                message={t('team.squad.empty', {
+                  defaultValue: 'Kadro bilgisi yok.',
+                })}
+              />
+            )
+          ) : tab === 'standings' ? (
+            <StandingsTab
+              loading={standingsQuery.isLoading}
+              error={standingsQuery.error}
+              rows={standingsQuery.data ?? []}
+              highlightTeamIds={[teamId]}
+            />
+          ) : null}
+        </ScrollView>
       )}
 
       <FixturePeekOverlay
@@ -323,122 +392,19 @@ export function TeamDetailScreen({ teamId }: TeamDetailScreenProps) {
   );
 }
 
-function StatsBlock({
-  stats,
-}: {
-  stats: {
-    played: number;
-    wins: number;
-    draws: number;
-    losses: number;
-    goalsFor: number;
-    goalsAgainst: number;
-    upcoming: number;
-    live: number;
-  };
-}) {
-  const c = useTheme();
-  const { t } = useTranslation();
-  if (
-    stats.played === 0 &&
-    stats.upcoming === 0 &&
-    stats.live === 0
-  ) {
-    return null;
-  }
-  return (
-    <View style={styles.statsWrap}>
-      {/* Quick counts */}
-      <View
-        style={[
-          styles.statsCard,
-          { backgroundColor: c.surfaceElevated, borderColor: c.borderSoft },
-        ]}>
-        <StatCol
-          value={String(stats.played)}
-          label={t('team.stats.played')}
-          color={c.text}
-        />
-        <View style={[styles.statDivider, { backgroundColor: c.borderSoft }]} />
-        <StatCol
-          value={String(stats.wins)}
-          label={t('team.stats.wins')}
-          color={stats.wins > 0 ? c.success : c.textMuted}
-        />
-        <View style={[styles.statDivider, { backgroundColor: c.borderSoft }]} />
-        <StatCol
-          value={String(stats.draws)}
-          label={t('team.stats.draws')}
-          color={c.text}
-        />
-        <View style={[styles.statDivider, { backgroundColor: c.borderSoft }]} />
-        <StatCol
-          value={String(stats.losses)}
-          label={t('team.stats.losses')}
-          color={stats.losses > 0 ? c.danger : c.textMuted}
-        />
-      </View>
-
-      {/* Goals — for / against / diff */}
-      {stats.played > 0 ? (
-        <View
-          style={[
-            styles.statsCard,
-            { backgroundColor: c.surfaceElevated, borderColor: c.borderSoft },
-          ]}>
-          <StatCol
-            value={String(stats.goalsFor)}
-            label={t('team.stats.goalsFor')}
-            color={c.success}
-          />
-          <View style={[styles.statDivider, { backgroundColor: c.borderSoft }]} />
-          <StatCol
-            value={String(stats.goalsAgainst)}
-            label={t('team.stats.goalsAgainst')}
-            color={c.danger}
-          />
-          <View style={[styles.statDivider, { backgroundColor: c.borderSoft }]} />
-          <StatCol
-            value={`${stats.goalsFor - stats.goalsAgainst >= 0 ? '+' : ''}${
-              stats.goalsFor - stats.goalsAgainst
-            }`}
-            label={t('team.stats.goalDiff')}
-            color={
-              stats.goalsFor === stats.goalsAgainst
-                ? c.text
-                : stats.goalsFor > stats.goalsAgainst
-                  ? c.success
-                  : c.danger
-            }
-          />
-        </View>
-      ) : null}
-    </View>
-  );
-}
-
-function StatCol({
-  value,
-  label,
-  color,
-}: {
-  value: string;
-  label: string;
-  color: string;
-}) {
-  const c = useTheme();
-  return (
-    <View style={styles.statCol}>
-      <ThemedText style={[styles.statValue, { color }]}>{value}</ThemedText>
-      <ThemedText style={[styles.statLabel, { color: c.textMuted }]}>
-        {label}
-      </ThemedText>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  center: {
+    flex: 1,
+    minHeight: 200,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+    gap: 8,
+  },
+  scrollContent: {
+    paddingBottom: 96,
+  },
   headerBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -456,128 +422,92 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     gap: 10,
-    paddingHorizontal: 8,
+    paddingHorizontal: 4,
   },
   headerLogo: {
     width: 28,
     height: 28,
   },
   headerTitleBlock: {
-    flexShrink: 1,
-    alignItems: 'center',
+    flex: 1,
+    gap: 1,
   },
   headerName: {
     fontSize: 15,
     fontWeight: '700',
-    flexShrink: 1,
   },
   headerSub: {
     fontSize: 11,
-    fontWeight: '500',
-    marginTop: 1,
+  },
+  tabBar: {
+    flexDirection: 'row',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  tabBtn: {
+    flex: 1,
+    paddingVertical: 11,
+    alignItems: 'center',
+  },
+  tabLabel: {
+    fontSize: 12,
+    letterSpacing: 0.4,
+  },
+  tabUnderline: {
+    position: 'absolute',
+    bottom: -StyleSheet.hairlineWidth,
+    left: '20%',
+    right: '20%',
+    height: 2,
+    borderRadius: 1,
   },
   list: {
-    paddingHorizontal: 12,
-    paddingTop: 4,
-    paddingBottom: 32,
+    paddingBottom: 96,
   },
-  statsWrap: {
-    paddingTop: 12,
-    paddingBottom: 4,
-    gap: 10,
-  },
-  statsCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 14,
+  cardWrap: {
+    marginHorizontal: 16,
     borderWidth: StyleSheet.hairlineWidth,
-    paddingVertical: 12,
-    paddingHorizontal: 8,
+    borderTopWidth: 0,
+    borderBottomWidth: 0,
+    overflow: 'hidden',
   },
-  statCol: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 2,
+  cardWrapFirst: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
   },
-  statValue: {
-    fontSize: 18,
-    lineHeight: 22,
-    fontWeight: '800',
-    fontVariant: ['tabular-nums'],
+  cardWrapLast: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
+    marginBottom: 14,
   },
-  statLabel: {
-    fontSize: 10,
-    lineHeight: 13,
-    fontWeight: '700',
-    letterSpacing: 0.3,
-  },
-  statDivider: {
-    width: StyleSheet.hairlineWidth,
-    alignSelf: 'stretch',
+  fixtureSeparator: {
+    height: StyleSheet.hairlineWidth,
+    marginHorizontal: 12,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 6,
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 8,
-    gap: 8,
   },
   sectionHeaderText: {
     fontSize: 11,
     fontWeight: '800',
-    letterSpacing: 0.7,
+    letterSpacing: 0.6,
   },
   sectionCountBadge: {
-    minWidth: 20,
-    height: 18,
-    paddingHorizontal: 6,
-    borderRadius: 9,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 999,
+    minWidth: 22,
     alignItems: 'center',
-    justifyContent: 'center',
   },
   sectionCountText: {
     fontSize: 10,
     fontWeight: '800',
-    fontVariant: ['tabular-nums'],
-  },
-  cardWrap: {
-    borderLeftWidth: StyleSheet.hairlineWidth,
-    borderRightWidth: StyleSheet.hairlineWidth,
-  },
-  cardWrapFirst: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopLeftRadius: 14,
-    borderTopRightRadius: 14,
-  },
-  cardWrapLast: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomLeftRadius: 14,
-    borderBottomRightRadius: 14,
-  },
-  fixtureSeparator: {
-    height: StyleSheet.hairlineWidth,
-    marginLeft: 64,
-  },
-  center: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 32,
-    gap: 10,
-  },
-  emptyIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 4,
-  },
-  errorTitle: {
-    fontSize: 16,
-    fontWeight: '700',
   },
 });
