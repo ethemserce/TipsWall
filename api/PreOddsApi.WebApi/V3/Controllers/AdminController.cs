@@ -64,10 +64,12 @@ namespace PreOddsApi.WebApi.V3.Controllers
                 return Unauthorized(new { success = false, error = "bad-api-key" });
 
             // Order matches the worker's nightly chain: season stats →
-            // team stats → odd snapshots. Each writes idempotently for
-            // current_date so re-running mid-day just refreshes.
+            // team stats → player stats → odd snapshots. Each writes
+            // idempotently for current_date so re-running mid-day just
+            // refreshes.
             await _analytics.RunSeasonStatsAsync(ct);
             await _analytics.RunSeasonTeamStatsAsync(ct);
+            await _analytics.RunSeasonPlayerStatsAsync(ct);
             var rows = await _analytics.RunOddAnalysisSnapshotsAsync(ct);
 
             return OkResponse(new { rebuilt_at = DateTimeOffset.UtcNow, snapshot_rows = rows });

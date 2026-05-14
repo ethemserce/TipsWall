@@ -1500,6 +1500,9 @@ namespace SportMonks.Football.FixtureWorker.Services
             if (GetBoolean("AnalyticsSync:RunSeasonTeamStats", true))
                 await _analyticsEngine.RunSeasonTeamStatsAsync(cancellationToken);
 
+            if (GetBoolean("AnalyticsSync:RunSeasonPlayerStats", true))
+                await _analyticsEngine.RunSeasonPlayerStatsAsync(cancellationToken);
+
             if (GetBoolean("AnalyticsSync:RunOddAnalysisSnapshots", true))
                 await _analyticsEngine.RunOddAnalysisSnapshotsAsync(cancellationToken);
 

@@ -109,6 +109,155 @@ namespace PreOddsApi.ExternalApis.Analytics
             return rows;
         }
 
+        public async Task<int> RunSeasonPlayerStatsAsync(CancellationToken cancellationToken = default)
+        {
+            // Build per-player season totals from the source tables. Joins:
+            //   fixture_lineups  → who played + which team
+            //   fixture_events   → goals/assists/cards/subs
+            //   fixtures         → league + season + finished-only filter
+            // Idempotent: DELETE today's slice then bulk-INSERT.
+            const string sql = """
+                delete from analytics.season_player_stats where as_of_date = current_date;
+
+                with played as (
+                    -- Each (player × fixture) appears at most once in
+                    -- fixture_lineups. A row alone means the player was
+                    -- in the matchday squad; we'll split started vs sub
+                    -- via the events feed below.
+                    select distinct
+                        f.league_id, f.season_id,
+                        l.team_id, l.player_id, l.fixture_id,
+                        l.type_id  as lineup_type_id
+                    from football.fixture_lineups l
+                    join football.fixtures f on f.id = l.fixture_id
+                    where l.player_id is not null
+                      and l.team_id   is not null
+                      and f.state_id in (5, 7, 8)
+                      and f.league_id is not null
+                      and f.season_id is not null
+                ),
+                events_agg as (
+                    -- type_id mapping from catalog.types; the worker syncs
+                    -- it from SportMonks. Codes are stable across leagues:
+                    --   GOAL, OWNGOAL, PENALTY, MISSED_PENALTY,
+                    --   YELLOWCARD, REDCARD, YELLOWREDCARD,
+                    --   SUBSTITUTION, ASSIST, SECONDARY_ASSIST.
+                    select
+                        e.fixture_id, e.player_id,
+                        count(*) filter (where t.developer_name = 'GOAL')                          as goals,
+                        count(*) filter (where t.developer_name in ('ASSIST','SECONDARY_ASSIST'))  as assists,
+                        count(*) filter (where t.developer_name = 'OWNGOAL')                       as own_goals,
+                        count(*) filter (where t.developer_name = 'PENALTY')                       as penalties_scored,
+                        count(*) filter (where t.developer_name = 'MISSED_PENALTY')                as penalties_missed,
+                        count(*) filter (where t.developer_name = 'YELLOWCARD')                    as yellow_cards,
+                        count(*) filter (where t.developer_name in ('REDCARD','YELLOWREDCARD'))    as red_cards
+                    from football.fixture_events e
+                    left join catalog.types t on t.id = e.type_id
+                    where e.player_id is not null
+                    group by e.fixture_id, e.player_id
+                ),
+                subs as (
+                    -- A SUBSTITUTION row carries the player coming on in
+                    -- player_id and the one going off in related_player_id.
+                    select
+                        e.fixture_id,
+                        e.player_id          as sub_in_player_id,
+                        e.related_player_id  as sub_out_player_id,
+                        e.minute, e.extra_minute
+                    from football.fixture_events e
+                    join catalog.types t on t.id = e.type_id
+                    where t.developer_name = 'SUBSTITUTION'
+                )
+                insert into analytics.season_player_stats (
+                    league_id, season_id, team_id, player_id, as_of_date, fixture_scope,
+                    matches_played, matches_started, matches_subbed_in, matches_subbed_out,
+                    minutes_played, goals, assists, own_goals,
+                    penalties_scored, penalties_missed, yellow_cards, red_cards)
+                select
+                    p.league_id, p.season_id, p.team_id, p.player_id, current_date, 'all',
+                    count(*) as matches_played,
+                    -- Lineup row + no sub-in on this fixture → started.
+                    count(*) filter (
+                        where not exists (
+                            select 1 from subs s
+                            where s.fixture_id = p.fixture_id
+                              and s.sub_in_player_id = p.player_id
+                        )
+                    ) as matches_started,
+                    count(*) filter (
+                        where exists (
+                            select 1 from subs s
+                            where s.fixture_id = p.fixture_id
+                              and s.sub_in_player_id = p.player_id
+                        )
+                    ) as matches_subbed_in,
+                    count(*) filter (
+                        where exists (
+                            select 1 from subs s
+                            where s.fixture_id = p.fixture_id
+                              and s.sub_out_player_id = p.player_id
+                        )
+                    ) as matches_subbed_out,
+                    -- Minutes — rough cut, deliberately simple:
+                    --   started + not subbed off → 90
+                    --   started + subbed off    → minute of the SUB event
+                    --   subbed on               → 90 - minute_in
+                    -- Extra-time / red-card edge cases are ignored for now;
+                    -- the API field is "approximate minutes played" and a
+                    -- second-tier metric on the UI.
+                    sum(
+                        case
+                            when not exists (
+                                select 1 from subs s
+                                where s.fixture_id = p.fixture_id
+                                  and s.sub_in_player_id = p.player_id
+                            ) and not exists (
+                                select 1 from subs s
+                                where s.fixture_id = p.fixture_id
+                                  and s.sub_out_player_id = p.player_id
+                            ) then 90
+                            when not exists (
+                                select 1 from subs s
+                                where s.fixture_id = p.fixture_id
+                                  and s.sub_in_player_id = p.player_id
+                            ) then coalesce((
+                                select s.minute from subs s
+                                where s.fixture_id = p.fixture_id
+                                  and s.sub_out_player_id = p.player_id
+                                limit 1
+                            ), 90)
+                            else greatest(0, 90 - coalesce((
+                                select s.minute from subs s
+                                where s.fixture_id = p.fixture_id
+                                  and s.sub_in_player_id = p.player_id
+                                limit 1
+                            ), 0))
+                        end
+                    ) as minutes_played,
+                    coalesce(sum(ea.goals), 0)             as goals,
+                    coalesce(sum(ea.assists), 0)           as assists,
+                    coalesce(sum(ea.own_goals), 0)         as own_goals,
+                    coalesce(sum(ea.penalties_scored), 0)  as penalties_scored,
+                    coalesce(sum(ea.penalties_missed), 0)  as penalties_missed,
+                    coalesce(sum(ea.yellow_cards), 0)      as yellow_cards,
+                    coalesce(sum(ea.red_cards), 0)         as red_cards
+                from played p
+                left join events_agg ea
+                    on ea.fixture_id = p.fixture_id
+                   and ea.player_id  = p.player_id
+                group by p.league_id, p.season_id, p.team_id, p.player_id;
+                """;
+
+            await using var connection = await OpenAsync(cancellationToken);
+            await using var command = new NpgsqlCommand(sql, connection);
+            var rows = await command.ExecuteNonQueryAsync(cancellationToken);
+
+            _logger.LogInformation(
+                "Analytics season_player_stats refresh affected {Rows} rows.", rows);
+
+            return rows;
+        }
+
         public async Task<int> RunOddAnalysisSnapshotsAsync(CancellationToken cancellationToken = default)
         {
             const string sql = """

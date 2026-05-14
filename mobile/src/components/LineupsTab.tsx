@@ -6,6 +6,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { PitchView } from '@/src/components/PitchView';
+import { PlayerPeekSheet } from '@/src/components/PlayerPeekSheet';
 import { TabEmpty, TabError, TabLoading } from '@/src/components/TabFeedback';
 import { useTheme } from '@/src/lib/useTheme';
 import type {
@@ -44,6 +45,15 @@ export function LineupsTab({
 }: LineupsTabProps) {
   const { t } = useTranslation();
   const [side, setSide] = useState<Side>('home');
+  // Tapping any player row opens the peek sheet — same pattern as the
+  // analysis filter sheet, with a "go to detail" button that routes
+  // to /player/{id}. State lives at the tab root so a single sheet
+  // instance covers the pitch + the bench at once.
+  const [peekPlayerId, setPeekPlayerId] = useState<number | null>(null);
+  const openPeek = (id: number | null | undefined) => {
+    if (id == null || id <= 0) return;
+    setPeekPlayerId(id);
+  };
 
   if (error && !lineups) return <TabError error={error} />;
   if (loading && !lineups) return <TabLoading />;
@@ -65,7 +75,12 @@ export function LineupsTab({
     <>
       <FormationSummary home={lineups.home} away={lineups.away} />
 
-      <PitchView home={lineups.home} away={lineups.away} events={events} />
+      <PitchView
+        home={lineups.home}
+        away={lineups.away}
+        events={events}
+        onPlayerPress={openPeek}
+      />
 
       <SideToggle
         side={effective}
@@ -79,7 +94,7 @@ export function LineupsTab({
       />
 
       {activeTeam && activeTeam.bench.length > 0 ? (
-        <BenchCard team={activeTeam} events={events} />
+        <BenchCard team={activeTeam} events={events} onPlayerPress={openPeek} />
       ) : null}
 
       {sidelined ? (
@@ -87,6 +102,12 @@ export function LineupsTab({
           items={effective === 'home' ? sidelined.home : sidelined.away}
         />
       ) : null}
+
+      <PlayerPeekSheet
+        visible={peekPlayerId != null}
+        playerId={peekPlayerId}
+        onClose={() => setPeekPlayerId(null)}
+      />
     </>
   );
 }
@@ -334,9 +355,11 @@ interface SubInInfo {
 function BenchCard({
   team,
   events,
+  onPlayerPress,
 }: {
   team: FixtureTeamLineup;
   events: FixtureEvent[] | undefined;
+  onPlayerPress?: (id: number | null | undefined) => void;
 }) {
   const c = useTheme();
   const { t } = useTranslation();
@@ -384,6 +407,7 @@ function BenchCard({
           key={`${p.player_id ?? p.player_name ?? i}-${i}`}
           player={p}
           subIn={subInByPlayer.get(subKey(p.player_id, p.player_name) ?? '') ?? null}
+          onPress={onPlayerPress}
         />
       ))}
     </View>
@@ -414,9 +438,11 @@ function subKey(id: number | null | undefined, name: string | null | undefined) 
 function BenchRow({
   player,
   subIn,
+  onPress,
 }: {
   player: FixtureLineupPlayer;
   subIn: SubInInfo | null;
+  onPress?: (id: number | null | undefined) => void;
 }) {
   const c = useTheme();
   const { t } = useTranslation();
@@ -434,8 +460,17 @@ function BenchRow({
         defaultValue: positionCode,
       })
     : '';
+  const tappable = onPress != null && player.player_id != null;
   return (
-    <View style={[styles.benchRow, { borderTopColor: c.border }]}>
+    <Pressable
+      onPress={() => tappable && onPress?.(player.player_id)}
+      disabled={!tappable}
+      android_ripple={tappable ? { color: c.brandSoft } : undefined}
+      style={({ pressed }) => [
+        styles.benchRow,
+        { borderTopColor: c.border },
+        pressed && tappable && { backgroundColor: c.brandSoft },
+      ]}>
       <View style={[styles.benchJersey, { backgroundColor: c.bg, borderColor: c.border }]}>
         <ThemedText style={[styles.benchJerseyText, { color: c.text }]}>
           {player.jersey_number ?? '–'}
@@ -476,7 +511,7 @@ function BenchRow({
         numberOfLines={1}>
         {positionLabel}
       </ThemedText>
-    </View>
+    </Pressable>
   );
 }
 

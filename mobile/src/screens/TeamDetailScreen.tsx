@@ -352,12 +352,9 @@ export function TeamDetailScreen({ teamId }: TeamDetailScreenProps) {
             squadQuery.data && squadQuery.data.length > 0 ? (
               <TeamSquadCard
                 squad={squadQuery.data}
-                onPlayerPress={(playerId) => {
-                  // Player detail screen lands in a later commit (B).
-                  // Until then surface a no-op so the tap target lives
-                  // in the source already.
-                  void playerId;
-                }}
+                onPlayerPress={(playerId) =>
+                  router.push(`/player/${playerId}` as never)
+                }
               />
             ) : squadQuery.isLoading ? (
               <View style={styles.center}>

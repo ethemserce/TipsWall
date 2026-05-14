@@ -1,6 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/src/lib/useTheme';
@@ -14,6 +14,7 @@ interface PitchViewProps {
   home: FixtureTeamLineup | null | undefined;
   away: FixtureTeamLineup | null | undefined;
   events?: FixtureEvent[];
+  onPlayerPress?: (playerId: number | null | undefined) => void;
 }
 
 interface PlayerMarkers {
@@ -94,7 +95,7 @@ const PITCH_BG = '#1f3a2a';
 const PITCH_BG_DARK = '#16291e';
 const PITCH_LINE = 'rgba(255,255,255,0.25)';
 
-export function PitchView({ home, away, events }: PitchViewProps) {
+export function PitchView({ home, away, events, onPlayerPress }: PitchViewProps) {
   const getMarkers = useMemo(() => buildPlayerMarkers(events), [events]);
 
   return (
@@ -109,10 +110,10 @@ export function PitchView({ home, away, events }: PitchViewProps) {
         <View style={[styles.smallBox, styles.smallBoxBottom]} />
 
         {home?.starters?.length ? (
-          <TeamLayer team={home} side="home" getMarkers={getMarkers} />
+          <TeamLayer team={home} side="home" getMarkers={getMarkers} onPlayerPress={onPlayerPress} />
         ) : null}
         {away?.starters?.length ? (
-          <TeamLayer team={away} side="away" getMarkers={getMarkers} />
+          <TeamLayer team={away} side="away" getMarkers={getMarkers} onPlayerPress={onPlayerPress} />
         ) : null}
       </View>
     </View>
@@ -123,10 +124,12 @@ function TeamLayer({
   team,
   side,
   getMarkers,
+  onPlayerPress,
 }: {
   team: FixtureTeamLineup;
   side: 'home' | 'away';
   getMarkers: (p: FixtureLineupPlayer) => PlayerMarkers;
+  onPlayerPress?: (playerId: number | null | undefined) => void;
 }) {
   const positioned = team.starters
     .map((p) => parsePosition(p))
@@ -177,6 +180,7 @@ function TeamLayer({
             topPercent={yCentered * 100}
             side={side}
             markers={getMarkers(player)}
+            onPress={onPlayerPress}
           />
         );
       })}
@@ -197,15 +201,18 @@ function PlayerToken({
   topPercent,
   side,
   markers,
+  onPress,
 }: {
   player: FixtureLineupPlayer;
   leftPercent: number;
   topPercent: number;
   side: 'home' | 'away';
   markers: PlayerMarkers;
+  onPress?: (playerId: number | null | undefined) => void;
 }) {
   const c = useTheme();
   const isAway = side === 'away';
+  const tappable = onPress != null && player.player_id != null;
 
   const jersey = (
     <View style={styles.jerseyWrap}>
@@ -251,18 +258,22 @@ function PlayerToken({
   );
 
   return (
-    <View
-      style={[
+    <Pressable
+      onPress={() => tappable && onPress?.(player.player_id)}
+      disabled={!tappable}
+      hitSlop={6}
+      style={({ pressed }) => [
         styles.token,
         {
           left: `${leftPercent}%`,
           top: `${topPercent}%`,
           marginTop: isAway ? -31 : -15,
+          opacity: pressed && tappable ? 0.7 : 1,
         },
       ]}>
       {isAway ? name : jersey}
       {isAway ? jersey : name}
-    </View>
+    </Pressable>
   );
 }
 
