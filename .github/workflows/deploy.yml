@@ -105,6 +105,10 @@ jobs:
           envs: COMMIT_SHA,GHCR_USER,GHCR_PULL_TOKEN
           script: |
             set -euo pipefail
+            # Git 2.35.2+ rejects directories owned by a different user
+            # with "dubious ownership". /opt/tipswall was bootstrapped as
+            # root; the deploy user (gotips) gets blocked without this.
+            git config --global --add safe.directory /opt/tipswall
             cd /opt/tipswall
             git fetch --depth=1 origin main
             git reset --hard origin/main
