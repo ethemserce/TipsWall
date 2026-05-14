@@ -31,6 +31,24 @@ namespace PreOddsApi.WebApi.V3.Data
 
         Task<TeamDto?> GetTeamByIdAsync(long id, CancellationToken ct = default);
 
+        /// <summary>
+        /// Sezon istatistikleri — son hesaplanmış (en yeni as_of_date)
+        /// season_team_stats satırlarını fixtureScope='all' için döner.
+        /// Genelde bir takım birden fazla turnuvada oynuyor olabilir, o
+        /// yüzden liste; mobile UI ilk satırı veya kullanıcının seçtiği
+        /// ligi gösterir.
+        /// </summary>
+        Task<IReadOnlyList<TeamSeasonStatsDto>> GetTeamSeasonStatsAsync(
+            long teamId, long? seasonId, CancellationToken ct = default);
+
+        /// <summary>
+        /// Takımın o sezondaki aktif kadrosu. seasonId null verilirse,
+        /// team_squads içindeki en yeni season'ı kullanır (her takımın
+        /// kayıtlı son sezonu).
+        /// </summary>
+        Task<IReadOnlyList<TeamSquadMemberDto>> GetTeamSquadAsync(
+            long teamId, long? seasonId, CancellationToken ct = default);
+
         Task<(IReadOnlyList<BookmakerDto> Items, int Total)> GetBookmakersAsync(
             bool? active, int page, int perPage, CancellationToken ct = default);
 

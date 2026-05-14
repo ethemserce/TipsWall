@@ -1,6 +1,6 @@
 import { apiClient, ApiClientError } from '@/src/api/client';
 import type { ApiResponse } from '@/src/types/api';
-import type { Team } from '@/src/types/team';
+import type { Team, TeamSeasonStats, TeamSquadMember } from '@/src/types/team';
 
 export async function getTeam(id: number): Promise<Team> {
   const response = await apiClient.get<ApiResponse<Team>>(`/teams/${id}`);
@@ -13,4 +13,26 @@ export async function getTeam(id: number): Promise<Team> {
     );
   }
   return body.data;
+}
+
+export async function getTeamSeasonStats(
+  id: number,
+  seasonId?: number,
+): Promise<TeamSeasonStats[]> {
+  const qs = seasonId ? `?season_id=${seasonId}` : '';
+  const response = await apiClient.get<ApiResponse<TeamSeasonStats[]>>(
+    `/teams/${id}/season-stats${qs}`,
+  );
+  return response.data?.data ?? [];
+}
+
+export async function getTeamSquad(
+  id: number,
+  seasonId?: number,
+): Promise<TeamSquadMember[]> {
+  const qs = seasonId ? `?season_id=${seasonId}` : '';
+  const response = await apiClient.get<ApiResponse<TeamSquadMember[]>>(
+    `/teams/${id}/squad${qs}`,
+  );
+  return response.data?.data ?? [];
 }

@@ -255,6 +255,141 @@ namespace PreOddsApi.WebApi.V3.Data
             return MapTeam(reader);
         }
 
+        public async Task<IReadOnlyList<TeamSeasonStatsDto>> GetTeamSeasonStatsAsync(
+            long teamId, long? seasonId, CancellationToken ct = default)
+        {
+            // Most recent as_of_date per (league, season) — analytics worker
+            // rewrites the same row daily, but historic seasons stick at
+            // their final date. Filter to fixture_scope='all' for the
+            // headline numbers; future filters (home/away splits) can
+            // pull additional scopes off the same table.
+            var seasonFilter = seasonId.HasValue ? "and season_id = @season_id" : "";
+            var sql = $"""
+                with ranked as (
+                    select s.*,
+                           row_number() over (
+                               partition by league_id, season_id
+                               order by as_of_date desc
+                           ) as rn
+                    from analytics.season_team_stats s
+                    where team_id = @team_id
+                      and fixture_scope = 'all'
+                      {seasonFilter}
+                )
+                select league_id, season_id, team_id, as_of_date, fixture_scope,
+                       matches_played, matches_won, matches_drawn, matches_lost,
+                       goals_for, goals_against, goal_difference,
+                       clean_sheets, failed_to_score, both_teams_scored,
+                       yellow_cards, red_cards,
+                       average_goals_for, average_goals_against,
+                       points, form
+                from ranked
+                where rn = 1
+                order by as_of_date desc, league_id;
+                """;
+
+            await using var connection = await OpenAsync(ct);
+            await using var command = new NpgsqlCommand(sql, connection);
+            command.Parameters.Add(new NpgsqlParameter("team_id", teamId));
+            if (seasonId.HasValue)
+                command.Parameters.Add(new NpgsqlParameter("season_id", seasonId.Value));
+
+            var items = new List<TeamSeasonStatsDto>();
+            await using var reader = await command.ExecuteReaderAsync(ct);
+            while (await reader.ReadAsync(ct))
+            {
+                items.Add(new TeamSeasonStatsDto
+                {
+                    LeagueId = reader.GetInt64(reader.GetOrdinal("league_id")),
+                    SeasonId = reader.GetInt64(reader.GetOrdinal("season_id")),
+                    TeamId = reader.GetInt64(reader.GetOrdinal("team_id")),
+                    AsOfDate = reader.GetDateTime(reader.GetOrdinal("as_of_date")),
+                    FixtureScope = reader.GetString(reader.GetOrdinal("fixture_scope")),
+                    MatchesPlayed = ReadNullableInt(reader, "matches_played"),
+                    MatchesWon = ReadNullableInt(reader, "matches_won"),
+                    MatchesDrawn = ReadNullableInt(reader, "matches_drawn"),
+                    MatchesLost = ReadNullableInt(reader, "matches_lost"),
+                    GoalsFor = ReadNullableInt(reader, "goals_for"),
+                    GoalsAgainst = ReadNullableInt(reader, "goals_against"),
+                    GoalDifference = ReadNullableInt(reader, "goal_difference"),
+                    CleanSheets = ReadNullableInt(reader, "clean_sheets"),
+                    FailedToScore = ReadNullableInt(reader, "failed_to_score"),
+                    BothTeamsScored = ReadNullableInt(reader, "both_teams_scored"),
+                    YellowCards = ReadNullableInt(reader, "yellow_cards"),
+                    RedCards = ReadNullableInt(reader, "red_cards"),
+                    AverageGoalsFor = ReadNullableDecimal(reader, "average_goals_for"),
+                    AverageGoalsAgainst = ReadNullableDecimal(reader, "average_goals_against"),
+                    Points = ReadNullableInt(reader, "points"),
+                    Form = ReadNullableString(reader, "form"),
+                });
+            }
+            return items;
+        }
+
+        public async Task<IReadOnlyList<TeamSquadMemberDto>> GetTeamSquadAsync(
+            long teamId, long? seasonId, CancellationToken ct = default)
+        {
+            // Latest squad season when caller didn't pin one. team_squads
+            // rows persist across seasons; the front page wants the
+            // newest roster. Inner-join players so missing rows on the
+            // reference side are skipped (rare but happens when a
+            // transfer fires before the player sync catches up).
+            var seasonClause = seasonId.HasValue
+                ? "and ts.season_id = @season_id"
+                : """
+                  and ts.season_id = (
+                      select max(season_id) from football.team_squads
+                      where team_id = @team_id
+                  )
+                  """;
+
+            var sql = $"""
+                select ts.player_id, ts.season_id, ts.jersey_number, ts.captain,
+                       ts.position_id,
+                       p.name, p.display_name, p.first_name, p.last_name,
+                       p.image_path, p.date_of_birth, p.nationality_id,
+                       p.height, p.weight,
+                       pos.developer_name as position_code
+                from football.team_squads ts
+                join football.players p on p.id = ts.player_id
+                left join catalog.types pos on pos.id = ts.position_id
+                where ts.team_id = @team_id
+                  {seasonClause}
+                order by pos.developer_name nulls last, ts.jersey_number nulls last, p.name;
+                """;
+
+            await using var connection = await OpenAsync(ct);
+            await using var command = new NpgsqlCommand(sql, connection);
+            command.Parameters.Add(new NpgsqlParameter("team_id", teamId));
+            if (seasonId.HasValue)
+                command.Parameters.Add(new NpgsqlParameter("season_id", seasonId.Value));
+
+            var items = new List<TeamSquadMemberDto>();
+            await using var reader = await command.ExecuteReaderAsync(ct);
+            while (await reader.ReadAsync(ct))
+            {
+                items.Add(new TeamSquadMemberDto
+                {
+                    PlayerId = reader.GetInt64(reader.GetOrdinal("player_id")),
+                    SeasonId = ReadNullableLong(reader, "season_id"),
+                    Name = ReadNullableString(reader, "name") ?? string.Empty,
+                    DisplayName = ReadNullableString(reader, "display_name"),
+                    FirstName = ReadNullableString(reader, "first_name"),
+                    LastName = ReadNullableString(reader, "last_name"),
+                    ImagePath = ReadNullableString(reader, "image_path"),
+                    DateOfBirth = ReadNullableDate(reader, "date_of_birth"),
+                    NationalityId = ReadNullableLong(reader, "nationality_id"),
+                    Height = ReadNullableInt(reader, "height"),
+                    Weight = ReadNullableInt(reader, "weight"),
+                    JerseyNumber = ReadNullableInt(reader, "jersey_number"),
+                    Captain = ReadNullableBool(reader, "captain"),
+                    PositionId = ReadNullableLong(reader, "position_id"),
+                    PositionCode = ReadNullableString(reader, "position_code"),
+                });
+            }
+            return items;
+        }
+
         public async Task<(IReadOnlyList<BookmakerDto> Items, int Total)> GetBookmakersAsync(
             bool? active, int page, int perPage, CancellationToken ct = default)
         {
@@ -427,6 +562,15 @@ namespace PreOddsApi.WebApi.V3.Data
         {
             var i = r.GetOrdinal(column);
             return r.IsDBNull(i) ? null : r.GetDateTime(i);
+        }
+
+        private static DateTime? ReadNullableDate(NpgsqlDataReader r, string column)
+            => ReadNullableDateOnly(r, column);
+
+        private static decimal? ReadNullableDecimal(NpgsqlDataReader r, string column)
+        {
+            var i = r.GetOrdinal(column);
+            return r.IsDBNull(i) ? null : r.GetDecimal(i);
         }
 
         private sealed class FilterBuilder
