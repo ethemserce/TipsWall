@@ -33,6 +33,12 @@ namespace SportMonks.Football.FixtureWorker.Services
             public const string PrematchOdds = "worker.football.prematch-odds";
             public const string InplayOdds = "worker.football.inplay-odds";
             public const string Analytics = "worker.football.analytics";
+            // OddOutcomeFinalize: stamps prematch_odds_current.winning for
+            // fixtures that recently transitioned to a final state. Runs at
+            // a tighter interval than the hourly analytics tier so the
+            // historical odd grading lands within minutes of FT, while the
+            // live SELECT still shows running winning via odds.evaluate_outcome.
+            public const string OddOutcomeFinalize = "worker.football.odd-outcome-finalize";
             public const string AccountPurge = "worker.football.account-purge";
             public const string ExpectedXg = "worker.football.expected-xg";
         }
@@ -495,6 +501,37 @@ namespace SportMonks.Football.FixtureWorker.Services
             }
 
             _scheduler.RecordRun(ScheduleKey.FixtureLive);
+
+            // Piggyback the outcome finalizer on the live tier so the moment
+            // a fixture flips to FT/AET/PEN the next live tick stamps its
+            // prematch_odds_current.winning rows. The finalizer has its own
+            // schedule key + interval so it doesn't fire on every 30-second
+            // live pulse — default cadence is 5 minutes, fast enough to
+            // close the gap without burning Postgres CPU.
+            await MaybeRunOddOutcomeFinalizeAsync(cancellationToken);
+        }
+
+        private async Task MaybeRunOddOutcomeFinalizeAsync(CancellationToken cancellationToken)
+        {
+            if (!GetBoolean("OddOutcomeFinalize:Enabled", true))
+                return;
+
+            var interval = GetInteger("SportMonksWorkerSettings:OddOutcomeFinalizeIntervalSeconds", 300);
+            if (!_scheduler.ShouldRun(ScheduleKey.OddOutcomeFinalize, interval))
+                return;
+
+            var lookback = GetInteger("OddOutcomeFinalize:LookbackHours", 36);
+
+            try
+            {
+                await _analyticsEngine.RunOddOutcomeFinalizerAsync(lookback, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "OddOutcomeFinalize: stamping prematch winning failed; will retry next tick.");
+            }
+
+            _scheduler.RecordRun(ScheduleKey.OddOutcomeFinalize);
         }
 
         private async Task MaybeRunFixtureTodayAsync(CancellationToken cancellationToken)

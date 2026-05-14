@@ -70,9 +70,18 @@ namespace PreOddsApi.WebApi.V3.Controllers
             await _analytics.RunSeasonStatsAsync(ct);
             await _analytics.RunSeasonTeamStatsAsync(ct);
             await _analytics.RunSeasonPlayerStatsAsync(ct);
+            // Wide lookback so backfill picks up anything that ran the
+            // outcome-finalizer scheduler tier missed (e.g. worker outage).
+            var finalized = await _analytics.RunOddOutcomeFinalizerAsync(
+                lookbackHours: 24 * 30, cancellationToken: ct);
             var rows = await _analytics.RunOddAnalysisSnapshotsAsync(ct);
 
-            return OkResponse(new { rebuilt_at = DateTimeOffset.UtcNow, snapshot_rows = rows });
+            return OkResponse(new
+            {
+                rebuilt_at = DateTimeOffset.UtcNow,
+                snapshot_rows = rows,
+                outcomes_finalized = finalized
+            });
         }
     }
 }

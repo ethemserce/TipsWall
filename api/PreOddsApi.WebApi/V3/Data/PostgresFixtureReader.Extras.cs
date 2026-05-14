@@ -30,17 +30,27 @@ namespace PreOddsApi.WebApi.V3.Data
             // applies on the prematch_odds_current side and JOIN attaches the
             // shared per-outcome stat.
             //
-            // When `marketIds` is empty we fall back to "every market that
-            // has_winning_calculations" — same filter the analytics pipeline
-            // uses, so we never return rows we have no signal for.
+            // When `marketIds` is empty we fall back to every market where
+            // `available_in_standard AND active` — the broader display filter
+            // the product now expects. The analytics snapshot only carries
+            // signal for markets it has historically tracked; rows without
+            // a matching snapshot still render (they just show no HIT/ROI).
             var marketFilter = marketIds.Count > 0
                 ? "and poc.market_id    = any(@market_ids)"
-                : "and coalesce(m.has_winning_calculations, false) = true";
+                : "and m.available_in_standard = true and m.active = true";
 
             // İKO sits on a per-(market, total-line, handicap) inverse-sum
             // so Over/Under 2.5 doesn't mix with Over/Under 3.5. The window
             // function runs over the same partition that defines a "betting
             // line" so each outcome gets its own no-vig probability.
+            //
+            // `match_state` provides the FT/HT scores + team names that the
+            // odds.evaluate_outcome plpgsql function needs to grade outcomes
+            // for score-based markets (1X2, O/U, BTTS, AH, CS, ...). The
+            // coalesced `winning` column prefers the SportMonks-stamped value
+            // (only set for has_winning_calculations=true markets) and falls
+            // back to the live computed value so the UI lights up new markets
+            // as soon as the score crosses the relevant threshold.
             var sql = $"""
                 with poc_with_iko as (
                     select poc.*,
@@ -60,6 +70,19 @@ namespace PreOddsApi.WebApi.V3.Data
                     where poc.fixture_id   = @fixture_id
                       and poc.bookmaker_id = @bookmaker_id
                       and poc.value::numeric > 0
+                ),
+                match_state as (
+                    select
+                        max(case when s.description='CURRENT'  and s.participant_location='home' then s.goals end)::int as ft_h,
+                        max(case when s.description='CURRENT'  and s.participant_location='away' then s.goals end)::int as ft_a,
+                        max(case when s.description='1ST_HALF' and s.participant_location='home' then s.goals end)::int as ht_h,
+                        max(case when s.description='1ST_HALF' and s.participant_location='away' then s.goals end)::int as ht_a,
+                        max(case when fp.location='home' then t.name end) as home_name,
+                        max(case when fp.location='away' then t.name end) as away_name
+                    from football.fixture_scores s
+                    full outer join football.fixture_participants fp on fp.fixture_id = s.fixture_id
+                    left join football.teams t on t.id = fp.team_id
+                    where coalesce(s.fixture_id, fp.fixture_id) = @fixture_id
                 )
                 select m.id as market_id,
                        m.name as market_name,
@@ -68,7 +91,22 @@ namespace PreOddsApi.WebApi.V3.Data
                        poc.handicap,
                        poc.participants,
                        poc.sort_order,
-                       poc.winning,
+                       -- Prefer SportMonks's stamped value for markets where
+                       -- it actually computes one (has_winning_calculations).
+                       -- For the rest the field ships with a stale default,
+                       -- so we override with the score-derived value when
+                       -- the evaluator returns a non-null answer.
+                       case
+                           when coalesce(m.has_winning_calculations, false) = true then poc.winning
+                           else coalesce(
+                               odds.evaluate_outcome(
+                                   m.developer_name, poc.label, poc.total, poc.handicap,
+                                   ms.ft_h, ms.ft_a, ms.ht_h, ms.ht_a,
+                                   ms.home_name, ms.away_name
+                               ),
+                               poc.winning
+                           )
+                       end as winning,
                        poc.value::numeric as odd_value,
                        poc.iko,
                        fs.win_count,
@@ -78,6 +116,7 @@ namespace PreOddsApi.WebApi.V3.Data
                        fs.earning_percent
                 from poc_with_iko poc
                 left join odds.markets m on m.id = poc.market_id
+                cross join match_state ms
                 left join analytics.odd_analysis_snapshots fs
                     on fs.bookmaker_id  = poc.bookmaker_id
                    and fs.market_id     = poc.market_id

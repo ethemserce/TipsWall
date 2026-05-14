@@ -66,8 +66,10 @@ namespace PreOddsApi.WebApi.V3.Controllers
                 return BadRequestResponse("bookmaker_id is required.");
 
             // When market_ids isn't provided, the reader falls back to every
-            // market with has_winning_calculations = true (matches the
-            // analytics pipeline's filter).
+            // market where available_in_standard AND active are both true —
+            // the broad display filter the product expects. Per-outcome
+            // winning is coalesced over SportMonks's own value and the
+            // score-based odds.evaluate_outcome function.
             var ids = ParseMarketIds(marketIds);
 
             var window = string.IsNullOrWhiteSpace(windowCode) ? "all" : windowCode.Trim();

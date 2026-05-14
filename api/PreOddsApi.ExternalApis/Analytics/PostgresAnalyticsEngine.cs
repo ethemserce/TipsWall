@@ -344,6 +344,81 @@ namespace PreOddsApi.ExternalApis.Analytics
             return Task.FromResult(0);
         }
 
+        public async Task<int> RunOddOutcomeFinalizerAsync(
+            int lookbackHours = 36,
+            CancellationToken cancellationToken = default)
+        {
+            // Grade outcomes for fixtures that transitioned to a final state
+            // recently. The UPDATE only touches rows where SportMonks doesn't
+            // compute the winning flag itself — for those markets the field
+            // ships with a default `false` even when the outcome actually won,
+            // so we overwrite with the score-derived value. Markets with
+            // has_winning_calculations=true are trusted as-is.
+            //
+            // Restricted by `f.updated_at` so older fixtures (already graded
+            // on a previous run) don't get rescanned. odds.evaluate_outcome
+            // handles the per-market logic; the WHERE-clause null check on
+            // its return makes the UPDATE idempotent + safe — unsupported
+            // markets keep whatever SportMonks shipped.
+            const string sql = """
+                with target_fixtures as (
+                    select f.id
+                    from football.fixtures f
+                    where f.state_id in (5, 7, 8)
+                      and f.updated_at > now() - make_interval(hours => @lookback_hours)
+                ),
+                score_state as (
+                    select
+                        s.fixture_id,
+                        max(case when s.description='CURRENT'  and s.participant_location='home' then s.goals end)::int as ft_h,
+                        max(case when s.description='CURRENT'  and s.participant_location='away' then s.goals end)::int as ft_a,
+                        max(case when s.description='1ST_HALF' and s.participant_location='home' then s.goals end)::int as ht_h,
+                        max(case when s.description='1ST_HALF' and s.participant_location='away' then s.goals end)::int as ht_a
+                    from football.fixture_scores s
+                    where s.fixture_id in (select id from target_fixtures)
+                    group by s.fixture_id
+                ),
+                team_state as (
+                    select
+                        fp.fixture_id,
+                        max(case when fp.location='home' then t.name end) as home_name,
+                        max(case when fp.location='away' then t.name end) as away_name
+                    from football.fixture_participants fp
+                    join football.teams t on t.id = fp.team_id
+                    where fp.fixture_id in (select id from target_fixtures)
+                    group by fp.fixture_id
+                )
+                update odds.prematch_odds_current poc
+                set winning = odds.evaluate_outcome(
+                    m.developer_name, poc.label, poc.total, poc.handicap,
+                    ss.ft_h, ss.ft_a, ss.ht_h, ss.ht_a,
+                    ts.home_name, ts.away_name)
+                from odds.markets m, score_state ss, team_state ts
+                where m.id = poc.market_id
+                  and ss.fixture_id = poc.fixture_id
+                  and ts.fixture_id = poc.fixture_id
+                  and coalesce(m.has_winning_calculations, false) = false
+                  and odds.evaluate_outcome(
+                        m.developer_name, poc.label, poc.total, poc.handicap,
+                        ss.ft_h, ss.ft_a, ss.ht_h, ss.ht_a,
+                        ts.home_name, ts.away_name) is not null
+                  and poc.winning is distinct from odds.evaluate_outcome(
+                        m.developer_name, poc.label, poc.total, poc.handicap,
+                        ss.ft_h, ss.ft_a, ss.ht_h, ss.ht_a,
+                        ts.home_name, ts.away_name);
+                """;
+
+            await using var connection = await OpenAsync(cancellationToken);
+            await using var command = new NpgsqlCommand(sql, connection);
+            command.Parameters.Add(new NpgsqlParameter("lookback_hours", lookbackHours));
+            var rows = await command.ExecuteNonQueryAsync(cancellationToken);
+
+            _logger.LogInformation(
+                "Odd outcome finalizer stamped {Rows} prematch_odds_current rows (lookback {Hours}h).",
+                rows, lookbackHours);
+            return rows;
+        }
+
         private async Task<NpgsqlConnection> OpenAsync(CancellationToken cancellationToken)
         {
             if (string.IsNullOrWhiteSpace(_connectionString))
