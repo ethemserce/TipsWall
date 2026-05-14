@@ -88,10 +88,14 @@ jobs:
       - name: SSH deploy
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          port: ${{ secrets.DEPLOY_SSH_PORT || 22 }}
+          # Falls back to the legacy HETZNER_* secret names (deploy.yml
+          # was renamed in 829f0ca to vendor-neutral DEPLOY_*, but the
+          # repo secrets weren't re-created — every push since 2026-05-13
+          # failed at the SSH handshake until this fallback shipped).
+          host: ${{ secrets.DEPLOY_HOST || secrets.HETZNER_HOST }}
+          username: ${{ secrets.DEPLOY_USER || secrets.HETZNER_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY || secrets.HETZNER_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_SSH_PORT || secrets.HETZNER_SSH_PORT || 22 }}
           script_stop: true
           # We tell the VPS exactly which SHA to deploy. The compose
           # file falls back to `latest` if IMAGE_TAG is unset, but
