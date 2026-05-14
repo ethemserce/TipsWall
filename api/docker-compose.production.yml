@@ -203,10 +203,17 @@ services:
       - "443:443/udp"  # HTTP/3
     volumes:
       - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./deploy/legal:/srv/legal:ro
       - caddy-data:/data
       - caddy-config:/config
     environment:
       DOMAIN: ${DOMAIN:?required}
+      # Marketing / legal host(s). Set to "tipswall.com www.tipswall.com"
+      # once DNS is pointing at this VPS so Caddy can provision certs and
+      # serve the Play-Store-referenced /privacy and /terms URLs. Leave
+      # unset (or "dummy.invalid") to keep the legal pages only on the
+      # API host while DNS still points elsewhere.
+      LEGAL_DOMAINS: ${LEGAL_DOMAINS:-dummy.invalid}
     deploy:
       resources:
         limits:

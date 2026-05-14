@@ -1,13 +1,30 @@
-# Single-site reverse proxy with auto Let's Encrypt.
+# Reverse proxy + static-legal hosting with auto Let's Encrypt.
 #
-# DOMAIN is substituted from the .env file at container start. The
-# webapi service listens on :8080 inside the docker network.
+# {$DOMAIN}  → API (api.tipswall.com), reverse-proxies to webapi:8080
+# {$LEGAL_DOMAINS} → static /privacy and /terms for the Play Store
+#   (typically "tipswall.com www.tipswall.com" so both hostnames serve
+#   the same legal pages; defaults preserve the previous single-site
+#   behaviour if not set).
 #
 # Caddy also exposes /metrics for Prometheus on the internal network
 # (not published) — wire a scraper later if you add Grafana.
 
 {$DOMAIN} {
     encode zstd gzip
+
+    # Privacy & Terms also served from the API host so the Play Store
+    # listing can point at either api.tipswall.com OR tipswall.com.
+    # Order matters — `handle_path` strips the matched prefix so the
+    # file_server sees the bare file path.
+    @legal path /privacy /privacy.html /terms /terms.html
+    handle @legal {
+        root * /srv/legal
+        try_files /privacy.html /terms.html
+        rewrite /privacy /privacy.html
+        rewrite /terms   /terms.html
+        file_server
+        header Cache-Control "public, max-age=600"
+    }
 
     # Forward the real client IP through. The webapi reads
     # X-Forwarded-For via the standard ASP.NET Core integration.
@@ -24,6 +41,44 @@
         -Server
         # HSTS only after first deploy to avoid pinning a misconfigured
         # cert. Bump max-age once the cert pipeline has settled.
+        Strict-Transport-Security "max-age=86400; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+
+    log {
+        output stdout
+        format console
+    }
+}
+
+# Marketing / legal host (tipswall.com + www.tipswall.com). Apex and
+# www both serve /privacy and /terms as static HTML. Set LEGAL_DOMAINS
+# in .env (e.g. "tipswall.com www.tipswall.com") to enable. The
+# `http://localhost:9999` fallback is a deliberately unreachable
+# loopback bind — Caddy won't try to provision a public cert and the
+# block doesn't take traffic until the env is set.
+{$LEGAL_DOMAINS:http://localhost:9999} {
+    encode zstd gzip
+
+    @legal path /privacy /privacy.html /terms /terms.html
+    handle @legal {
+        root * /srv/legal
+        rewrite /privacy /privacy.html
+        rewrite /terms   /terms.html
+        file_server
+        header Cache-Control "public, max-age=600"
+    }
+
+    # Anything else on the bare marketing host: 302 to the future
+    # marketing site (placeholder for now — flip when a real landing
+    # page lands).
+    handle {
+        respond "TipsWall is in beta. Legal: /privacy · /terms" 200
+    }
+
+    header {
+        -Server
         Strict-Transport-Security "max-age=86400; includeSubDomains"
         X-Content-Type-Options "nosniff"
         Referrer-Policy "strict-origin-when-cross-origin"
