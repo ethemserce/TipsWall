@@ -1,4 +1,4 @@
-# Re-triggered 2026-05-14 after rotating DEPLOY_SSH_KEY for the GoDaddy box.
+# Re-triggered 2026-05-14 after rotating DEPLOY_SSH_KEY + DEPLOY_USER + DEPLOY_HOST for the GoDaddy box.
 name: deploy
 
 on:
