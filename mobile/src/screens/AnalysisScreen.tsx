@@ -22,6 +22,7 @@ import {
   RISK_THRESHOLDS,
   type AnalysisFilterState,
 } from '@/src/components/AnalysisFiltersSheet';
+import { AnalysisQuickPicksSheet } from '@/src/components/AnalysisQuickPicksSheet';
 import { AppBrand } from '@/src/components/AppBrand';
 import { DateBar } from '@/src/components/DateBar';
 import { LeagueHeader } from '@/src/components/LeagueHeader';
@@ -71,6 +72,7 @@ export function AnalysisScreen() {
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [filters, setFilters] = useState<AnalysisFilterState>(DEFAULT_FILTERS);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [quickPicksOpen, setQuickPicksOpen] = useState(false);
 
   // SignalR push subscriber. Idempotent if Home is already mounted —
   // the underlying connection is a singleton, handlers stack. With it
@@ -304,6 +306,26 @@ export function AnalysisScreen() {
   return (
     <SafeAreaView style={[styles.flex, { backgroundColor: c.bg }]} edges={['top']}>
       <View style={styles.headerRow}>
+        <Pressable
+          onPress={() => setQuickPicksOpen(true)}
+          hitSlop={12}
+          accessibilityRole="button"
+          accessibilityLabel={t('analysis.quickPicks.openA11y', {
+            defaultValue: "Günün önerilerini aç",
+          })}
+          style={({ pressed }) => [
+            styles.headerSearchBtn,
+            {
+              backgroundColor:
+                pressed || quickPicksOpen ? c.brandSoft : 'transparent',
+            },
+          ]}>
+          <MaterialCommunityIcons
+            name="flash"
+            size={22}
+            color={quickPicksOpen ? c.brand : c.textMuted}
+          />
+        </Pressable>
         <AppBrand />
         <Pressable
           onPress={handleToggleSearch}
@@ -596,6 +618,13 @@ export function AnalysisScreen() {
         filters={filters}
         onApply={setFilters}
         onClose={() => setFiltersOpen(false)}
+      />
+
+      <AnalysisQuickPicksSheet
+        visible={quickPicksOpen}
+        onClose={() => setQuickPicksOpen(false)}
+        selectedDate={selectedDate}
+        bookmakerId={BOOKMAKER_ID}
       />
     </SafeAreaView>
   );
