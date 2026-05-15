@@ -153,6 +153,18 @@ services:
       # (like the OOM / 429 cascades we hit on 2026-05-13) ship to
       # Sentry once the user provisions a project.
       SENTRY_DSN: ${SENTRY_DSN_BACKEND:-}
+      # Nightly snapshot failure alert: GoDaddy Professional Email SMTP.
+      # When MAIL_PASSWORD is unset the email service no-ops with a
+      # warning so unconfigured environments don't crash. The recipient
+      # falls back to ethemserce@gmail.com when NIGHTLY_SNAPSHOT_ADMIN_EMAIL
+      # is empty.
+      MAIL_HOST: ${MAIL_HOST:-smtpout.secureserver.net}
+      MAIL_PORT: ${MAIL_PORT:-465}
+      MAIL_USERNAME: ${MAIL_USERNAME:-tipswall@tipswall.com}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-tipswall@tipswall.com}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-TipsWall Ops}
+      NIGHTLY_SNAPSHOT_ADMIN_EMAIL: ${NIGHTLY_SNAPSHOT_ADMIN_EMAIL:-ethemserce@gmail.com}
       # xG ingestion is currently unbounded (~125k rows, paged in
       # /expected/fixtures). It was burning the SportMonks 3000/hr quota
       # and starving the rest of the pulse + nightly chain. Keep it off

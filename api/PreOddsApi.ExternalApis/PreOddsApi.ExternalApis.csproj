@@ -11,6 +11,10 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.2" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.1" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.2" />
+    <!-- MailKit: standard .NET SMTP client. Used by the nightly snapshot
+         worker to email an admin when the rebuild fails after retries.
+         Apache-2.0 licensed, actively maintained, no external service. -->
+    <PackageReference Include="MailKit" Version="4.8.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="Npgsql" Version="8.0.4" />
     <PackageReference Include="RestSharp" Version="112.1.0" />

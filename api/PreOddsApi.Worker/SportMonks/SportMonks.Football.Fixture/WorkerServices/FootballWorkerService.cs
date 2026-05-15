@@ -174,6 +174,14 @@ namespace SportMonks.Football.FixtureWorker.Services
         private readonly IAnalyticsEngine _analyticsEngine;
         private readonly IFixtureLiveBridge _liveBridge;
         private readonly PreOddsApi.ExternalApis.Accounts.IAccountPurgeService _accountPurge;
+        private readonly PreOddsApi.ExternalApis.Notifications.IEmailService _emailService;
+        // Per-day retry bookkeeping for the nightly snapshot. Once an
+        // attempt fails the worker waits NightlySnapshot:RetryDelayMinutes
+        // before trying again; if the retry also fails an admin email
+        // goes out and the job is marked done-for-today.
+        private DateTimeOffset? _nightlySnapshotNextRetryAt;
+        private int _nightlySnapshotAttemptCount;
+        private DateOnly _nightlySnapshotAttemptDate;
 
         private List<League> _cachedLeagues = [];
 
@@ -202,7 +210,8 @@ namespace SportMonks.Football.FixtureWorker.Services
             ISportMonksMatchFactsWriter matchFactsWriter,
             IAnalyticsEngine analyticsEngine,
             IFixtureLiveBridge liveBridge,
-            PreOddsApi.ExternalApis.Accounts.IAccountPurgeService accountPurge)
+            PreOddsApi.ExternalApis.Accounts.IAccountPurgeService accountPurge,
+            PreOddsApi.ExternalApis.Notifications.IEmailService emailService)
         {
             _logger = logger;
             _configuration = configuration;
@@ -229,6 +238,8 @@ namespace SportMonks.Football.FixtureWorker.Services
             _analyticsEngine = analyticsEngine;
             _liveBridge = liveBridge;
             _accountPurge = accountPurge;
+            _emailService = emailService;
+            _nightlySnapshotAttemptDate = DateOnly.MinValue;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -530,41 +541,103 @@ namespace SportMonks.Football.FixtureWorker.Services
             // (default 03:00). The 23h sentinel in ShouldRun keeps the
             // job from re-running within the same day even on worker
             // restarts; the hour gate stops it from running at midnight
-            // UTC.
+            // UTC. Retry policy: one initial try at the hour-gate, one
+            // retry after RetryDelayMinutes (default 5), then admin
+            // email if both fail.
             var targetHourUtc = GetInteger("NightlySnapshot:TargetHourUtc", 3);
             if (DateTime.UtcNow.Hour < targetHourUtc) return;
             if (!_scheduler.ShouldRun(ScheduleKey.NightlySnapshot, 23 * 60 * 60))
                 return;
 
+            // Reset attempt counter for a new day.
+            var todayUtc = DateOnly.FromDateTime(DateTime.UtcNow);
+            if (_nightlySnapshotAttemptDate != todayUtc)
+            {
+                _nightlySnapshotAttemptDate = todayUtc;
+                _nightlySnapshotAttemptCount = 0;
+                _nightlySnapshotNextRetryAt = null;
+            }
+
+            // If we're sitting in a backoff window after a previous fail
+            // wait until the retry time arrives.
+            if (_nightlySnapshotNextRetryAt.HasValue
+                && DateTimeOffset.UtcNow < _nightlySnapshotNextRetryAt.Value)
+                return;
+
+            _nightlySnapshotAttemptCount++;
+            var attempt = _nightlySnapshotAttemptCount;
             _logger.LogInformation(
-                "NightlySnapshot: starting full rebuild at {NowUtc} (target hour {Target}).",
-                DateTime.UtcNow, targetHourUtc);
+                "NightlySnapshot attempt {Attempt} starting at {NowUtc}",
+                attempt, DateTime.UtcNow);
 
             try
             {
                 await _analyticsEngine.RunSeasonStatsAsync(cancellationToken);
                 await _analyticsEngine.RunSeasonTeamStatsAsync(cancellationToken);
                 await _analyticsEngine.RunSeasonPlayerStatsAsync(cancellationToken);
-                // Wide lookback so any stale `winning=false` values that
-                // SportMonks shipped for non-graded markets get corrected.
                 var finalized = await _analyticsEngine.RunOddOutcomeFinalizerAsync(
                     24 * 365, cancellationToken);
                 var snapshotRows = await _analyticsEngine.RunOddAnalysisSnapshotsAsync(
                     cancellationToken);
 
                 _logger.LogInformation(
-                    "NightlySnapshot success: outcomes_finalized={Finalized} snapshot_rows={Rows}",
-                    finalized, snapshotRows);
+                    "NightlySnapshot success on attempt {Attempt}: outcomes_finalized={Finalized} snapshot_rows={Rows}",
+                    attempt, finalized, snapshotRows);
                 _scheduler.RecordRun(ScheduleKey.NightlySnapshot);
+                _nightlySnapshotNextRetryAt = null;
             }
             catch (Exception ex)
             {
-                // _logger.LogError ships to Sentry via the Serilog sink, so
-                // a failed run pages whoever's on call. Don't RecordRun on
-                // failure — the next live tick (~30s) retries until success
-                // or the hour rolls over.
                 _logger.LogError(ex,
-                    "NightlySnapshot failed; will retry on next live tick.");
+                    "NightlySnapshot attempt {Attempt} failed.", attempt);
+
+                var maxRetries = GetInteger("NightlySnapshot:MaxRetries", 1);
+                if (attempt <= maxRetries)
+                {
+                    var delayMinutes = GetInteger("NightlySnapshot:RetryDelayMinutes", 5);
+                    _nightlySnapshotNextRetryAt = DateTimeOffset.UtcNow.AddMinutes(delayMinutes);
+                    _logger.LogWarning(
+                        "NightlySnapshot scheduling retry in {Delay} min (next at {Next}).",
+                        delayMinutes, _nightlySnapshotNextRetryAt);
+                }
+                else
+                {
+                    // Out of retries — mark the day done so we don't burn
+                    // CPU all day, and email an admin so they can poke at
+                    // it manually.
+                    _scheduler.RecordRun(ScheduleKey.NightlySnapshot);
+                    _nightlySnapshotNextRetryAt = null;
+                    await TrySendNightlySnapshotFailureEmailAsync(ex, attempt, cancellationToken);
+                }
+            }
+        }
+
+        private async Task TrySendNightlySnapshotFailureEmailAsync(
+            Exception ex, int attempts, CancellationToken ct)
+        {
+            var adminEmail = Environment.GetEnvironmentVariable("NIGHTLY_SNAPSHOT_ADMIN_EMAIL")
+                ?? _configuration["NightlySnapshot:AdminEmail"]
+                ?? "ethemserce@gmail.com";
+
+            var subject = $"[TipsWall] Nightly snapshot failed after {attempts} attempt(s) — {DateTime.UtcNow:yyyy-MM-dd}";
+            var body =
+                $"The nightly analytics snapshot rebuild failed twice on {DateTime.UtcNow:yyyy-MM-dd HH:mm} UTC.\n\n" +
+                $"Final exception:\n{ex.GetType().FullName}: {ex.Message}\n\n" +
+                $"Stack trace:\n{ex.StackTrace}\n\n" +
+                "The job won't retry again today. Investigate, then re-run from the\n" +
+                "admin endpoint:\n" +
+                "  POST /api/v3/admin/analytics/snapshot/rebuild  X-Internal-Api-Key: ...\n";
+
+            try
+            {
+                await _emailService.SendAsync(adminEmail, subject, body, ct);
+                _logger.LogInformation(
+                    "NightlySnapshot failure email sent to {Admin}.", adminEmail);
+            }
+            catch (Exception emailEx)
+            {
+                _logger.LogError(emailEx,
+                    "Failed to send NightlySnapshot failure email to {Admin}.", adminEmail);
             }
         }
 

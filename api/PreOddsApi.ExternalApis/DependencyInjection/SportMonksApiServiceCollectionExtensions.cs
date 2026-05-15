@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using PreOddsApi.ExternalApis.Analytics;
+using PreOddsApi.ExternalApis.Notifications;
 using PreOddsApi.ExternalApis.SportMonks;
 using PreOddsApi.ExternalApis.SportMonks.Sync;
 using PreOddsApi.ExternalApis.SportMonks.Sync.Writers;
@@ -44,6 +45,13 @@ namespace PreOddsApi.ExternalApis.DependencyInjection
             services.AddSingleton<ISportMonksFixtureExpectedGoalsWriter, SportMonksFixtureExpectedGoalsWriter>();
             services.AddSingleton<ISportMonksMatchFactsWriter, SportMonksMatchFactsWriter>();
             services.AddSingleton<IAnalyticsEngine, PostgresAnalyticsEngine>();
+            // Plain-text SMTP email service for operational alerts (the
+            // nightly-snapshot worker uses it to page an admin when the
+            // rebuild fails after retries). Reads credentials from env
+            // (MAIL_HOST/PORT/USERNAME/PASSWORD/FROM); when unset the
+            // service no-ops with a warning so unconfigured environments
+            // don't crash.
+            services.AddSingleton<IEmailService, SmtpEmailService>();
             services.AddSingleton<
                 PreOddsApi.ExternalApis.Accounts.IAccountPurgeService,
                 PreOddsApi.ExternalApis.Accounts.PostgresAccountPurgeService>();
