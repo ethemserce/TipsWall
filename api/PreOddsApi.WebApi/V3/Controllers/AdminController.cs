@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PreOddsApi.ExternalApis.Analytics;
 using PreOddsApi.WebApi.Helpers;
@@ -55,12 +56,19 @@ namespace PreOddsApi.WebApi.V3.Controllers
         /// leaves: with interval-based scheduling the snapshot drifts
         /// later every day and disappears for hours after midnight.
         /// </summary>
+        // [AllowAnonymous] because the api-key header is the only auth
+        // factor we want for this endpoint — without it the controller
+        // base [Authorize] kicks in and rejects with 401 Bearer challenge
+        // before the per-action key check runs.
+        [AllowAnonymous]
         [HttpPost("analytics/snapshot/rebuild")]
         public async Task<IActionResult> RebuildSnapshotAsync(
             [FromHeader(Name = "X-Internal-Api-Key")] string? apiKey,
             CancellationToken ct)
         {
-            if (!string.Equals(apiKey, ApiKeyHandler.GetApiKey(), StringComparison.Ordinal))
+            var expected = ApiKeyHandler.GetApiKey();
+            if (string.IsNullOrWhiteSpace(apiKey) || string.IsNullOrWhiteSpace(expected) ||
+                !string.Equals(apiKey, expected, StringComparison.Ordinal))
                 return Unauthorized(new { success = false, error = "bad-api-key" });
 
             // Order matches the worker's nightly chain: season stats →

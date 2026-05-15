@@ -1,4 +1,4 @@
-# Re-triggered 2026-05-14 after chowning /opt/tipswall to gotips.
+# Re-trigger 2026-05-15: previous run hit a GHA cache 502 mid-build.
 name: deploy
 
 on:
