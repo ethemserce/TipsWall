@@ -187,6 +187,19 @@ services:
       # cap the window at 5/1 here because the single-shot multi-day
       # call was OOM'ing. ExecuteFixtureWindow now loops per-day, so the
       # backlog can run at the appsettings default (14 fwd / 2 back).
+      #
+      # Season backfill — one-shot historical sync triggered manually
+      # via env. When Enabled=true and a valid From/To window is set,
+      # the worker walks the past day-by-day on the live tick (2 days
+      # per tick by default), checkpointing each day so a restart
+      # resumes. After the window completes, the outcome finalizer
+      # + odd-analysis snapshot rebuild fire automatically.
+      # Flip back to false (or wipe sync.job_runs rows for the window)
+      # to disable / re-run.
+      SeasonBackfill__Enabled: ${SEASON_BACKFILL_ENABLED:-false}
+      SeasonBackfill__FromDate: ${SEASON_BACKFILL_FROM:-}
+      SeasonBackfill__ToDate: ${SEASON_BACKFILL_TO:-}
+      SeasonBackfill__DaysPerTick: ${SEASON_BACKFILL_DAYS_PER_TICK:-2}
     deploy:
       resources:
         limits:

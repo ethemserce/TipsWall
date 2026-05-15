@@ -537,6 +537,12 @@ namespace SportMonks.Football.FixtureWorker.Services
             // worker restarts pick it up within 30 seconds of the target
             // hour. The check itself short-circuits 23h59m of the day.
             await MaybeRunNightlySnapshotAsync(cancellationToken);
+            // Season-backfill walks past dates day-by-day to populate
+            // historical fixtures + odds when a subscription upgrade
+            // opens up old windows. Only runs when explicitly enabled
+            // via env; processes a couple of days per live tick so it
+            // doesn't starve the rest of the live pipeline.
+            await MaybeRunSeasonBackfillAsync(cancellationToken);
         }
 
         private async Task MaybeRunNightlySnapshotAsync(CancellationToken cancellationToken)
@@ -629,6 +635,118 @@ namespace SportMonks.Football.FixtureWorker.Services
                     _nightlySnapshotNextRetryAt = null;
                     await TrySendNightlySnapshotFailureEmailAsync(ex, attempt, cancellationToken);
                 }
+            }
+        }
+
+        /// <summary>
+        /// One-shot historical backfill driven by the
+        /// SeasonBackfill:Enabled/FromDate/ToDate config. Walks the date
+        /// range day-by-day, reusing the same fixtures/between/X/X path
+        /// as the nightly backlog tier (full includes, idempotent
+        /// upserts). Per-day checkpoints in sync.job_runs so a worker
+        /// restart resumes from the last unfinished day. Processes only
+        /// a couple of days per live tick so the live sync, finalizer
+        /// and nightly snapshot keep running while the backfill drains
+        /// in the background.
+        ///
+        /// After the window completes, fires the outcome finalizer +
+        /// odd-analysis snapshot rebuild so HIT/ROI come alive
+        /// immediately rather than waiting for the next 03:00 UTC tick.
+        /// </summary>
+        private async Task MaybeRunSeasonBackfillAsync(CancellationToken cancellationToken)
+        {
+            if (!GetBoolean("SeasonBackfill:Enabled", false))
+                return;
+
+            var fromDateStr = _configuration["SeasonBackfill:FromDate"];
+            var toDateStr   = _configuration["SeasonBackfill:ToDate"];
+            if (!DateOnly.TryParse(fromDateStr, out var fromDate) ||
+                !DateOnly.TryParse(toDateStr,   out var toDate)   ||
+                fromDate > toDate)
+            {
+                _logger.LogWarning(
+                    "SeasonBackfill: invalid date window From={From} To={To}; skipping.",
+                    fromDateStr, toDateStr);
+                return;
+            }
+
+            // Embed the window in the scheduler key so changing
+            // From/To re-runs cleanly without manually clearing the
+            // sync.job_runs row.
+            var windowKey = $"season.backfill:{fromDate:yyyyMMdd}:{toDate:yyyyMMdd}";
+            if (_scheduler.GetLastRunUtc(windowKey).HasValue)
+                return;
+
+            var daysPerTick = Math.Max(1, GetInteger("SeasonBackfill:DaysPerTick", 2));
+            var timezone    = NullIfWhiteSpace(_configuration["SeasonBackfill:Timezone"]);
+            var endpointBase = GetFixtureByDateRangeEndpoint().TrimEnd('/');
+            var includes     = BacklogLightIncludes;
+
+            var processed = 0;
+            for (var date = fromDate; date <= toDate; date = date.AddDays(1))
+            {
+                if (processed >= daysPerTick) return;
+
+                var dayKey = $"{windowKey}:{date:yyyy-MM-dd}";
+                if (_scheduler.GetLastRunUtc(dayKey).HasValue) continue;
+
+                var dateStr = date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+                var endpoint = $"{endpointBase}/{dateStr}/{dateStr}";
+                var request = SportMonksApiRequest.Create(endpoint)
+                    .WithInclude(includes)
+                    .WithQueryParameter("per_page", "10");
+                if (timezone != null) request.WithTimezone(timezone);
+
+                try
+                {
+                    var dayFixtures = (await _syncRunner.GetAllAsync<Fixture>(
+                        SportMonksSyncJobDefinition.Create(
+                            "sportmonks.football.fixtures.season-backfill",
+                            "football.fixture",
+                            "Season backfill: walk past dates day-by-day to populate history."),
+                        request,
+                        cursorKey: endpoint,
+                        cancellationToken: cancellationToken)).ToList();
+
+                    if (dayFixtures.Count > 0)
+                        await ProcessFixturesAsync(dayFixtures, "backlog", cancellationToken);
+
+                    _scheduler.RecordRun(dayKey);
+                    processed++;
+                    _logger.LogInformation(
+                        "SeasonBackfill day {Date} done ({Count} fixtures).",
+                        dateStr, dayFixtures.Count);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex,
+                        "SeasonBackfill day {Date} failed; retrying on the next tick.", dateStr);
+                    return;
+                }
+            }
+
+            // We only reach here when every day in the window has a
+            // RecordRun row (no `return` was hit early). Mark the
+            // window complete + kick off the finalizer + snapshot
+            // rebuild so analytics surfaces refresh in one go.
+            _scheduler.RecordRun(windowKey);
+            _logger.LogInformation(
+                "SeasonBackfill window {From} → {To} COMPLETE. Rebuilding analytics.",
+                fromDate, toDate);
+            try
+            {
+                var graded = await _analyticsEngine.RunOddOutcomeFinalizerAsync(
+                    24 * 365, cancellationToken);
+                var snapshotRows = await _analyticsEngine.RunOddAnalysisSnapshotsAsync(
+                    cancellationToken);
+                _logger.LogInformation(
+                    "SeasonBackfill post-process: graded={Graded} snapshot_rows={Rows}.",
+                    graded, snapshotRows);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "SeasonBackfill post-process failed; trigger the admin rebuild endpoint manually.");
             }
         }
 
