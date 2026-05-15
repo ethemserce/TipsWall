@@ -13,10 +13,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
-import { deleteAccount, logout } from '@/src/api/auth';
+import { deleteAccount, fetchMe, logout, requestEmailVerification } from '@/src/api/auth';
 import { AppBrand } from '@/src/components/AppBrand';
 import { analytics, consentStore } from '@/src/lib/analytics';
-import { useTier } from '@/src/lib/auth/authStore';
+import { useEmailVerified, useTier } from '@/src/lib/auth/authStore';
+import { refreshAccessToken } from '@/src/lib/auth/refreshLock';
 import { useMarketPreferences } from '@/src/hooks/useMarketPreferences';
 import {
   setLanguageMode,
@@ -45,6 +46,7 @@ export function SettingsScreen() {
   const { t } = useTranslation();
   const { themeMode, languageMode, oddsHidden } = useSettings();
   const tier = useTier();
+  const jwtEmailVerified = useEmailVerified();
   const marketPrefs = useMarketPreferences();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -52,6 +54,61 @@ export function SettingsScreen() {
   const [analyticsConsent, setAnalyticsConsent] = useState(consentStore.getState());
   useEffect(() => consentStore.subscribe(() => setAnalyticsConsent(consentStore.getState())), []);
   const analyticsOn = analyticsConsent === 'granted';
+
+  // Email verification banner state. JWT claim is the fast path (offline-
+  // capable, no extra round trip), but it lags up to 15 min behind the
+  // DB after the user clicks the verify link. fetchMe() hits the DB so
+  // a freshly verified account hides the banner immediately. We refresh
+  // the token after a confirmed flip so other gates that read the JWT
+  // see the new state too.
+  const [dbEmailVerified, setDbEmailVerified] = useState<boolean | null>(null);
+  const [verifySending, setVerifySending] = useState(false);
+  const [verifyStatus, setVerifyStatus] = useState<'idle' | 'sent' | 'error'>('idle');
+  useEffect(() => {
+    if (tier === 'guest') return;
+    let cancelled = false;
+    fetchMe()
+      .then((me) => {
+        if (!cancelled) setDbEmailVerified(me.email_verified);
+      })
+      .catch(() => {
+        // Network down — fall back to JWT claim.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [tier]);
+  const emailVerified =
+    dbEmailVerified != null ? dbEmailVerified : jwtEmailVerified;
+
+  const handleResendVerification = async () => {
+    setVerifySending(true);
+    setVerifyStatus('idle');
+    try {
+      await requestEmailVerification();
+      setVerifyStatus('sent');
+    } catch {
+      setVerifyStatus('error');
+    } finally {
+      setVerifySending(false);
+    }
+  };
+
+  const handleVerifiedRefresh = async () => {
+    setVerifySending(true);
+    try {
+      // Force token rotation so the new JWT carries email_verified=true.
+      // The DB check on /me already flipped — this propagates to gates
+      // that only see the JWT claim.
+      await refreshAccessToken();
+      const me = await fetchMe();
+      setDbEmailVerified(me.email_verified);
+    } catch {
+      // Stay on whatever state was last known.
+    } finally {
+      setVerifySending(false);
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -138,6 +195,83 @@ export function SettingsScreen() {
                     : t('settings.account.memberHint')}
                 </ThemedText>
               </View>
+              {!emailVerified ? (
+                <View
+                  style={[
+                    styles.verifyBanner,
+                    {
+                      backgroundColor: c.warningSoft ?? c.brandSoft,
+                      borderColor: c.warning ?? c.brand,
+                    },
+                  ]}>
+                  <View style={styles.verifyTextBlock}>
+                    <ThemedText
+                      style={[styles.verifyTitle, { color: c.text }]}>
+                      {t('settings.verifyEmail.title', {
+                        defaultValue: 'Email adresini onayla',
+                      })}
+                    </ThemedText>
+                    <ThemedText
+                      style={[styles.verifyHint, { color: c.textMuted }]}>
+                      {verifyStatus === 'sent'
+                        ? t('settings.verifyEmail.sentHint', {
+                            defaultValue:
+                              'Gelen kutuna bir doğrulama linki gönderdik. Linke tıkladıktan sonra "Onayladım"a bas.',
+                          })
+                        : verifyStatus === 'error'
+                          ? t('settings.verifyEmail.errorHint', {
+                              defaultValue: 'Mail gönderilemedi. Sonra tekrar dene.',
+                            })
+                          : t('settings.verifyEmail.hint', {
+                              defaultValue:
+                                'Hesap güvenliği için mailini onayla. Onaylamadan kupon kaydedemezsin.',
+                            })}
+                    </ThemedText>
+                  </View>
+                  <View style={styles.verifyActions}>
+                    <Pressable
+                      onPress={handleResendVerification}
+                      disabled={verifySending}
+                      style={({ pressed }) => [
+                        styles.verifyBtnPrimary,
+                        {
+                          backgroundColor: c.brand,
+                          opacity: pressed || verifySending ? 0.7 : 1,
+                        },
+                      ]}>
+                      <ThemedText
+                        style={[styles.verifyBtnText, { color: c.textInverse }]}>
+                        {verifyStatus === 'sent'
+                          ? t('settings.verifyEmail.resendBtn', {
+                              defaultValue: 'Tekrar gönder',
+                            })
+                          : t('settings.verifyEmail.sendBtn', {
+                              defaultValue: 'Mail gönder',
+                            })}
+                      </ThemedText>
+                    </Pressable>
+                    {verifyStatus === 'sent' ? (
+                      <Pressable
+                        onPress={handleVerifiedRefresh}
+                        disabled={verifySending}
+                        style={({ pressed }) => [
+                          styles.verifyBtnSecondary,
+                          {
+                            borderColor: c.brand,
+                            opacity: pressed || verifySending ? 0.7 : 1,
+                          },
+                        ]}>
+                        <ThemedText
+                          style={[styles.verifyBtnText, { color: c.brand }]}>
+                          {t('settings.verifyEmail.refreshBtn', {
+                            defaultValue: 'Onayladım',
+                          })}
+                        </ThemedText>
+                      </Pressable>
+                    ) : null}
+                  </View>
+                </View>
+              ) : null}
               <Pressable
                 onPress={handleLogout}
                 style={({ pressed }) => [
@@ -577,6 +711,47 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     letterSpacing: 0.4,
+  },
+  verifyBanner: {
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    gap: 10,
+  },
+  verifyTextBlock: {
+    gap: 4,
+  },
+  verifyTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  verifyHint: {
+    fontSize: 11,
+    lineHeight: 15,
+  },
+  verifyActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  verifyBtnPrimary: {
+    flex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  verifyBtnSecondary: {
+    flex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  verifyBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
   },
   modalBackdrop: {
     flex: 1,

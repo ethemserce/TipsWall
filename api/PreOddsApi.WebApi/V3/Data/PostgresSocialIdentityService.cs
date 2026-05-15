@@ -68,7 +68,8 @@ namespace PreOddsApi.WebApi.V3.Data
             //    premium one. Either way the caller gets the canonical
             //    shape.
             const string userSql = """
-                select id, username, email, display_name, role, tier, tier_expires_at
+                select id, username, email, display_name, role, tier, tier_expires_at,
+                       (email_verified_at is not null) as email_verified
                 from app.users
                 where id = @id;
                 """;
@@ -89,6 +90,7 @@ namespace PreOddsApi.WebApi.V3.Data
                         Role = reader.GetString(reader.GetOrdinal("role")),
                         Tier = reader.GetString(reader.GetOrdinal("tier")),
                         TierExpiresAt = ReadNullableDateTimeOffset(reader, "tier_expires_at"),
+                        EmailVerified = reader.GetBoolean(reader.GetOrdinal("email_verified"))
                     };
                 }
             }
@@ -126,10 +128,15 @@ namespace PreOddsApi.WebApi.V3.Data
             // The user row's email is best-effort — Apple often returns
             // a relay address that changes; Google returns the real one
             // verified=true. We never use email as the primary identifier
-            // here, only the (provider, subject) tuple.
+            // here, only the (provider, subject) tuple. Social accounts
+            // skip the email-verify step: both Apple and Google certify
+            // ownership before issuing an id_token, so we stamp the
+            // verified-at column up front rather than spamming them with
+            // a "click to verify" email they don't need.
             const string insertUser = """
-                insert into app.users (username, email, display_name, role, status, password_algorithm)
-                values (@username, @email, @display, 'user', 'active', 'social')
+                insert into app.users (username, email, display_name, role, status, password_algorithm,
+                                       email_verified_at)
+                values (@username, @email, @display, 'user', 'active', 'social', now())
                 returning id;
                 """;
 

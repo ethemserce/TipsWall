@@ -25,5 +25,14 @@ namespace PreOddsApi.WebApi.V3.Dtos
         /// When the current paid subscription expires. Null for free users.
         /// </summary>
         public DateTimeOffset? TierExpiresAt { get; init; }
+
+        /// <summary>
+        /// True when the user has clicked the email verification link.
+        /// Sensitive operations (kupon kaydet, fav market değiştir) can
+        /// soft-gate on this; mobile shows a banner until it flips.
+        /// Social-signin accounts (Apple/Google) start true since the
+        /// provider already verifies the email.
+        /// </summary>
+        public bool EmailVerified { get; init; }
     }
 }

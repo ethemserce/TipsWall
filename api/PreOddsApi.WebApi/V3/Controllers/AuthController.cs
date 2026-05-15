@@ -7,7 +7,9 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
+using PreOddsApi.ExternalApis.Notifications;
 using PreOddsApi.WebApi.V3.Auth;
 using PreOddsApi.WebApi.V3.Contracts;
 using PreOddsApi.WebApi.V3.Data;
@@ -31,6 +33,8 @@ namespace PreOddsApi.WebApi.V3.Controllers
         private readonly AuthOptions _authOptions;
         private readonly ISocialTokenVerifier _socialVerifier;
         private readonly ISocialIdentityService _socialIdentity;
+        private readonly IEmailService _emailService;
+        private readonly ILogger<AuthController> _logger;
 
         public AuthController(
             IUserIdentityService identity,
@@ -38,7 +42,9 @@ namespace PreOddsApi.WebApi.V3.Controllers
             IAccountTokenService accountTokens,
             AuthOptions authOptions,
             ISocialTokenVerifier socialVerifier,
-            ISocialIdentityService socialIdentity)
+            ISocialIdentityService socialIdentity,
+            IEmailService emailService,
+            ILogger<AuthController> logger)
         {
             _identity = identity;
             _refreshTokens = refreshTokens;
@@ -46,6 +52,8 @@ namespace PreOddsApi.WebApi.V3.Controllers
             _authOptions = authOptions;
             _socialVerifier = socialVerifier;
             _socialIdentity = socialIdentity;
+            _emailService = emailService;
+            _logger = logger;
         }
 
         [AllowAnonymous]
@@ -97,6 +105,14 @@ namespace PreOddsApi.WebApi.V3.Controllers
             var user = outcome.User!;
             var refresh = await _refreshTokens.IssueAsync(
                 user.Id, GetUserAgent(), GetIpAddress(), ct);
+
+            // Auto-send the email-verify link if the user gave a real email
+            // address. Soft policy: the JWT still issues immediately so the
+            // user can use the app; sensitive write paths (kupon kaydet,
+            // market change) gate on `email_verified`. Fire-and-forget so a
+            // mail provider hiccup doesn't fail the signup itself.
+            if (!string.IsNullOrWhiteSpace(user.Email))
+                await TrySendEmailVerificationLinkAsync(user.Id, user.Email!, ct);
 
             return Ok(ApiResponse<AuthResponseDto>.Ok(new AuthResponseDto
             {
@@ -227,6 +243,11 @@ namespace PreOddsApi.WebApi.V3.Controllers
                 var issued = await _accountTokens.IssueAsync(
                     userId.Value, AccountTokenPurpose.PasswordReset, PasswordResetLifetime, ct);
                 rawToken = issued.RawToken;
+                // Password-reset email send + matching web page is a
+                // separate follow-up — would 404 today because there's no
+                // /auth/reset-password browser entry point yet. The token
+                // is still surfaced via dev_token in non-prod so an e2e
+                // test can redeem it; in-app reset can wire in later.
             }
 
             // The token is returned in the body in non-Production environments
@@ -276,16 +297,22 @@ namespace PreOddsApi.WebApi.V3.Controllers
                 return Unauthorized(ApiResponse<object>.Fail(
                     ApiError.Codes.Unauthorized, "Invalid token."));
 
-            var issued = await _accountTokens.IssueAsync(
-                userId, AccountTokenPurpose.EmailVerify, EmailVerifyLifetime, ct);
+            // Need the email address to actually send the link; the JWT
+            // carries one but the DB row is the source of truth (the user
+            // may have changed it since the token was issued).
+            var user = await _identity.GetByIdAsync(userId, ct);
+            if (user == null || string.IsNullOrWhiteSpace(user.Email))
+                return BadRequestResponse("Account has no email on file.");
+
+            var rawToken = await TrySendEmailVerificationLinkAsync(userId, user.Email!, ct);
 
             var includeTokenInBody = string.Equals(
                 Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"),
                 "Development",
                 StringComparison.OrdinalIgnoreCase);
 
-            return OkResponse(includeTokenInBody
-                ? new { sent = true, dev_token = issued.RawToken }
+            return OkResponse(includeTokenInBody && rawToken != null
+                ? new { sent = true, dev_token = rawToken }
                 : (object)new { sent = true });
         }
 
@@ -307,21 +334,112 @@ namespace PreOddsApi.WebApi.V3.Controllers
             return OkResponse(new { verified = true });
         }
 
+        /// <summary>
+        /// Browser-friendly entry point that the email "verify" link
+        /// targets. Consumes the token and renders a minimal HTML
+        /// confirmation page — the mobile app then notices the flipped
+        /// flag on the next /auth/me refresh. We use GET here (links in
+        /// emails can't POST without a form), so the token is single-
+        /// use server-side which prevents accidental re-runs from
+        /// confused inboxes that prefetch links.
+        /// </summary>
+        [AllowAnonymous]
+        [HttpGet("verify-email")]
+        public async Task<IActionResult> VerifyEmailLinkAsync(
+            [FromQuery(Name = "token")] string? token,
+            CancellationToken ct)
+        {
+            string title;
+            string message;
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                title = "Bağlantı eksik";
+                message = "Doğrulama bağlantısı geçersiz görünüyor. Uygulamadan tekrar gönder.";
+            }
+            else
+            {
+                var redemption = await _accountTokens.ConsumeAsync(
+                    token, AccountTokenPurpose.EmailVerify, ct);
+                if (!redemption.Succeeded)
+                {
+                    title = "Bağlantı süresi doldu";
+                    message = "Bu bağlantı kullanılmış veya 24 saat geçmiş olabilir. Uygulamadan yeni bir bağlantı iste.";
+                }
+                else
+                {
+                    await _identity.MarkEmailVerifiedAsync(redemption.UserId, ct);
+                    title = "Email doğrulandı";
+                    message = "Hesabın onaylandı. Uygulamaya geri dönebilirsin.";
+                }
+            }
+            var html =
+                "<!doctype html><html lang=\"tr\"><head><meta charset=\"utf-8\"/>" +
+                "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"/>" +
+                $"<title>TipsWall — {title}</title>" +
+                "<style>body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;" +
+                "background:#0b0b0e;color:#eaeaea;margin:0;display:flex;align-items:center;" +
+                "justify-content:center;min-height:100vh;padding:24px;text-align:center}" +
+                ".card{background:#15161a;border:1px solid #2a2c33;border-radius:14px;" +
+                "padding:32px 28px;max-width:420px}h1{font-size:20px;margin:0 0 12px}" +
+                "p{font-size:14px;line-height:1.5;color:#bdbdc4;margin:0}" +
+                ".brand{font-size:12px;letter-spacing:1.5px;color:#8c8d96;margin-top:24px}" +
+                "</style></head><body><div class=\"card\"><h1>" + title + "</h1>" +
+                "<p>" + message + "</p><div class=\"brand\">TIPSWALL</div></div></body></html>";
+            return Content(html, "text/html; charset=utf-8");
+        }
+
+        private async Task<string?> TrySendEmailVerificationLinkAsync(
+            Guid userId, string email, CancellationToken ct)
+        {
+            try
+            {
+                var issued = await _accountTokens.IssueAsync(
+                    userId, AccountTokenPurpose.EmailVerify, EmailVerifyLifetime, ct);
+                var verifyUrl = $"{_authOptions.Issuer.TrimEnd('/')}/api/v3/auth/verify-email?token={Uri.EscapeDataString(issued.RawToken)}";
+                var body =
+                    "Merhaba,\n\n" +
+                    "TipsWall hesabını doğrulamak için aşağıdaki bağlantıya tıkla. " +
+                    $"Bağlantı 24 saat geçerlidir.\n\n{verifyUrl}\n\n" +
+                    "Bu hesabı sen oluşturmadıysan bu maili görmezden gelebilirsin.\n\n" +
+                    "TipsWall";
+                await _emailService.SendAsync(email, "TipsWall — Email doğrulama", body, ct);
+                return issued.RawToken;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "Failed to send email-verify link to {Email}.", email);
+                return null;
+            }
+        }
+
         [Authorize]
         [HttpGet("me")]
-        public IActionResult Me()
+        public async Task<IActionResult> Me(CancellationToken ct)
         {
             var sub = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
             var uid = User.FindFirst("uid")?.Value;
             var email = User.FindFirst(JwtRegisteredClaimNames.Email)?.Value;
             var tier = User.FindFirst("tier")?.Value ?? "free";
 
+            // Read email_verified from the DB so a freshly clicked link
+            // surfaces *immediately* — the JWT claim is up to 15 min
+            // stale because access tokens are not invalidated mid-life.
+            bool emailVerified = false;
+            if (Guid.TryParse(uid, out var userId))
+            {
+                var user = await _identity.GetByIdAsync(userId, ct);
+                if (user != null)
+                    emailVerified = user.EmailVerified;
+            }
+
             return OkResponse(new
             {
                 username = sub,
                 uid,
                 email,
-                tier
+                tier,
+                email_verified = emailVerified
             });
         }
 
@@ -366,7 +484,12 @@ namespace PreOddsApi.WebApi.V3.Controllers
                 // feature filters. Stamped at token issue time, so an
                 // upgrade only takes effect after the next refresh (15m
                 // grace). Acceptable; full enforcement still hits the DB.
-                new("tier", user.Tier)
+                new("tier", user.Tier),
+                // email_verified is also stamped at issue time so mobile
+                // can hide the "verify your email" banner without a /me
+                // round trip. Refresh after verifying picks up the new
+                // value within 15 min.
+                new("email_verified", user.EmailVerified ? "true" : "false")
             };
 
             if (!string.IsNullOrWhiteSpace(user.Email))

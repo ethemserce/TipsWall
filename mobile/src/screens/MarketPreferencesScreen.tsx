@@ -1,6 +1,7 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
@@ -15,6 +16,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
+import { getCuratedMarkets } from '@/src/api/marketPreferences';
 import { useMarketPreferences } from '@/src/hooks/useMarketPreferences';
 import { useMarkets } from '@/src/hooks/useMarkets';
 import { useTier } from '@/src/lib/auth/authStore';
@@ -25,7 +27,8 @@ import { useTheme } from '@/src/lib/useTheme';
  * Multi-select picker for the user's preferred markets. Persists via
  * the marketPreferencesStore — logged-in users get backend sync, guests
  * stay local. Cap is read from the store (server-authoritative for
- * registered users; defaults to free 5 for guests).
+ * registered users; falls back to the tier curated set: guest 3,
+ * free 10, premium 30).
  */
 export function MarketPreferencesScreen() {
   const c = useTheme();
@@ -45,15 +48,57 @@ export function MarketPreferencesScreen() {
     setDraft(new Set(marketIds));
   }, [marketIds]);
 
-  const markets = useMemo(() => Array.from(lookup.values()), [lookup]);
+  // The picker universe is the curated 30-market list (premium tier
+  // is the widest set the product supports). Filtering against the
+  // generic /markets endpoint would show hundreds of SportMonks markets
+  // we don't grade — confusing and useless. The user's own tier cap
+  // still limits how many of these they can save.
+  const curatedQuery = useQuery({
+    queryKey: ['markets', 'curated', 'premium'],
+    queryFn: () => getCuratedMarkets('premium'),
+    staleTime: 24 * 60 * 60 * 1000,
+    gcTime: 24 * 60 * 60 * 1000,
+  });
+  const curatedIds = curatedQuery.data?.defaults ?? [];
+  const curatedOrder = useMemo(() => {
+    const order = new Map<number, number>();
+    curatedIds.forEach((id, idx) => order.set(id, idx));
+    return order;
+  }, [curatedIds]);
+
+  // Freeze the "saved at open" snapshot so rows don't reflow while the
+  // user toggles. Selected-on-open stays at top; new toggles only
+  // bubble up after Save + re-enter.
+  const anchorRef = useRef<Set<number> | null>(null);
+  if (anchorRef.current === null && (marketIds.length > 0 || curatedIds.length > 0)) {
+    anchorRef.current = new Set(marketIds);
+  }
+  const anchor = anchorRef.current ?? new Set<number>();
+
+  const markets = useMemo(() => {
+    const all = Array.from(lookup.values());
+    if (curatedIds.length === 0) return all;
+    return all.filter((m) => curatedOrder.has(m.id));
+  }, [lookup, curatedIds.length, curatedOrder]);
   const normalizedQuery = search.trim().toLocaleLowerCase('tr-TR');
 
   const filtered = useMemo(() => {
-    if (!normalizedQuery) return markets;
-    return markets.filter((m) =>
-      (m.name ?? '').toLocaleLowerCase('tr-TR').includes(normalizedQuery),
-    );
-  }, [markets, normalizedQuery]);
+    const base = normalizedQuery
+      ? markets.filter((m) =>
+          (m.name ?? '').toLocaleLowerCase('tr-TR').includes(normalizedQuery),
+        )
+      : markets;
+    return [...base].sort((a, b) => {
+      const aSel = anchor.has(a.id) ? 0 : 1;
+      const bSel = anchor.has(b.id) ? 0 : 1;
+      if (aSel !== bSel) return aSel - bSel;
+      // Within each group, follow the curated priority order
+      // (CuratedMarkets.Premium is "earliest = most important").
+      const ao = curatedOrder.get(a.id) ?? Number.MAX_SAFE_INTEGER;
+      const bo = curatedOrder.get(b.id) ?? Number.MAX_SAFE_INTEGER;
+      return ao - bo;
+    });
+  }, [markets, normalizedQuery, anchor, curatedOrder]);
 
   const dirty = useMemo(() => {
     if (draft.size !== marketIds.length) return true;
@@ -62,8 +107,14 @@ export function MarketPreferencesScreen() {
   }, [draft, marketIds]);
 
   const overCap = draft.size > cap;
+  // Guests are locked: they see the curated 30-market universe so the
+  // upgrade incentive is visible, but the rows + Save button are
+  // disabled. The footer CTA routes them to signup, where they unlock
+  // 10-market customisation. (Premium adds the remaining 20.)
+  const isGuest = tier === 'guest';
 
   const toggle = (id: number) => {
+    if (isGuest) return;
     setDraft((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -122,9 +173,13 @@ export function MarketPreferencesScreen() {
         <ThemedText style={[styles.summaryHint, { color: c.textMuted }]}>
           {tier === 'premium'
             ? t('marketPrefs.tier.premium', { defaultValue: 'Premium: 30 market' })
-            : t('marketPrefs.tier.free', {
-                defaultValue: 'Free: 5 market · Premium ile artırılır',
-              })}
+            : tier === 'free'
+              ? t('marketPrefs.tier.free', {
+                  defaultValue: 'Free: 10 market · Premium ile 30',
+                })
+              : t('marketPrefs.tier.guest', {
+                  defaultValue: 'Misafir: 3 market · Üye ol, 10 markete çıkar',
+                })}
         </ThemedText>
       </View>
 
@@ -157,7 +212,7 @@ export function MarketPreferencesScreen() {
           keyboardShouldPersistTaps="handled"
           renderItem={({ item }) => {
             const checked = draft.has(item.id);
-            const disabled = !checked && draft.size >= cap;
+            const disabled = isGuest || (!checked && draft.size >= cap);
             return (
               <Pressable
                 onPress={() => toggle(item.id)}
@@ -165,8 +220,14 @@ export function MarketPreferencesScreen() {
                 style={({ pressed }) => [
                   styles.row,
                   { borderBottomColor: c.borderSoft },
-                  pressed && { backgroundColor: c.brandSoft },
-                  disabled && { opacity: 0.4 },
+                  pressed && !disabled && { backgroundColor: c.brandSoft },
+                  // Guest rows: the checked 3 defaults stay fully visible
+                  // (they're active right now); the locked 27 are dimmed
+                  // so the upgrade incentive is obvious. Cap-blocked
+                  // rows (free/premium hitting their cap) get the
+                  // legacy "blocked" opacity.
+                  disabled &&
+                    (isGuest ? (checked ? null : { opacity: 0.45 }) : { opacity: 0.4 }),
                 ]}>
                 <View
                   style={[
@@ -214,24 +275,39 @@ export function MarketPreferencesScreen() {
           {error ? (
             <ThemedText style={[styles.errorText, { color: c.danger }]}>{error}</ThemedText>
           ) : null}
-          <Pressable
-            onPress={handleSave}
-            disabled={!dirty || saving || overCap}
-            style={({ pressed }) => [
-              styles.saveBtn,
-              {
-                backgroundColor: !dirty || overCap ? c.borderSoft : c.brand,
-                opacity: pressed ? 0.85 : 1,
-              },
-            ]}>
-            {saving ? (
-              <ActivityIndicator color={c.textInverse} />
-            ) : (
+          {isGuest ? (
+            <Pressable
+              onPress={() => router.push('/auth/signup')}
+              style={({ pressed }) => [
+                styles.saveBtn,
+                { backgroundColor: c.brand, opacity: pressed ? 0.85 : 1 },
+              ]}>
               <ThemedText style={[styles.saveText, { color: c.textInverse }]}>
-                {t('marketPrefs.save', { defaultValue: 'Kaydet' })}
+                {t('marketPrefs.guestCta', {
+                  defaultValue: 'Üye ol · 10 markete kadar seç',
+                })}
               </ThemedText>
-            )}
-          </Pressable>
+            </Pressable>
+          ) : (
+            <Pressable
+              onPress={handleSave}
+              disabled={!dirty || saving || overCap}
+              style={({ pressed }) => [
+                styles.saveBtn,
+                {
+                  backgroundColor: !dirty || overCap ? c.borderSoft : c.brand,
+                  opacity: pressed ? 0.85 : 1,
+                },
+              ]}>
+              {saving ? (
+                <ActivityIndicator color={c.textInverse} />
+              ) : (
+                <ThemedText style={[styles.saveText, { color: c.textInverse }]}>
+                  {t('marketPrefs.save', { defaultValue: 'Kaydet' })}
+                </ThemedText>
+              )}
+            </Pressable>
+          )}
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>

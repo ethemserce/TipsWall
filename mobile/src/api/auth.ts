@@ -134,20 +134,53 @@ export async function deleteAccount(reason?: string): Promise<void> {
 /**
  * Returns the JWT-derived `/auth/me` projection. Cheap server call —
  * useful after signup/login when we want the canonical tier/email
- * (rather than trusting the just-decoded JWT alone).
+ * (rather than trusting the just-decoded JWT alone). `email_verified`
+ * is read fresh from the DB so a verification that just landed shows
+ * up even when the JWT claim is still 15 min stale.
  */
 export async function fetchMe(): Promise<{
   username: string | null;
   uid: string;
   email: string | null;
   tier: string;
+  email_verified: boolean;
 }> {
   const res = await apiClient.get<
-    ApiResponse<{ username: string | null; uid: string; email: string | null; tier: string }>
+    ApiResponse<{
+      username: string | null;
+      uid: string;
+      email: string | null;
+      tier: string;
+      email_verified: boolean;
+    }>
   >('/auth/me');
   if (!res.data.success || !res.data.data) {
     throw new ApiClientError(
       res.data.error?.message ?? 'fetchMe failed',
+      res.data.error?.code ?? 'unknown_error',
+      res.status,
+    );
+  }
+  return res.data.data;
+}
+
+/**
+ * Re-sends the email-verification link to the address on file. Server
+ * returns 200 even when SMTP is silently down (logs server-side); the
+ * client just shows "Mail gönderildi" optimistically. dev_token only
+ * comes back in non-Production environments.
+ */
+export async function requestEmailVerification(): Promise<{
+  sent: true;
+  dev_token?: string;
+}> {
+  const res = await apiClient.post<ApiResponse<{ sent: true; dev_token?: string }>>(
+    '/auth/request-email-verification',
+    {},
+  );
+  if (!res.data.success || !res.data.data) {
+    throw new ApiClientError(
+      res.data.error?.message ?? 'request-email-verification failed',
       res.data.error?.code ?? 'unknown_error',
       res.status,
     );

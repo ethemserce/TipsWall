@@ -149,7 +149,8 @@ namespace PreOddsApi.WebApi.V3.Data
             await using var command = new NpgsqlCommand(
                 """
                 select id, username, email, display_name, role,
-                       tier, tier_expires_at, password_hash
+                       tier, tier_expires_at, password_hash,
+                       (email_verified_at is not null) as email_verified
                 from app.users
                 where status = 'active'
                   and (lower(username) = lower(@key) or lower(email) = lower(@key))
@@ -169,7 +170,8 @@ namespace PreOddsApi.WebApi.V3.Data
                 DisplayName = ReadNullableString(reader, "display_name"),
                 Role = reader.GetString(reader.GetOrdinal("role")),
                 Tier = reader.GetString(reader.GetOrdinal("tier")),
-                TierExpiresAt = ReadNullableDateTimeOffset(reader, "tier_expires_at")
+                TierExpiresAt = ReadNullableDateTimeOffset(reader, "tier_expires_at"),
+                EmailVerified = reader.GetBoolean(reader.GetOrdinal("email_verified"))
             };
             var hash = ReadNullableString(reader, "password_hash");
             return (user, hash);
@@ -182,7 +184,8 @@ namespace PreOddsApi.WebApi.V3.Data
             await using var connection = await OpenAsync(ct);
             await using var command = new NpgsqlCommand(
                 """
-                select id, username, email, display_name, role, tier, tier_expires_at
+                select id, username, email, display_name, role, tier, tier_expires_at,
+                       (email_verified_at is not null) as email_verified
                 from app.users
                 where id = @id and status = 'active'
                 limit 1;
@@ -201,7 +204,8 @@ namespace PreOddsApi.WebApi.V3.Data
                 DisplayName = ReadNullableString(reader, "display_name"),
                 Role = reader.GetString(reader.GetOrdinal("role")),
                 Tier = reader.GetString(reader.GetOrdinal("tier")),
-                TierExpiresAt = ReadNullableDateTimeOffset(reader, "tier_expires_at")
+                TierExpiresAt = ReadNullableDateTimeOffset(reader, "tier_expires_at"),
+                EmailVerified = reader.GetBoolean(reader.GetOrdinal("email_verified"))
             };
         }
 

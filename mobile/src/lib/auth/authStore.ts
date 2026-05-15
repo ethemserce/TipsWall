@@ -168,3 +168,34 @@ export function useTier(): MembershipTier {
   }, []);
   return tier;
 }
+
+/**
+ * Has the current user verified their email? Reads the `email_verified`
+ * claim from the JWT.
+ *  - Guests return `true` (no email to verify; no banner to show)
+ *  - Social-signin accounts come back `true` immediately (provider
+ *    has already certified the address)
+ *  - Email+password accounts return `false` until the user clicks the
+ *    link in the verification email AND the token is refreshed
+ *    (≤15 min after click, or immediately via a manual refresh).
+ *
+ * Backend stamps the claim into every freshly issued access token, so
+ * a forced refreshAccessToken() right after the user clicks the email
+ * link surfaces the flip without waiting for natural rotation.
+ */
+export function getEmailVerified(): boolean {
+  if (state.accessToken == null) return true;
+  const payload = decodeJwtPayload(state.accessToken);
+  const claim = payload?.email_verified;
+  return claim === 'true' || claim === true;
+}
+
+export function useEmailVerified(): boolean {
+  const [v, setV] = useState<boolean>(() => getEmailVerified());
+  useEffect(() => {
+    const unsubscribe = subscribeAuth(() => setV(getEmailVerified()));
+    setV(getEmailVerified());
+    return unsubscribe;
+  }, []);
+  return v;
+}

@@ -137,6 +137,12 @@ builder.Services.AddSingleton(PreOddsApi.WebApi.V3.Auth.SocialAuthOptions.Load(b
 builder.Services.AddSingleton<PreOddsApi.WebApi.V3.Data.IAnalyticsReader,
     PreOddsApi.WebApi.V3.Data.PostgresAnalyticsReader>();
 
+// SMTP-backed email sender (GoDaddy Pro Email by default). AuthController
+// uses it for signup-verify + forgot-password mails; the worker already
+// uses it for nightly-snapshot failure alerts.
+builder.Services.AddSingleton<PreOddsApi.ExternalApis.Notifications.IEmailService,
+    PreOddsApi.ExternalApis.Notifications.SmtpEmailService>();
+
 builder.Services.AddHealthChecks()
     .AddCheck<PreOddsApi.WebApi.V3.Health.PostgresHealthCheck>(
         "postgres", tags: new[] { "ready" })
@@ -150,46 +156,82 @@ builder.Services.AddHealthChecks()
 
 builder.Services.AddRateLimiter(options =>
 {
-    // "auth" — login / refresh / signup are highest-abuse targets. 10/min/IP.
-    options.AddFixedWindowLimiter("auth", limiterOptions =>
-    {
-        limiterOptions.Window = TimeSpan.FromMinutes(1);
-        limiterOptions.PermitLimit = 10;
-        limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        limiterOptions.QueueLimit = 0;
-    });
+    // PARTITIONING NOTE: AddFixedWindowLimiter(name, ...) creates a SHARED
+    // bucket across every request tagged with that policy — useless against
+    // bots, because one abusive client can drain the limit for everyone.
+    // Each named policy below is built via AddPolicy + GetFixedWindowLimiter
+    // so the bucket is partitioned (per IP or per user) and one client
+    // can't starve another.
 
-    // "read-heavy" — analytics signals, prematch odds, fixture detail. The
-    // SQL behind these is expensive (multi-CTE + window functions). Cap to
-    // 60 req/min/user, queue burst of 20.
-    options.AddFixedWindowLimiter("read-heavy", limiterOptions =>
+    // Per-IP partition helper: pulls the right header behind Caddy (which
+    // forwards the real client IP in X-Forwarded-For) and falls back to
+    // RemoteIpAddress for direct hits in dev.
+    static string ClientIp(Microsoft.AspNetCore.Http.HttpContext ctx)
     {
-        limiterOptions.Window = TimeSpan.FromMinutes(1);
-        limiterOptions.PermitLimit = 60;
-        limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        limiterOptions.QueueLimit = 20;
-    });
+        var fwd = ctx.Request.Headers["X-Forwarded-For"].ToString();
+        if (!string.IsNullOrWhiteSpace(fwd))
+        {
+            var first = fwd.Split(',', 2)[0].Trim();
+            if (!string.IsNullOrWhiteSpace(first)) return first;
+        }
+        return ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+    }
 
-    // "write" — coupons, favorites, devices, preferences. Modest cap to stop
-    // a buggy client from flooding writes.
-    options.AddFixedWindowLimiter("write", limiterOptions =>
-    {
-        limiterOptions.Window = TimeSpan.FromMinutes(1);
-        limiterOptions.PermitLimit = 30;
-        limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        limiterOptions.QueueLimit = 10;
-    });
+    // "auth" — login / refresh / signup are the highest-abuse targets
+    // (credential stuffing, account farming). 10/min PER IP. Bots that
+    // try to mass-register from one address hit 429 fast; one real user
+    // can still go through the full flow without friction.
+    options.AddPolicy("auth", httpContext =>
+        System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+            ClientIp(httpContext),
+            _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+            {
+                Window = TimeSpan.FromMinutes(1),
+                PermitLimit = 10,
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 0,
+            }));
+
+    // "read-heavy" — analytics signals, prematch odds, fixture detail.
+    // The SQL behind these is expensive (multi-CTE + window functions),
+    // and these are the scrape-tempting endpoints. 120/min PER user
+    // (authenticated) or PER IP (anonymous). One screen of the app
+    // typically fires 5-10 requests, so 120/min gives ~12 page-loads
+    // worth of headroom.
+    options.AddPolicy("read-heavy", httpContext =>
+        System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+            httpContext.User?.FindFirst("uid")?.Value ?? ("ip:" + ClientIp(httpContext)),
+            _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+            {
+                Window = TimeSpan.FromMinutes(1),
+                PermitLimit = 120,
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 20,
+            }));
+
+    // "write" — coupons, favorites, devices, preferences. Modest per-user
+    // cap to stop a buggy client (or a script) from flooding writes.
+    options.AddPolicy("write", httpContext =>
+        System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+            httpContext.User?.FindFirst("uid")?.Value ?? ("ip:" + ClientIp(httpContext)),
+            _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+            {
+                Window = TimeSpan.FromMinutes(1),
+                PermitLimit = 30,
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 10,
+            }));
 
     // Global IP fallback for un-policied endpoints — stops a single IP from
     // exhausting the server while we tag the rest of the controllers.
     options.GlobalLimiter = System.Threading.RateLimiting.PartitionedRateLimiter.Create<
         Microsoft.AspNetCore.Http.HttpContext, string>(httpContext =>
         System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
-            httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            ClientIp(httpContext),
             _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
             {
                 Window = TimeSpan.FromMinutes(1),
-                PermitLimit = 200,
+                PermitLimit = 300,
                 QueueLimit = 50,
                 QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
             }));
