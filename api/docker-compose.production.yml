@@ -72,8 +72,15 @@ services:
       migrator:
         condition: service_completed_successfully
     environment:
-      PREODDS_POSTGRES_CONNECTION: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-preodds};Username=${POSTGRES_USER:-preodds};Password=${POSTGRES_PASSWORD}"
-      ConnectionStrings__PreOddsApiPostgresDb: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-preodds};Username=${POSTGRES_USER:-preodds};Password=${POSTGRES_PASSWORD}"
+      # Command Timeout=600s so the admin /analytics/snapshot/rebuild
+      # endpoint can sit through the full 365-day finalizer +
+      # season-team-stats + season-player-stats + snapshot pipeline.
+      # Default 30s wasn't enough — request 500'd at 31.5s mid-query
+      # with "Timeout during reading attempt". Regular hot-path reads
+      # (signals, fixtures, odds-rates) all finish well under 1s so
+      # the bumped ceiling is a safety net, not a regression risk.
+      PREODDS_POSTGRES_CONNECTION: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-preodds};Username=${POSTGRES_USER:-preodds};Password=${POSTGRES_PASSWORD};Command Timeout=600"
+      ConnectionStrings__PreOddsApiPostgresDb: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-preodds};Username=${POSTGRES_USER:-preodds};Password=${POSTGRES_PASSWORD};Command Timeout=600"
       PREODDS_JWT_SECRET: ${PREODDS_JWT_SECRET:?required}
       PREODDS_INTERNAL_API_KEY: ${PREODDS_INTERNAL_API_KEY:-}
       Authentication__Issuer: ${AUTH_ISSUER:?required}
