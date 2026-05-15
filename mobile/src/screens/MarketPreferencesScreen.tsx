@@ -5,12 +5,14 @@ import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   FlatList,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   StyleSheet,
   TextInput,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { useMarketPreferences } from '@/src/hooks/useMarketPreferences';
@@ -28,6 +30,7 @@ import { useTheme } from '@/src/lib/useTheme';
 export function MarketPreferencesScreen() {
   const c = useTheme();
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const { marketIds, cap } = useMarketPreferences();
   const tier = useTier();
   const { lookup, isLoading } = useMarkets();
@@ -99,7 +102,7 @@ export function MarketPreferencesScreen() {
           <MaterialCommunityIcons name="chevron-left" size={24} color={c.text} />
         </Pressable>
         <ThemedText style={[styles.headerTitle, { color: c.text }]}>
-          {t('marketPrefs.title', { defaultValue: 'Takip ettiğim oran tipleri' })}
+          {t('marketPrefs.title', { defaultValue: 'Favori Marketler' })}
         </ThemedText>
         <View style={styles.headerBack} />
       </View>
@@ -194,33 +197,43 @@ export function MarketPreferencesScreen() {
         />
       )}
 
-      <View
-        style={[
-          styles.footer,
-          { backgroundColor: c.surface, borderTopColor: c.border },
-        ]}>
-        {error ? (
-          <ThemedText style={[styles.errorText, { color: c.danger }]}>{error}</ThemedText>
-        ) : null}
-        <Pressable
-          onPress={handleSave}
-          disabled={!dirty || saving || overCap}
-          style={({ pressed }) => [
-            styles.saveBtn,
+      <KeyboardAvoidingView
+        // iOS lifts the whole footer above the keyboard; Android handles
+        // it via windowSoftInputMode=adjustResize at the activity level,
+        // so we only need padding to clear the system nav bar there.
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <View
+          style={[
+            styles.footer,
             {
-              backgroundColor: !dirty || overCap ? c.borderSoft : c.brand,
-              opacity: pressed ? 0.85 : 1,
+              backgroundColor: c.surface,
+              borderTopColor: c.border,
+              paddingBottom: Math.max(12, insets.bottom + 8),
             },
           ]}>
-          {saving ? (
-            <ActivityIndicator color={c.textInverse} />
-          ) : (
-            <ThemedText style={[styles.saveText, { color: c.textInverse }]}>
-              {t('marketPrefs.save', { defaultValue: 'Kaydet' })}
-            </ThemedText>
-          )}
-        </Pressable>
-      </View>
+          {error ? (
+            <ThemedText style={[styles.errorText, { color: c.danger }]}>{error}</ThemedText>
+          ) : null}
+          <Pressable
+            onPress={handleSave}
+            disabled={!dirty || saving || overCap}
+            style={({ pressed }) => [
+              styles.saveBtn,
+              {
+                backgroundColor: !dirty || overCap ? c.borderSoft : c.brand,
+                opacity: pressed ? 0.85 : 1,
+              },
+            ]}>
+            {saving ? (
+              <ActivityIndicator color={c.textInverse} />
+            ) : (
+              <ThemedText style={[styles.saveText, { color: c.textInverse }]}>
+                {t('marketPrefs.save', { defaultValue: 'Kaydet' })}
+              </ThemedText>
+            )}
+          </Pressable>
+        </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -279,7 +292,9 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
   footer: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingTop: 12,
+    // paddingBottom is set dynamically from safe-area insets so the
+    // Save button clears the system nav bar / keyboard.
     borderTopWidth: StyleSheet.hairlineWidth,
     gap: 8,
   },

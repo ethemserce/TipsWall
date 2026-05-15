@@ -298,7 +298,7 @@ export function SettingsScreen() {
             <View style={styles.toggleText}>
               <ThemedText style={[styles.rowTitle, { color: c.text }]}>
                 {t('settings.marketPrefs.label', {
-                  defaultValue: 'Takip ettiğim oran tipleri',
+                  defaultValue: 'Favori Marketler',
                 })}
               </ThemedText>
               <ThemedText style={[styles.rowHint, { color: c.textMuted }]}>
