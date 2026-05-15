@@ -314,7 +314,7 @@ export function AnalysisScreen() {
             defaultValue: "Günün önerilerini aç",
           })}
           style={({ pressed }) => [
-            styles.headerSearchBtn,
+            styles.headerFlashBtn,
             {
               backgroundColor:
                 pressed || quickPicksOpen ? c.brandSoft : 'transparent',
@@ -660,6 +660,20 @@ const styles = StyleSheet.create({
   headerSearchBtn: {
     position: 'absolute',
     right: 12,
+    top: 6,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  // Mirror of headerSearchBtn pinned to the left — the flash trigger
+  // for "Günün Önerileri" sits opposite the search button so the
+  // header keeps its brand-centred symmetry. Sharing the absolute-right
+  // style was a bug (both icons stacked on top of each other).
+  headerFlashBtn: {
+    position: 'absolute',
+    left: 12,
     top: 6,
     width: 36,
     height: 36,
