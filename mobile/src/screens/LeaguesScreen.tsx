@@ -18,6 +18,7 @@ import { ThemedText } from '@/components/themed-text';
 import { AppBrand } from '@/src/components/AppBrand';
 import { useCountryLookup } from '@/src/hooks/useCountryLookup';
 import { useLeagues } from '@/src/hooks/useLeagues';
+import { useUserCountryId } from '@/src/hooks/useUserCountry';
 import { useTheme } from '@/src/lib/useTheme';
 import type { Country } from '@/src/types/country';
 import type { League } from '@/src/types/league';
@@ -79,6 +80,7 @@ interface LeagueSection {
 export function LeaguesScreen() {
   const c = useTheme();
   const { t } = useTranslation();
+  const userCountryId = useUserCountryId();
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const searchInputRef = useRef<TextInput | null>(null);
@@ -146,12 +148,18 @@ export function LeaguesScreen() {
         }),
       }))
       .sort((a, b) => {
+        // User's national country jumps to position 0 regardless of
+        // the static priority table.
+        if (userCountryId != null) {
+          if (a.countryId === userCountryId && b.countryId !== userCountryId) return -1;
+          if (b.countryId === userCountryId && a.countryId !== userCountryId) return 1;
+        }
         const aPri = countryPriority(a.title);
         const bPri = countryPriority(b.title);
         if (aPri !== bPri) return aPri - bPri;
         return a.title.localeCompare(b.title, 'tr');
       });
-  }, [filtered, countryLookup, t]);
+  }, [filtered, countryLookup, t, userCountryId]);
 
   // Hide rows when a section is collapsed, but keep the section header so
   // the user can re-expand it. Search overrides collapse — every match

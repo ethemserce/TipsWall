@@ -26,6 +26,7 @@ import { StateFilterBar, type FixtureFilter } from '@/src/components/StateFilter
 import { useCountryLookup } from '@/src/hooks/useCountryLookup';
 import { useFixtures } from '@/src/hooks/useFixtures';
 import { useLeagueLookup } from '@/src/hooks/useLeagueLookup';
+import { useUserCountryId } from '@/src/hooks/useUserCountry';
 import { useLiveTicker } from '@/src/hooks/useLiveTicker';
 import { getStateBucket } from '@/src/lib/fixtureState';
 import { useTheme } from '@/src/lib/useTheme';
@@ -223,10 +224,20 @@ export function TodayMatchesScreen() {
   );
   const { lookup: countryLookup } = useCountryLookup(countryIds);
 
+  const userCountryId = useUserCountryId();
+
   const sortedSections = useMemo(() => {
     return [...sections].sort((a, b) => {
       const la = leagueLookup.get(a.leagueId);
       const lb = leagueLookup.get(b.leagueId);
+      // Lift the user's national league to the top: leagues whose
+      // country_id matches the device-locale country win the sort
+      // regardless of SportMonks's `category` ranking. Without this,
+      // a Turkish user would still see England's Premier League above
+      // Süper Lig (PL is category=1, Süper Lig category=2 in feed).
+      const homeA = userCountryId != null && la?.country_id === userCountryId ? 0 : 1;
+      const homeB = userCountryId != null && lb?.country_id === userCountryId ? 0 : 1;
+      if (homeA !== homeB) return homeA - homeB;
       const ca = la?.category ?? Number.MAX_SAFE_INTEGER;
       const cb = lb?.category ?? Number.MAX_SAFE_INTEGER;
       if (ca !== cb) return ca - cb;
@@ -234,7 +245,7 @@ export function TodayMatchesScreen() {
       const nb = lb?.name ?? `Z${b.leagueId}`;
       return na.localeCompare(nb);
     });
-  }, [sections, leagueLookup]);
+  }, [sections, leagueLookup, userCountryId]);
 
   // Search across team, league, and country names. A league-name hit keeps
   // every fixture in that section visible (browsing by league); a team-name

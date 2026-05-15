@@ -156,10 +156,14 @@ services:
       # transfer data; sidelined is what we need (and it ships from a
       # different endpoint). Disable until a windowed transfer call lands.
       SportMonksTransferSidelinedSync__SyncLatestTransfers: "false"
-      # /players + /coaches + /rivals are reference-data dumps with no
-      # date filter — players alone is 89k+ rows per nightly run. Weekly
-      # re-sync is wasteful while we're unblocking the rest of the chain.
-      SportMonksPlayerReferenceSync__Enabled: "false"
+      # /players + /coaches + /rivals are reference-data dumps. Players
+      # alone is ~89k rows per run, but it ships canonical squad rosters
+      # (football.team_squads) which the team-detail squad tab and the
+      # PlayerPeekSheet need. Without it those views render empty.
+      # The worker enforces a weekly cadence (PlayerReferenceIntervalSeconds
+      # default = 604800), so steady-state cost is one heavy run per
+      # week, not every nightly cycle.
+      SportMonksPlayerReferenceSync__Enabled: "true"
       # NOTE: SportMonksFixtureBacklogSync__DaysForward/DaysBack used to
       # cap the window at 5/1 here because the single-shot multi-day
       # call was OOM'ing. ExecuteFixtureWindow now loops per-day, so the
@@ -203,10 +207,17 @@ services:
       - "443:443/udp"  # HTTP/3
     volumes:
       - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./deploy/legal:/srv/legal:ro
       - caddy-data:/data
       - caddy-config:/config
     environment:
       DOMAIN: ${DOMAIN:?required}
+      # Marketing / legal host(s). Set to "tipswall.com www.tipswall.com"
+      # once DNS is pointing at this VPS so Caddy can provision certs and
+      # serve the Play-Store-referenced /privacy and /terms URLs. Leave
+      # unset (or "dummy.invalid") to keep the legal pages only on the
+      # API host while DNS still points elsewhere.
+      LEGAL_DOMAINS: ${LEGAL_DOMAINS:-dummy.invalid}
     deploy:
       resources:
         limits:

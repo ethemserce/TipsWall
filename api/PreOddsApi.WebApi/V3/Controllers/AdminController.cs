@@ -71,9 +71,14 @@ namespace PreOddsApi.WebApi.V3.Controllers
             await _analytics.RunSeasonTeamStatsAsync(ct);
             await _analytics.RunSeasonPlayerStatsAsync(ct);
             // Wide lookback so backfill picks up anything that ran the
-            // outcome-finalizer scheduler tier missed (e.g. worker outage).
+            // outcome-finalizer scheduler tier missed (e.g. worker outage)
+            // and also corrects stale `winning=false` defaults SportMonks
+            // shipped on markets it doesn't self-grade. 365 days covers
+            // every fixture that the snapshot still includes; subsequent
+            // runs are no-ops on already-correct rows (idempotent on
+            // `winning is distinct from computed`).
             var finalized = await _analytics.RunOddOutcomeFinalizerAsync(
-                lookbackHours: 24 * 30, cancellationToken: ct);
+                lookbackHours: 24 * 365, cancellationToken: ct);
             var rows = await _analytics.RunOddAnalysisSnapshotsAsync(ct);
 
             return OkResponse(new

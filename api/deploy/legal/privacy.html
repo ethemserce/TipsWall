@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gizlilik Politikası — TipsWall</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 720px; margin: 0 auto; padding: 24px 20px 64px; line-height: 1.6; color: #1a1a1a; background: #ffffff; }
+  @media (prefers-color-scheme: dark) { body { background: #0f1115; color: #e6e8ec; } a { color: #6aa8ff; } hr { border-color: #2a2f3a; } }
+  h1 { font-size: 28px; margin-top: 0; }
+  h2 { font-size: 20px; margin-top: 32px; }
+  h3 { font-size: 16px; margin-top: 24px; }
+  .lang-switch { display: flex; gap: 16px; font-size: 14px; margin-bottom: 24px; }
+  .meta { color: #6b7280; font-size: 13px; }
+  table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+  th, td { border: 1px solid #d1d5db; padding: 8px 10px; text-align: left; vertical-align: top; font-size: 14px; }
+  @media (prefers-color-scheme: dark) { th, td { border-color: #2a2f3a; } .meta { color: #9aa1ad; } }
+</style>
+</head>
+<body>
+
+<nav class="lang-switch"><a href="#tr">Türkçe</a> · <a href="#en">English</a></nav>
+
+<!-- =================== TÜRKÇE =================== -->
+<section id="tr">
+<h1>Gizlilik Politikası</h1>
+<p class="meta">Son güncelleme: 15 Mayıs 2026 · Yürürlük tarihi: Yayın tarihi · Sürüm 1.0</p>
+
+<p>Bu Gizlilik Politikası <strong>TipsWall</strong> mobil uygulaması (com.tipswall.app) ve <strong>api.tipswall.com</strong> arka uç servisi tarafından işlenen kişisel verileri ve verinin nasıl kullanıldığını açıklar. Hizmeti kullanarak bu politikayı kabul etmiş sayılırsın.</p>
+
+<p>Veri sorumlusu: <strong>Ethem Serce</strong> · İletişim: <a href="mailto:ethemserce@gmail.com">ethemserce@gmail.com</a></p>
+
+<h2>1. Hangi verileri topluyoruz?</h2>
+
+<table>
+<thead><tr><th>Veri</th><th>Amaç</th><th>Hukuki dayanak</th><th>Saklama</th></tr></thead>
+<tbody>
+<tr><td>E-posta, kullanıcı adı, parolanın hash'i</td><td>Hesap oluşturma, giriş, parola sıfırlama</td><td>KVKK m.5/2(c) — sözleşmenin kurulması</td><td>Hesap silinene kadar</td></tr>
+<tr><td>Apple / Google sign-in JWT'sinden gelen <code>sub</code> kimliği ve doğrulanmış e-posta</td><td>Sosyal medya hesabıyla giriş</td><td>KVKK m.5/2(c) — sözleşmenin kurulması; ilgili sağlayıcı şartlarına tâbi</td><td>Hesap silinene kadar</td></tr>
+<tr><td>Cihaz UUID'si (sadece üye olmadan kullanan ziyaretçiler için)</td><td>Günlük tahmin kotasını uygulamak</td><td>KVKK m.5/2(f) — meşru menfaat</td><td>90 gün</td></tr>
+<tr><td>JWT erişim + yenileme jetonları</td><td>Oturum yönetimi</td><td>KVKK m.5/2(c) — sözleşmenin kurulması</td><td>Refresh: 30 gün; access: 1 saat</td></tr>
+<tr><td>Cihaz dilini gösteren tercih, tema seçimi, oran gizleme bayrağı</td><td>Uygulamayı kullanıcı tercihine göre çalıştırma</td><td>KVKK m.5/2(f) — meşru menfaat</td><td>Cihazda yerel — sunucuya iletilmez</td></tr>
+<tr><td>Anonim kullanım olayları (ekran açılışı, butona tıklama)</td><td>Uygulamayı iyileştirme</td><td>KVKK m.5/1 — <strong>açık rıza</strong> (uygulama içinde toggle)</td><td>Firebase varsayılan: 14 ay</td></tr>
+<tr><td>Hata izleri (stack trace, anonim cihaz modeli, OS sürümü)</td><td>Çökme ve hata teşhisi</td><td>KVKK m.5/2(f) — meşru menfaat</td><td>Sentry varsayılan: 90 gün</td></tr>
+<tr><td>Sunucu istek kayıtları (IP adresi, User-Agent, istek yolu, durum kodu)</td><td>Güvenlik, kötüye kullanım engelleme, hata tespiti</td><td>KVKK m.5/2(f) — meşru menfaat</td><td>30 gün</td></tr>
+</tbody>
+</table>
+
+<p><strong>Toplamadıklarımız:</strong> hassas kişisel veri (ırk, din, sağlık, biyometri), tam ad, doğum tarihi, telefon numarası, fiziksel konum (GPS / IP konum), kişi rehberi, fotoğraf rulosu, herhangi bir finansal/ödeme verisi.</p>
+
+<h2>2. Reklam ve takip</h2>
+<p>TipsWall hiçbir reklam ağı kullanmaz, üçüncü taraflarla pazarlama amacıyla veri paylaşmaz, kişiselleştirilmiş reklam yayınlamaz. Cihazın reklam kimliğini (Android Advertising ID / IDFA) okumaz.</p>
+
+<h2>3. Analitik (isteğe bağlı)</h2>
+<p>Uygulamayı geliştirmek için <strong>Firebase Analytics (Google LLC)</strong> aracılığıyla anonim kullanım istatistikleri topluyoruz. Bu özellik <strong>varsayılan olarak kapalıdır</strong>; ilk açılışta gösterilen onay penceresinde "Kabul ediyorum"u seçmen halinde etkinleşir. İstediğin zaman <em>Ayarlar → Kullanım verisi paylaş</em> üzerinden kapatabilirsin. Toplanan veriler hesabınla doğrudan ilişkilendirilmez. Firebase'in kendi gizlilik bildirimi: <a href="https://firebase.google.com/support/privacy" target="_blank" rel="noopener">firebase.google.com/support/privacy</a>.</p>
+
+<h2>4. Hata raporlama</h2>
+<p>Beklenmeyen hataları teşhis etmek için <strong>Sentry (Functional Software Inc.)</strong> kullanılır. Stack trace ile birlikte anonim cihaz modeli ve işletim sistemi sürümü gönderilir. Sentry varsayılan PII kaldırma kuralları etkindir; e-posta, kullanıcı adı veya IP adresi gönderilmez.</p>
+
+<h2>5. Üçüncü taraf işleyiciler</h2>
+<table>
+<thead><tr><th>İşleyici</th><th>Rol</th><th>Konum</th></tr></thead>
+<tbody>
+<tr><td>Google LLC (Firebase Analytics, Authentication)</td><td>Analitik, isteğe bağlı; sosyal giriş için ID jetonu doğrulama</td><td>ABD</td></tr>
+<tr><td>Apple Inc. (Sign in with Apple)</td><td>Sosyal giriş için ID jetonu doğrulama</td><td>ABD</td></tr>
+<tr><td>Functional Software Inc. (Sentry)</td><td>Hata izleme</td><td>ABD</td></tr>
+<tr><td>SportMonks BV</td><td>Spor verisi (maç, lig, oyuncu, oran). <em>Bu sağlayıcıya senin kişisel verin gönderilmez.</em></td><td>Hollanda</td></tr>
+<tr><td>GoDaddy / Hetzner</td><td>Sunucu barındırma</td><td>AB veya ABD</td></tr>
+</tbody>
+</table>
+
+<h2>6. Veri aktarımları</h2>
+<p>Sunucularımız AB içinde bulunabilir. Analitik ve hata raporlama hizmetleri, sağlayıcının altyapısı gereği ABD'ye veri aktarımı içerebilir. Aktarımlar KVKK m.9 ve ilgili sağlayıcının Standart Sözleşme Maddeleri'ne dayanır.</p>
+
+<h2>7. Haklarınız (KVKK madde 11)</h2>
+<p>Veri sorumlusuna başvurarak şu haklarını kullanabilirsin:</p>
+<ul>
+  <li>Kişisel verinin işlenip işlenmediğini öğrenme</li>
+  <li>İşlenmişse buna ilişkin bilgi talep etme</li>
+  <li>İşlenme amacını ve amacına uygun kullanılıp kullanılmadığını öğrenme</li>
+  <li>Yurt içinde veya yurt dışında verinin aktarıldığı üçüncü kişileri bilme</li>
+  <li>Eksik veya yanlış işlenmiş veriyi düzeltilmesini talep etme</li>
+  <li>Verinin silinmesini veya yok edilmesini talep etme</li>
+  <li>Otomatik sistemler vasıtasıyla analiz edilmesi suretiyle aleyhe bir sonucun ortaya çıkmasına itiraz etme</li>
+  <li>Kanuna aykırı işlenme nedeniyle zararın giderilmesini talep etme</li>
+</ul>
+<p>Talebini <a href="mailto:ethemserce@gmail.com">ethemserce@gmail.com</a> adresine yazarak iletebilirsin. Hesabını uygulama içinden <em>Ayarlar → Hesabı sil</em> ile her zaman silebilirsin; talep 30 gün içinde donanım dahil tüm yedeklerden temizlenir.</p>
+
+<h2>8. Çocukların gizliliği</h2>
+<p>TipsWall 18 yaşından küçükler için tasarlanmamıştır. Bu kapsamda çocuklardan bilerek kişisel veri toplamayız. Bir çocuğun bize veri gönderdiğini fark edersek hesabı sileriz.</p>
+
+<h2>9. Güvenlik</h2>
+<p>Parolalar Bcrypt ile hash'lenerek saklanır. Sunucu trafiği uçtan uca TLS (Let's Encrypt) ile şifrelidir. Erişim jetonları (JWT) HMAC-SHA256 imzalıdır ve 1 saat ömürlüdür. Veri tabanı yedekleri günlük olarak alınır ve yalnızca veri sorumlusu tarafından erişilebilir.</p>
+
+<h2>10. Bu politikadaki değişiklikler</h2>
+<p>Bu metin güncellendiğinde uygulamada görünür şekilde duyurulur ve "Son güncelleme" tarihi değiştirilir.</p>
+
+<h2>11. İletişim</h2>
+<p>Sorular ve KVKK talepleri için: <a href="mailto:ethemserce@gmail.com">ethemserce@gmail.com</a></p>
+
+</section>
+
+<hr style="margin: 56px 0; border: none; border-top: 1px solid #d1d5db;">
+
+<!-- =================== ENGLISH =================== -->
+<section id="en" lang="en">
+<h1>Privacy Policy</h1>
+<p class="meta">Last updated: 15 May 2026 · Effective: Publication date · Version 1.0</p>
+
+<p>This Privacy Policy explains what personal data the <strong>TipsWall</strong> mobile app (com.tipswall.app) and the <strong>api.tipswall.com</strong> backend collects and how that data is used. By using the service you agree to this policy.</p>
+
+<p>Data controller: <strong>Ethem Serce</strong> · Contact: <a href="mailto:ethemserce@gmail.com">ethemserce@gmail.com</a></p>
+
+<h2>1. What data do we collect?</h2>
+
+<table>
+<thead><tr><th>Data</th><th>Purpose</th><th>Legal basis</th><th>Retention</th></tr></thead>
+<tbody>
+<tr><td>Email, username, password hash</td><td>Account creation, sign-in, password reset</td><td>Contract performance (KVKK 5/2(c); GDPR 6(1)(b))</td><td>Until account deletion</td></tr>
+<tr><td>Apple / Google sign-in subject id + verified email</td><td>Social sign-in</td><td>Contract performance; subject to provider terms</td><td>Until account deletion</td></tr>
+<tr><td>Device UUID (guest users only)</td><td>Daily prediction quota enforcement</td><td>Legitimate interest (KVKK 5/2(f); GDPR 6(1)(f))</td><td>90 days</td></tr>
+<tr><td>JWT access + refresh tokens</td><td>Session management</td><td>Contract performance</td><td>Refresh: 30 days; access: 1 hour</td></tr>
+<tr><td>Theme, language, hide-odds preference</td><td>Personalisation</td><td>Legitimate interest</td><td>Local on device — not sent to server</td></tr>
+<tr><td>Anonymous usage events (screen views, taps)</td><td>Improving the app</td><td><strong>Explicit consent</strong> (in-app toggle)</td><td>Firebase default: 14 months</td></tr>
+<tr><td>Error traces (stack, anonymous device model, OS version)</td><td>Crash diagnosis</td><td>Legitimate interest</td><td>Sentry default: 90 days</td></tr>
+<tr><td>Server request logs (IP, User-Agent, path, status code)</td><td>Security, abuse prevention, debugging</td><td>Legitimate interest</td><td>30 days</td></tr>
+</tbody>
+</table>
+
+<p><strong>What we do NOT collect:</strong> sensitive personal data (race, religion, health, biometrics), full name, date of birth, phone number, precise location (GPS / IP geolocation), contacts, photo roll, any financial or payment data.</p>
+
+<h2>2. Advertising and tracking</h2>
+<p>TipsWall does not use ad networks, does not share data with third parties for marketing, and does not display personalised ads. The app does not read the device advertising id (AAID / IDFA).</p>
+
+<h2>3. Analytics (opt-in)</h2>
+<p>To improve the app we collect anonymous usage statistics via <strong>Firebase Analytics (Google LLC)</strong>. This feature is <strong>off by default</strong>; it is enabled only if you tap "I accept" on the consent prompt shown at first launch. You can turn it off any time from <em>Settings → Share usage data</em>. The data collected is not directly linked to your account. Firebase's own privacy notice: <a href="https://firebase.google.com/support/privacy" target="_blank" rel="noopener">firebase.google.com/support/privacy</a>.</p>
+
+<h2>4. Error reporting</h2>
+<p>We use <strong>Sentry (Functional Software Inc.)</strong> to diagnose unexpected errors. Stack traces are sent together with the anonymous device model and OS version. Sentry's default PII scrubbing rules are enabled; email, username and IP address are not transmitted.</p>
+
+<h2>5. Third-party processors</h2>
+<table>
+<thead><tr><th>Processor</th><th>Role</th><th>Location</th></tr></thead>
+<tbody>
+<tr><td>Google LLC (Firebase Analytics, Authentication)</td><td>Analytics (opt-in); ID token verification for social sign-in</td><td>USA</td></tr>
+<tr><td>Apple Inc. (Sign in with Apple)</td><td>ID token verification for social sign-in</td><td>USA</td></tr>
+<tr><td>Functional Software Inc. (Sentry)</td><td>Error tracking</td><td>USA</td></tr>
+<tr><td>SportMonks BV</td><td>Sports data (matches, leagues, players, odds). <em>Your personal data is not sent to this provider.</em></td><td>Netherlands</td></tr>
+<tr><td>GoDaddy / Hetzner</td><td>Server hosting</td><td>EU or USA</td></tr>
+</tbody>
+</table>
+
+<h2>6. International transfers</h2>
+<p>Our servers may be hosted in the EU. Analytics and error reporting providers process data in the USA. Transfers rely on the relevant provider's Standard Contractual Clauses and the KVKK Article 9 framework.</p>
+
+<h2>7. Your rights</h2>
+<p>You can ask the data controller to:</p>
+<ul>
+  <li>confirm whether personal data about you is being processed,</li>
+  <li>access the data and information about how it is processed,</li>
+  <li>have inaccurate or incomplete data corrected,</li>
+  <li>have your data erased,</li>
+  <li>object to processing based on legitimate interest,</li>
+  <li>receive a copy of your data in a structured, commonly used format,</li>
+  <li>withdraw consent at any time (without affecting prior lawful processing),</li>
+  <li>lodge a complaint with the Turkish Personal Data Protection Authority (KVKK) or your local supervisory authority.</li>
+</ul>
+<p>Send requests to <a href="mailto:ethemserce@gmail.com">ethemserce@gmail.com</a>. You can also delete your account at any time from <em>Settings → Delete account</em>; the request is purged within 30 days from all backups.</p>
+
+<h2>8. Children's privacy</h2>
+<p>TipsWall is not designed for users under 18 and we do not knowingly collect personal data from children. If we discover that a child has submitted data, we delete the account.</p>
+
+<h2>9. Security</h2>
+<p>Passwords are stored using Bcrypt hashing. All traffic to the server is encrypted in transit (TLS via Let's Encrypt). Access tokens (JWT) are HMAC-SHA256 signed and live for one hour. Database backups are taken daily and accessible only to the data controller.</p>
+
+<h2>10. Changes to this policy</h2>
+<p>Material changes are announced inside the app and the "Last updated" date above is changed.</p>
+
+<h2>11. Contact</h2>
+<p>Questions or KVKK requests: <a href="mailto:ethemserce@gmail.com">ethemserce@gmail.com</a></p>
+
+</section>
+</body>
+</html>

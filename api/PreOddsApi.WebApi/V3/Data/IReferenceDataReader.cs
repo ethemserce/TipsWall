@@ -8,7 +8,7 @@ namespace PreOddsApi.WebApi.V3.Data
     public interface IReferenceDataReader
     {
         Task<(IReadOnlyList<CountryDto> Items, int Total)> GetCountriesAsync(
-            long? continentId, string? search, int page, int perPage, CancellationToken ct = default);
+            long? continentId, string? search, string? iso2, int page, int perPage, CancellationToken ct = default);
 
         Task<CountryDto?> GetCountryByIdAsync(long id, CancellationToken ct = default);
 

@@ -17,6 +17,7 @@ import { deleteAccount, logout } from '@/src/api/auth';
 import { AppBrand } from '@/src/components/AppBrand';
 import { analytics, consentStore } from '@/src/lib/analytics';
 import { useTier } from '@/src/lib/auth/authStore';
+import { useMarketPreferences } from '@/src/hooks/useMarketPreferences';
 import {
   setLanguageMode,
   setOddsHidden,
@@ -44,6 +45,7 @@ export function SettingsScreen() {
   const { t } = useTranslation();
   const { themeMode, languageMode, oddsHidden } = useSettings();
   const tier = useTier();
+  const marketPrefs = useMarketPreferences();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   // Mirror the consent store with a local snapshot so toggling redraws.
@@ -294,8 +296,7 @@ export function SettingsScreen() {
         {/* Analytics — KVKK opt-in toggle. Mirrors the consent state from
             the AnalyticsConsentBanner; flipping here is the canonical
             way to opt back out (or back in) after the banner was
-            dismissed. The wrapper handles SDK collection enable/disable
-            and clears the user id on opt-out. */}
+            dismissed. */}
         <Pressable
           onPress={() => {
             if (analyticsOn) void analytics.denyConsent();
@@ -337,6 +338,36 @@ export function SettingsScreen() {
                 ]}
               />
             </View>
+          </View>
+        </Pressable>
+
+        <Pressable
+          onPress={() => router.push('/market-preferences' as never)}
+          style={[
+            styles.card,
+            { backgroundColor: c.surfaceElevated, borderColor: c.borderSoft },
+          ]}>
+          <View style={styles.toggleRow}>
+            <View style={styles.toggleText}>
+              <ThemedText style={[styles.rowTitle, { color: c.text }]}>
+                {t('settings.marketPrefs.label', {
+                  defaultValue: 'Takip ettiğim oran tipleri',
+                })}
+              </ThemedText>
+              <ThemedText style={[styles.rowHint, { color: c.textMuted }]}>
+                {marketPrefs.marketIds.length > 0
+                  ? t('settings.marketPrefs.hintSelected', {
+                      defaultValue: '{{count}}/{{cap}} market seçili',
+                      count: marketPrefs.marketIds.length,
+                      cap: marketPrefs.cap,
+                    })
+                  : t('settings.marketPrefs.hintEmpty', {
+                      defaultValue:
+                        'Boş bırakırsan her market gelir. Seçim yaparsan sadece onlar görünür.',
+                    })}
+              </ThemedText>
+            </View>
+            <MaterialCommunityIcons name="chevron-right" size={20} color={c.textMuted} />
           </View>
         </Pressable>
 
