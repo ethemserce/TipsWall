@@ -122,7 +122,7 @@
       "body": "Üye olunca her tahminin sonucu otomatik takip edilir. Sezon boyunca ne kadar isabetli olduğunu görürsün.",
       "bulletHit": "Tutturma yüzden + kalibrasyon",
       "bulletCalibration": "Sistemin önerdiğiyle senin tercihin karşılaştırması",
-      "bulletStreak": "Aktif seri + market başına performans",
+      "bulletStreak": "Aktif seri + tahmin türüne göre performans",
       "signupBtn": "ÜCRETSİZ ÜYE OL",
       "loginBtn": "Giriş yap"
     }
@@ -166,7 +166,7 @@
   "legend": {
     "title": "Açıklamalar",
     "metricsHeader": "METRİKLER",
-    "marketsHeader": "MARKET KISALTMALARI",
+    "marketsHeader": "TAHMİN KISALTMALARI",
     "metrics": {
       "dso": {
         "short": "HIT",
@@ -181,12 +181,12 @@
       "iko": {
         "short": "IMP",
         "long": "Sistem Olasılığı (IMP)",
-        "description": "Marj temizlenmiş olasılık tahmini. Aynı market içinde tüm sonuçlar 100'e tamamlanır. HIT, IMP'den büyükse değer vardır."
+        "description": "Marj temizlenmiş olasılık tahmini. Aynı tahmin türü içinde tüm sonuçlar 100'e tamamlanır. HIT, IMP'den büyükse değer vardır."
       },
       "kzky": {
         "short": "KZ / KY",
         "long": "Kazanan / Kaybeden (KZ / KY)",
-        "description": "Geçmiş örneklemde aynı oranla bu tahminin kaç kez kazandığı (KZ) ve kaç kez kaybettiği (KY). Toplamı 3'ten az olan istatistikler bu sayfada gösterilmez — anlamlı olmuyor."
+        "description": "Geçmiş örneklemde aynı tahminin kaç kez kazandığı (KZ) ve kaç kez kaybettiği (KY). Toplamı 3'ten az olan istatistikler bu sayfada gösterilmez — anlamlı olmuyor."
       }
     },
     "markets": {
@@ -327,8 +327,8 @@
     "display": {
       "header": "Görünüm",
       "showOdds": {
-        "label": "Oranları göster",
-        "hint": "Maç detayında ve tahmin kartlarında oran değerlerini görünür yapar"
+        "label": "Olasılık değerlerini göster",
+        "hint": "Maç detayında ve tahmin kartlarında olasılık değerlerini görünür yapar"
       }
     },
     "analytics": {
@@ -464,11 +464,11 @@
   },
   "markets": {
     "tbd": "TBD",
-    "fallback": "Market #{{id}}",
-    "noInfo": "Bu market için açıklama henüz eklenmemiş.",
+    "fallback": "Tahmin #{{id}}",
+    "noInfo": "Bu tahmin türü için açıklama henüz eklenmemiş.",
     "cols": {
       "pick": "TAHMİN",
-      "odd": "ORAN",
+      "odd": "OLASILIK",
       "roi": "ROI",
       "hit": "HIT",
       "imp": "IMP",
@@ -476,11 +476,11 @@
       "loss": "KY"
     },
     "colInfo": {
-      "roi": "Yatırılan tutarın ortalama getirisi (Return On Investment). Yüksekse her bahis başına daha çok kâr.",
+      "roi": "Yatırılan tutarın ortalama getirisi (Return On Investment). Yüksekse her tahmin başına daha çok kâr.",
       "hit": "Tutturma oranı (Hit rate). Yüzdesel olarak ne sıklıkla kazandığı.",
-      "imp": "Oranın ima ettiği olasılık (Implied probability). Oranlar yüksekse bu düşer.",
-      "win": "Kazanan örnek sayısı (KZ). Geçmişte bu oranla aynı pick'in kaç kez tuttuğu.",
-      "loss": "Kaybeden örnek sayısı (KY). Aynı pick'in kaç kez tutmadığı."
+      "imp": "Modelin ima ettiği olasılık (Implied probability). Olasılık yüksekse beklenen kazanç düşer.",
+      "win": "Kazanan örnek sayısı (KZ). Geçmişte aynı tahminin kaç kez tuttuğu.",
+      "loss": "Kaybeden örnek sayısı (KY). Aynı tahminin kaç kez tutmadığı."
     },
     "info": {
       "1": {

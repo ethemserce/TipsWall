@@ -153,7 +153,7 @@ export function MarketPreferencesScreen() {
           <MaterialCommunityIcons name="chevron-left" size={24} color={c.text} />
         </Pressable>
         <ThemedText style={[styles.headerTitle, { color: c.text }]}>
-          {t('marketPrefs.title', { defaultValue: 'Favori Marketler' })}
+          {t('marketPrefs.title', { defaultValue: 'Favori Tahmin Tipleri' })}
         </ThemedText>
         <View style={styles.headerBack} />
       </View>
@@ -172,13 +172,13 @@ export function MarketPreferencesScreen() {
         </ThemedText>
         <ThemedText style={[styles.summaryHint, { color: c.textMuted }]}>
           {tier === 'premium'
-            ? t('marketPrefs.tier.premium', { defaultValue: 'Premium: 30 market' })
+            ? t('marketPrefs.tier.premium', { defaultValue: 'Premium: 30 tahmin tipi' })
             : tier === 'free'
               ? t('marketPrefs.tier.free', {
-                  defaultValue: 'Free: 10 market · Premium ile 30',
+                  defaultValue: 'Free: 10 tahmin tipi · Premium ile 30',
                 })
               : t('marketPrefs.tier.guest', {
-                  defaultValue: 'Misafir: 3 market · Üye ol, 10 markete çıkar',
+                  defaultValue: 'Misafir: 3 tahmin tipi · Üye ol, 10 tipe çıkar',
                 })}
         </ThemedText>
       </View>
@@ -188,7 +188,7 @@ export function MarketPreferencesScreen() {
         <TextInput
           value={search}
           onChangeText={setSearch}
-          placeholder={t('marketPrefs.searchPlaceholder', { defaultValue: 'Market ara' })}
+          placeholder={t('marketPrefs.searchPlaceholder', { defaultValue: 'Tahmin tipi ara' })}
           placeholderTextColor={c.textMuted}
           autoCapitalize="none"
           autoCorrect={false}
@@ -252,7 +252,7 @@ export function MarketPreferencesScreen() {
           contentContainerStyle={styles.list}
           ListEmptyComponent={
             <ThemedText style={[styles.empty, { color: c.textMuted }]}>
-              {t('marketPrefs.empty', { defaultValue: 'Bu aramada market yok.' })}
+              {t('marketPrefs.empty', { defaultValue: 'Bu aramada sonuç yok.' })}
             </ThemedText>
           }
         />
@@ -284,7 +284,7 @@ export function MarketPreferencesScreen() {
               ]}>
               <ThemedText style={[styles.saveText, { color: c.textInverse }]}>
                 {t('marketPrefs.guestCta', {
-                  defaultValue: 'Üye ol · 10 markete kadar seç',
+                  defaultValue: 'Üye ol · 10 tahmin tipine kadar seç',
                 })}
               </ThemedText>
             </Pressable>

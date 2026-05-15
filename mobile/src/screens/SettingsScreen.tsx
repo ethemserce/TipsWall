@@ -224,7 +224,7 @@ export function SettingsScreen() {
                             })
                           : t('settings.verifyEmail.hint', {
                               defaultValue:
-                                'Hesap güvenliği için mailini onayla. Onaylamadan kupon kaydedemezsin.',
+                                'Hesap güvenliği için mailini onayla. Onaylamadan tahmin kaydedemezsin.',
                             })}
                     </ThemedText>
                   </View>
@@ -485,19 +485,19 @@ export function SettingsScreen() {
             <View style={styles.toggleText}>
               <ThemedText style={[styles.rowTitle, { color: c.text }]}>
                 {t('settings.marketPrefs.label', {
-                  defaultValue: 'Favori Marketler',
+                  defaultValue: 'Favori Tahmin Tipleri',
                 })}
               </ThemedText>
               <ThemedText style={[styles.rowHint, { color: c.textMuted }]}>
                 {marketPrefs.marketIds.length > 0
                   ? t('settings.marketPrefs.hintSelected', {
-                      defaultValue: '{{count}}/{{cap}} market seçili',
+                      defaultValue: '{{count}}/{{cap}} tahmin tipi seçili',
                       count: marketPrefs.marketIds.length,
                       cap: marketPrefs.cap,
                     })
                   : t('settings.marketPrefs.hintEmpty', {
                       defaultValue:
-                        'Boş bırakırsan her market gelir. Seçim yaparsan sadece onlar görünür.',
+                        'Boş bırakırsan her tipi gelir. Seçim yaparsan sadece onlar görünür.',
                     })}
               </ThemedText>
             </View>
