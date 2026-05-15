@@ -606,22 +606,27 @@ function CouponCard({
               ? c.live ?? c.brand
               : c.textMuted;
         // Score badge:
-        //   live      → "2-1 · 67'"
-        //   finished  → "2-1 (İY 1-0)" with 1st-half score when available
+        //   live      → "67'" (the score is now inlined in the team line)
+        //   finished  → "İY 1-0" (1st-half companion to the inlined FT)
         const firstHalf = isFinished
           ? findFirstHalfScore(fixture?.scores)
           : null;
-        const liveBadge = isLive && liveScore
-          ? `${liveScore.home}-${liveScore.away}${
-              fixture?.fixture.live_minute != null
-                ? ` · ${fixture.fixture.live_minute}'`
-                : ''
-            }`
-          : isFinished && liveScore
-            ? firstHalf
-              ? `${liveScore.home}-${liveScore.away} (İY ${firstHalf.home}-${firstHalf.away})`
-              : `${liveScore.home}-${liveScore.away}`
+        const liveBadge = isLive && liveScore && fixture?.fixture.live_minute != null
+          ? `${fixture.fixture.live_minute}'`
+          : isFinished && firstHalf
+            ? `İY ${firstHalf.home}-${firstHalf.away}`
             : null;
+        // Replace the " - " separator in the cached fixtureName with the
+        // current score for live + finished matches so the score sits
+        // between the two team names ("Home 2-1 Away") instead of a
+        // dash placeholder. Fall back to the original text otherwise.
+        const scoreSeparator =
+          (isLive || isFinished) && liveScore
+            ? ` ${liveScore.home}-${liveScore.away} `
+            : null;
+        const fixtureLine = scoreSeparator
+          ? s.fixtureName.replace(' - ', scoreSeparator)
+          : s.fixtureName;
         return (
           <View
             key={s.id}
@@ -637,7 +642,7 @@ function CouponCard({
                 <ThemedText
                   style={[styles.fixtureLine, { color: c.text }]}
                   numberOfLines={1}>
-                  {s.fixtureName}
+                  {fixtureLine}
                 </ThemedText>
                 {liveBadge ? (
                   <ThemedText

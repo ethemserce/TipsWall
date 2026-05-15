@@ -177,7 +177,7 @@ export function RateMatchCard({
             </View>
           ) : finished ? (
             <ThemedText style={[styles.metaFt, { color: c.textMuted }]}>
-              {halfScore ? `İY ${halfScore.home}-${halfScore.away}` : 'FT'}
+              FT
             </ThemedText>
           ) : <View />}
         </View>
@@ -187,26 +187,36 @@ export function RateMatchCard({
             <TeamColumn name={homeName} imagePath={homeImg} />
             <View style={styles.scoreBlock}>
               {showScore ? (
-                <View
-                  style={[
-                    styles.scorePill,
-                    {
-                      backgroundColor: live ? 'rgba(217, 112, 112, 0.12)' : c.bg,
-                      borderColor: live ? c.live : c.borderSoft,
-                    },
-                  ]}>
-                  <ThemedText
+                <>
+                  <View
                     style={[
-                      styles.scoreText,
-                      { color: live ? c.live : c.text },
+                      styles.scorePill,
+                      {
+                        backgroundColor: live ? 'rgba(217, 112, 112, 0.12)' : c.bg,
+                        borderColor: live ? c.live : c.borderSoft,
+                      },
                     ]}>
-                    {homeScore}
-                    <ThemedText style={[styles.scoreSep, { color: c.textMuted }]}>
-                      {' - '}
+                    <ThemedText
+                      style={[
+                        styles.scoreText,
+                        { color: live ? c.live : c.text },
+                      ]}>
+                      {homeScore}
+                      <ThemedText style={[styles.scoreSep, { color: c.textMuted }]}>
+                        {' - '}
+                      </ThemedText>
+                      {awayScore}
                     </ThemedText>
-                    {awayScore}
-                  </ThemedText>
-                </View>
+                  </View>
+                  {/* 1st-half score underneath the FT/live score. Shown
+                      once the match passes HT — gives "İY 1-0" context
+                      directly under the current scoreline. */}
+                  {halfScore ? (
+                    <ThemedText style={[styles.scoreHalf, { color: c.textMuted }]}>
+                      {`İY ${halfScore.home}-${halfScore.away}`}
+                    </ThemedText>
+                  ) : null}
+                </>
               ) : (
                 <ThemedText style={[styles.vs, { color: c.textMuted }]}>VS</ThemedText>
               )}
@@ -624,6 +634,13 @@ const styles = StyleSheet.create({
   scoreSep: {
     fontSize: 18,
     fontWeight: '500',
+  },
+  scoreHalf: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.4,
+    marginTop: 3,
+    fontVariant: ['tabular-nums'],
   },
   scoreFt: {
     fontSize: 9,

@@ -164,39 +164,33 @@ function SubstitutionRow({
   textColor: string;
   mutedColor: string;
 }) {
-  // The SportMonks payload puts the player coming ON in player_name and the
-  // outgoing one in related_player_name. Render them inline with a small
-  // paired-arrow swap icon between, coloured differently for injuries so
-  // the eye picks them out without needing a label.
+  // SportMonks: player_name = ON, related_player_name = OFF. Render as
+  // a 2-line stack — incoming player on top (regular size), outgoing
+  // below (smaller, muted). Up-arrow next to in, down-arrow next to
+  // out — coloured by injury vs regular swap.
   const inColor = injured ? INJURY_IN_COLOR : SUB_IN_COLOR;
   const outColor = injured ? INJURY_OUT_COLOR : SUB_OUT_COLOR;
-  const inText = (
-    <ThemedText style={[styles.subInText, { color: textColor }]} numberOfLines={1}>
-      {abbreviateName(incoming)}
-    </ThemedText>
+  const inRow = (
+    <View style={align === 'right' ? styles.subLineRight : styles.subLineLeft}>
+      <MaterialCommunityIcons name="arrow-up-bold" size={12} color={inColor} />
+      <ThemedText style={[styles.subInText, { color: textColor }]} numberOfLines={1}>
+        {abbreviateName(incoming)}
+      </ThemedText>
+    </View>
   );
-  const outText = (
-    <ThemedText style={[styles.subOutText, { color: mutedColor }]} numberOfLines={1}>
-      {abbreviateName(outgoing)}
-    </ThemedText>
-  );
-  const swap = (
-    <View style={styles.swapIcon}>
-      <MaterialCommunityIcons name="arrow-up-bold" size={11} color={inColor} />
-      <MaterialCommunityIcons
-        name="arrow-down-bold"
-        size={11}
-        color={outColor}
-        style={styles.swapDown}
-      />
+  const outRow = (
+    <View style={align === 'right' ? styles.subLineRight : styles.subLineLeft}>
+      <MaterialCommunityIcons name="arrow-down-bold" size={10} color={outColor} />
+      <ThemedText style={[styles.subOutText, { color: mutedColor }]} numberOfLines={1}>
+        {abbreviateName(outgoing)}
+      </ThemedText>
     </View>
   );
 
   return (
-    <View style={align === 'right' ? styles.subRowRight : styles.subRowLeft}>
-      {inText}
-      {outText}
-      {swap}
+    <View style={align === 'right' ? styles.subStackRight : styles.subStackLeft}>
+      {inRow}
+      {outRow}
     </View>
   );
 }
@@ -280,8 +274,13 @@ function secondaryLabel(e: FixtureEvent): string | null {
   if (code === 'SUBSTITUTION' && e.related_player_name) {
     return `↓ ${e.related_player_name}`;
   }
-  // Goal score is now inline with the name (see primaryLabel).
-  if (code === 'GOAL' || code === 'OWNGOAL' || code === 'PENALTY') return null;
+  // Goal: show the assister directly under the scorer name (SportMonks
+  // ships the assist in `related_player_name`). Own goals don't have
+  // an assist; penalties are explicit so we skip them too.
+  if (code === 'GOAL' && e.related_player_name) {
+    return `🅰 ${e.related_player_name}`;
+  }
+  if (code === 'OWNGOAL' || code === 'PENALTY') return null;
   return e.info ?? null;
 }
 
@@ -360,36 +359,42 @@ const styles = StyleSheet.create({
   icon: {
     fontSize: 14,
   },
-  subRowLeft: {
+  // Vertical stack: incoming player on top (regular weight), outgoing
+  // underneath in a smaller, muted size. Right-side substitutions align
+  // the rows + their arrow icon to the right edge.
+  subStackLeft: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    flexShrink: 1,
+    gap: 1,
+  },
+  subStackRight: {
+    flexDirection: 'column',
+    alignItems: 'flex-end',
+    flexShrink: 1,
+    gap: 1,
+  },
+  subLineLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
     flexShrink: 1,
   },
-  subRowRight: {
+  subLineRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
     flexShrink: 1,
     justifyContent: 'flex-end',
   },
   subInText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '700',
     flexShrink: 1,
   },
   subOutText: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: '500',
     flexShrink: 1,
-  },
-  swapIcon: {
-    width: 18,
-    height: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  swapDown: {
-    marginLeft: -4,
   },
 });
