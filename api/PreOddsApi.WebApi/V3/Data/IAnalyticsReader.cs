@@ -18,7 +18,12 @@ namespace PreOddsApi.WebApi.V3.Data
     public sealed class SignalQuery
     {
         public long? BookmakerId { get; init; }
+        // Single-market filter. Kept for backwards compat — callers
+        // that want multi-market filtering should use MarketIds.
         public long? MarketId { get; init; }
+        // Multi-market filter — preferred by clients with a favourite-
+        // markets selection. When non-empty, MarketId is ignored.
+        public IReadOnlyList<long>? MarketIds { get; init; }
         public long? LeagueId { get; init; }
         public string? WindowCode { get; init; }
         public int? MatchState { get; init; }

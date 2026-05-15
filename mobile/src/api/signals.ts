@@ -7,6 +7,7 @@ export type SignalSort = 'confidence' | 'winning' | 'earning' | 'odd' | 'edge';
 export interface SignalQueryParams {
   bookmakerId?: number;
   marketId?: number;
+  marketIds?: number[];
   leagueId?: number;
   window?: string;
   matchState?: number;
@@ -34,6 +35,12 @@ export async function listSignals(params: SignalQueryParams = {}): Promise<Signa
     params: {
       bookmaker_id: params.bookmakerId,
       market_id: params.marketId,
+      // Comma-separated list — backend prefers this over single market_id
+      // when both are present.
+      market_ids:
+        params.marketIds && params.marketIds.length > 0
+          ? params.marketIds.join(',')
+          : undefined,
       league_id: params.leagueId,
       window: params.window,
       match_state: params.matchState,

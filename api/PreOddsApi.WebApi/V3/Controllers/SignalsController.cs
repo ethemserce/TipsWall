@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -31,6 +33,7 @@ namespace PreOddsApi.WebApi.V3.Controllers
         public async Task<IActionResult> GetAsync(
             [FromQuery(Name = "bookmaker_id")] long? bookmakerId,
             [FromQuery(Name = "market_id")] long? marketId,
+            [FromQuery(Name = "market_ids")] string? marketIdsCsv,
             [FromQuery(Name = "league_id")] long? leagueId,
             [FromQuery(Name = "window")] string? windowCode,
             // `window_code` alias — the DB column and SignalQuery property
@@ -60,10 +63,26 @@ namespace PreOddsApi.WebApi.V3.Controllers
                 _ => SignalSort.Confidence,
             };
 
+            // CSV → array of long. Skips blanks + non-numeric tokens
+            // so a mangled query string can't kill the request.
+            IReadOnlyList<long>? marketIds = null;
+            if (!string.IsNullOrWhiteSpace(marketIdsCsv))
+            {
+                var parsed = marketIdsCsv
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .Select(t => long.TryParse(t, out var id) ? id : (long?)null)
+                    .Where(id => id.HasValue)
+                    .Select(id => id!.Value)
+                    .Distinct()
+                    .ToArray();
+                if (parsed.Length > 0) marketIds = parsed;
+            }
+
             var query = new SignalQuery
             {
                 BookmakerId = bookmakerId,
                 MarketId = marketId,
+                MarketIds = marketIds,
                 LeagueId = leagueId,
                 WindowCode = windowCode ?? windowCodeAlias,
                 MatchState = matchState,

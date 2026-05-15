@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
@@ -48,7 +49,15 @@ namespace PreOddsApi.WebApi.V3.Data
                 baseClauses.Add("poc.bookmaker_id = @bookmaker_id");
                 parameters.Add(new NpgsqlParameter("bookmaker_id", query.BookmakerId.Value));
             }
-            if (query.MarketId.HasValue)
+            // Prefer the multi-market filter when the caller supplies one
+            // (favourite-markets list). Falls back to the single-market
+            // legacy parameter for unmodified callers.
+            if (query.MarketIds != null && query.MarketIds.Count > 0)
+            {
+                baseClauses.Add("poc.market_id = any(@market_ids)");
+                parameters.Add(new NpgsqlParameter("market_ids", query.MarketIds.ToArray()));
+            }
+            else if (query.MarketId.HasValue)
             {
                 baseClauses.Add("poc.market_id = @market_id");
                 parameters.Add(new NpgsqlParameter("market_id", query.MarketId.Value));

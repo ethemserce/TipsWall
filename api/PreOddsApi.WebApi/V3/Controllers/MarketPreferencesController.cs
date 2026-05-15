@@ -13,12 +13,6 @@ namespace PreOddsApi.WebApi.V3.Controllers
     [Route("api/v3/me/market-preferences")]
     public sealed class MarketPreferencesController : ApiControllerBase
     {
-        // Free users may pin 5 markets, premium gets 30. Updating the cap
-        // here is a single-line change — there's no DB CHECK so we can move
-        // the limit without a migration.
-        private const int FreeCap = 5;
-        private const int PremiumCap = 30;
-
         private readonly IUserMarketPreferencesReader _reader;
 
         public MarketPreferencesController(IUserMarketPreferencesReader reader)
@@ -33,11 +27,14 @@ namespace PreOddsApi.WebApi.V3.Controllers
                 return Unauthorized(ApiResponse<object>.Fail(
                     ApiError.Codes.Unauthorized, "Invalid token."));
 
+            var tier = GetTier();
             var ids = await _reader.GetAsync(userId, ct);
             return OkResponse(new MarketPreferencesResponse
             {
                 MarketIds = ids,
-                Cap = CapFor(GetTier())
+                Cap = CuratedMarkets.CapFor(tier),
+                Tier = tier,
+                Defaults = CuratedMarkets.DefaultsFor(tier),
             });
         }
 
@@ -52,16 +49,19 @@ namespace PreOddsApi.WebApi.V3.Controllers
             if (request?.MarketIds == null)
                 return BadRequestResponse("market_ids is required.");
 
-            var cap = CapFor(GetTier());
+            var tier = GetTier();
+            var cap = CuratedMarkets.CapFor(tier);
             if (request.MarketIds.Count > cap)
                 return BadRequestResponse(
-                    $"Too many markets ({request.MarketIds.Count}); cap for this tier is {cap}.");
+                    $"Too many markets ({request.MarketIds.Count}); cap for tier '{tier}' is {cap}.");
 
             var persisted = await _reader.ReplaceAsync(userId, request.MarketIds, ct);
             return OkResponse(new MarketPreferencesResponse
             {
                 MarketIds = persisted,
-                Cap = cap
+                Cap = cap,
+                Tier = tier,
+                Defaults = CuratedMarkets.DefaultsFor(tier),
             });
         }
 
@@ -71,16 +71,34 @@ namespace PreOddsApi.WebApi.V3.Controllers
             return Guid.TryParse(raw, out userId);
         }
 
-        private string GetTier()
+        private new string GetTier()
         {
             return User.FindFirst("tier")?.Value ?? "free";
         }
+    }
 
-        private static int CapFor(string tier)
+    /// <summary>
+    /// Anonymous siblings: returns the curated defaults + cap for any
+    /// tier (including 'guest') so the mobile app can auto-fill the
+    /// picker at first launch without an account.
+    /// </summary>
+    [AllowAnonymous]
+    [Route("api/v3/markets/curated")]
+    public sealed class CuratedMarketsController : ApiControllerBase
+    {
+        [HttpGet]
+        public IActionResult GetAsync([FromQuery(Name = "tier")] string? tier)
         {
-            return string.Equals(tier, "premium", StringComparison.OrdinalIgnoreCase)
-                ? PremiumCap
-                : FreeCap;
+            var normalized = (tier ?? string.Empty).ToLowerInvariant();
+            if (normalized != "guest" && normalized != "free" && normalized != "premium")
+                normalized = "guest";
+            return OkResponse(new MarketPreferencesResponse
+            {
+                MarketIds = CuratedMarkets.DefaultsFor(normalized),
+                Cap = CuratedMarkets.CapFor(normalized),
+                Tier = normalized,
+                Defaults = CuratedMarkets.DefaultsFor(normalized),
+            });
         }
     }
 
@@ -93,5 +111,7 @@ namespace PreOddsApi.WebApi.V3.Controllers
     {
         public IReadOnlyList<long> MarketIds { get; set; } = Array.Empty<long>();
         public int Cap { get; set; }
+        public string Tier { get; set; } = "guest";
+        public IReadOnlyList<long> Defaults { get; set; } = Array.Empty<long>();
     }
 }

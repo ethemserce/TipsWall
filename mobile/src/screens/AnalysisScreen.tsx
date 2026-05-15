@@ -32,6 +32,7 @@ import { useCountryLookup } from '@/src/hooks/useCountryLookup';
 import { useFixtureLookup } from '@/src/hooks/useFixtureLookup';
 import { useLeagueLookup } from '@/src/hooks/useLeagueLookup';
 import { useLiveTicker } from '@/src/hooks/useLiveTicker';
+import { useMarketPreferences } from '@/src/hooks/useMarketPreferences';
 import { useMarkets } from '@/src/hooks/useMarkets';
 import { useInfiniteSignals } from '@/src/hooks/useSignals';
 import { useUserCountryId } from '@/src/hooks/useUserCountry';
@@ -95,6 +96,8 @@ export function AnalysisScreen() {
     filters.riskCategory != null
       ? RISK_THRESHOLDS[filters.riskCategory]
       : null;
+  const { marketIds: favouriteMarketIds } = useMarketPreferences();
+
   const {
     data,
     isLoading,
@@ -118,6 +121,11 @@ export function AnalysisScreen() {
     minSampleCount: filters.kzMin,
     valueOnly: filters.valueOnly || undefined,
     topPerFixture: filters.topPerFixture ?? undefined,
+    // Favourite markets gate: only fetch signals from markets the user
+    // pinned. Backend treats an empty list as "no filter" (returns
+    // every available_in_standard market) so we omit the param when
+    // there's no selection.
+    marketIds: favouriteMarketIds.length > 0 ? favouriteMarketIds : undefined,
   });
 
   const { lookup: marketLookup } = useMarkets();
