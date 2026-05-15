@@ -39,6 +39,12 @@ namespace SportMonks.Football.FixtureWorker.Services
             // historical odd grading lands within minutes of FT, while the
             // live SELECT still shows running winning via odds.evaluate_outcome.
             public const string OddOutcomeFinalize = "worker.football.odd-outcome-finalize";
+            // NightlySnapshot: fires once per day after 03:00 UTC and runs
+            // the full analytics rebuild chain (season + team + player +
+            // outcome-finalizer w/ wide lookback + snapshot regenerate).
+            // Separate from the hourly Analytics tier so the heavy nightly
+            // job has its own visibility + retry semantics.
+            public const string NightlySnapshot = "worker.football.nightly-snapshot";
             public const string AccountPurge = "worker.football.account-purge";
             public const string ExpectedXg = "worker.football.expected-xg";
         }
@@ -509,6 +515,57 @@ namespace SportMonks.Football.FixtureWorker.Services
             // live pulse — default cadence is 5 minutes, fast enough to
             // close the gap without burning Postgres CPU.
             await MaybeRunOddOutcomeFinalizeAsync(cancellationToken);
+            // Nightly full-rebuild is also gated through the live tier so
+            // worker restarts pick it up within 30 seconds of the target
+            // hour. The check itself short-circuits 23h59m of the day.
+            await MaybeRunNightlySnapshotAsync(cancellationToken);
+        }
+
+        private async Task MaybeRunNightlySnapshotAsync(CancellationToken cancellationToken)
+        {
+            if (!GetBoolean("NightlySnapshot:Enabled", true))
+                return;
+
+            // Fire once per day starting at the configured UTC hour
+            // (default 03:00). The 23h sentinel in ShouldRun keeps the
+            // job from re-running within the same day even on worker
+            // restarts; the hour gate stops it from running at midnight
+            // UTC.
+            var targetHourUtc = GetInteger("NightlySnapshot:TargetHourUtc", 3);
+            if (DateTime.UtcNow.Hour < targetHourUtc) return;
+            if (!_scheduler.ShouldRun(ScheduleKey.NightlySnapshot, 23 * 60 * 60))
+                return;
+
+            _logger.LogInformation(
+                "NightlySnapshot: starting full rebuild at {NowUtc} (target hour {Target}).",
+                DateTime.UtcNow, targetHourUtc);
+
+            try
+            {
+                await _analyticsEngine.RunSeasonStatsAsync(cancellationToken);
+                await _analyticsEngine.RunSeasonTeamStatsAsync(cancellationToken);
+                await _analyticsEngine.RunSeasonPlayerStatsAsync(cancellationToken);
+                // Wide lookback so any stale `winning=false` values that
+                // SportMonks shipped for non-graded markets get corrected.
+                var finalized = await _analyticsEngine.RunOddOutcomeFinalizerAsync(
+                    24 * 365, cancellationToken);
+                var snapshotRows = await _analyticsEngine.RunOddAnalysisSnapshotsAsync(
+                    cancellationToken);
+
+                _logger.LogInformation(
+                    "NightlySnapshot success: outcomes_finalized={Finalized} snapshot_rows={Rows}",
+                    finalized, snapshotRows);
+                _scheduler.RecordRun(ScheduleKey.NightlySnapshot);
+            }
+            catch (Exception ex)
+            {
+                // _logger.LogError ships to Sentry via the Serilog sink, so
+                // a failed run pages whoever's on call. Don't RecordRun on
+                // failure — the next live tick (~30s) retries until success
+                // or the hour rolls over.
+                _logger.LogError(ex,
+                    "NightlySnapshot failed; will retry on next live tick.");
+            }
         }
 
         private async Task MaybeRunOddOutcomeFinalizeAsync(CancellationToken cancellationToken)
