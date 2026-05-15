@@ -339,6 +339,37 @@
       "header": "Hakkında",
       "title": "Kişisel tahmin takip uygulaması",
       "disclaimer": "Bu uygulama bahis oynatmaz. Para yatırma, kupon oluşturma veya bahis sitesine yönlendirme içermez. Tahmin takip özelliği yalnızca kişisel analiz amacıyla sunulur."
+    },
+    "marketPrefs": {
+      "label": "Favori Tahmin Tipleri",
+      "hintSelected": "{{count}}/{{cap}} tahmin tipi seçili",
+      "hintEmpty": "Boş bırakırsan her tipi gelir. Seçim yaparsan sadece onlar görünür."
+    },
+    "verifyEmail": {
+      "title": "Email adresini onayla",
+      "hint": "Hesap güvenliği için mailini onayla. Onaylamadan tahmin kaydedemezsin.",
+      "sentHint": "Gelen kutuna bir doğrulama linki gönderdik. Linke tıkladıktan sonra \"Onayladım\"a bas.",
+      "errorHint": "Mail gönderilemedi. Sonra tekrar dene.",
+      "sendBtn": "Mail gönder",
+      "resendBtn": "Tekrar gönder",
+      "refreshBtn": "Onayladım"
+    }
+  },
+  "marketPrefs": {
+    "title": "Favori Tahmin Tipleri",
+    "counter": "{{count}}/{{cap}} seçili",
+    "tier": {
+      "premium": "Premium: 30 tahmin tipi",
+      "free": "Free: 10 tahmin tipi · Premium ile 30",
+      "guest": "Misafir: 3 tahmin tipi · Üye ol, 10 tipe çıkar"
+    },
+    "searchPlaceholder": "Tahmin tipi ara",
+    "empty": "Bu aramada sonuç yok.",
+    "guestCta": "Üye ol · 10 tahmin tipine kadar seç",
+    "save": "Kaydet",
+    "errors": {
+      "overCap": "Seçim sınırı aşıldı.",
+      "network": "Kaydedilemedi. İnternet bağlantını kontrol et."
     }
   },
   "marketOutcome": {
@@ -460,6 +491,11 @@
         "valuePlusRisk": "Değer + risk birlikte daraltıyor — risk kategorisini kaldırmayı dene.",
         "generic": "Filtreleri gevşeterek tekrar dene."
       }
+    },
+    "quickPicks": {
+      "title": "Günün Önerileri",
+      "openA11y": "Günün önerilerini aç",
+      "empty": "Bugün için filtrelerine uyan bir öneri yok."
     }
   },
   "markets": {

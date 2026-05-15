@@ -272,13 +272,12 @@ export function AnalysisScreen() {
   const allCollapsed =
     leagueGroups.length > 0 &&
     leagueGroups.every((g) => collapsed.has(g.leagueId));
-  const toggleAll = useCallback(() => {
-    setCollapsed((prev) => {
-      if (leagueGroups.every((g) => prev.has(g.leagueId))) {
-        return new Set();
-      }
-      return new Set(leagueGroups.map((g) => g.leagueId));
-    });
+  // Only a one-way "collapse all" — expanding every league at once
+  // was lagging the screen (each section eagerly renders 10-30 rows
+  // with HIT/ROI/IMP calculations). Users can still expand a single
+  // league header to drill in.
+  const collapseAll = useCallback(() => {
+    setCollapsed(new Set(leagueGroups.map((g) => g.leagueId)));
   }, [leagueGroups]);
 
   const visibleFixtureCount = useMemo(
@@ -316,14 +315,18 @@ export function AnalysisScreen() {
           style={({ pressed }) => [
             styles.headerFlashBtn,
             {
-              backgroundColor:
-                pressed || quickPicksOpen ? c.brandSoft : 'transparent',
+              // Persistent warning-coloured pill — amber/orange reads as
+              // "spotlight / hot pick" without competing with the brand
+              // colour. The whole point of this button is the user to
+              // notice it, so it stays vivid in both pressed and idle.
+              backgroundColor: c.warning ?? c.brand,
+              opacity: pressed || quickPicksOpen ? 0.85 : 1,
             },
           ]}>
           <MaterialCommunityIcons
-            name="flash"
-            size={22}
-            color={quickPicksOpen ? c.brand : c.textMuted}
+            name="lightning-bolt"
+            size={20}
+            color={c.textInverse ?? '#fff'}
           />
         </Pressable>
         <AppBrand />
@@ -429,25 +432,27 @@ export function AnalysisScreen() {
               matches: visibleFixtureCount,
             })}
           </ThemedText>
-          <Pressable
-            onPress={toggleAll}
-            hitSlop={6}
-            style={({ pressed }) => [
-              styles.toggleAllBtn,
-              {
-                backgroundColor: pressed ? c.brandSoft : 'transparent',
-                borderColor: c.borderSoft,
-              },
-            ]}>
-            <MaterialCommunityIcons
-              name={allCollapsed ? 'unfold-more-horizontal' : 'unfold-less-horizontal'}
-              size={14}
-              color={c.brand}
-            />
-            <ThemedText style={[styles.toggleAllText, { color: c.brand }]}>
-              {allCollapsed ? t('home.toggleAll.expand') : t('home.toggleAll.collapse')}
-            </ThemedText>
-          </Pressable>
+          {allCollapsed ? null : (
+            <Pressable
+              onPress={collapseAll}
+              hitSlop={6}
+              style={({ pressed }) => [
+                styles.toggleAllBtn,
+                {
+                  backgroundColor: pressed ? c.brandSoft : 'transparent',
+                  borderColor: c.borderSoft,
+                },
+              ]}>
+              <MaterialCommunityIcons
+                name="unfold-less-horizontal"
+                size={14}
+                color={c.brand}
+              />
+              <ThemedText style={[styles.toggleAllText, { color: c.brand }]}>
+                {t('home.toggleAll.collapse')}
+              </ThemedText>
+            </Pressable>
+          )}
         </View>
       ) : null}
 

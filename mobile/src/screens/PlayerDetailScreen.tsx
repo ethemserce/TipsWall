@@ -53,23 +53,14 @@ export function PlayerDetailScreen({ playerId }: PlayerDetailScreenProps) {
     <SafeAreaView
       style={[styles.flex, { backgroundColor: c.bg }]}
       edges={['top']}>
-      <View style={[styles.headerBar, { borderBottomColor: c.border }]}>
-        <Pressable
-          onPress={handleBack}
-          hitSlop={12}
-          style={styles.headerBack}>
-          <MaterialCommunityIcons
-            name="chevron-left"
-            size={24}
-            color={c.text}
-          />
+      {/* Bare back arrow — the route's expo-router default header is
+          hidden (root layout) and the player photo block below carries
+          the name + nationality + team, so a second name row in the
+          header would be redundant. */}
+      <View style={styles.headerBar}>
+        <Pressable onPress={handleBack} hitSlop={12} style={styles.headerBack}>
+          <MaterialCommunityIcons name="chevron-left" size={24} color={c.text} />
         </Pressable>
-        <ThemedText
-          style={[styles.headerTitle, { color: c.text }]}
-          numberOfLines={1}>
-          {player?.display_name ?? player?.name ?? `Player #${playerId}`}
-        </ThemedText>
-        <View style={styles.headerBack} />
       </View>
 
       {playerQuery.isLoading && !player ? (

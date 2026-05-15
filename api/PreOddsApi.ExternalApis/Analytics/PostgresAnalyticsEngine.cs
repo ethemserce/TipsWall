@@ -169,21 +169,39 @@ namespace PreOddsApi.ExternalApis.Analytics
                 delete from analytics.season_player_stats where as_of_date = current_date;
 
                 with played as (
-                    -- Each (player × fixture) appears at most once in
-                    -- fixture_lineups. A row alone means the player was
-                    -- in the matchday squad; we'll split started vs sub
-                    -- via the events feed below.
+                    -- A fixture_lineups row alone only proves the player
+                    -- was in the matchday SQUAD (starting XI OR bench).
+                    -- Counting bench rows here was inflating
+                    -- matches_played + matches_started + minutes_played
+                    -- for unused bench players — the "no sub-in event
+                    -- detected" branch below treated them as 90-minute
+                    -- starters. Filter to players who actually took the
+                    -- field: starters (type=LINEUP) OR bench players
+                    -- with a SUBSTITUTION event putting them on.
                     select distinct
                         f.league_id, f.season_id,
                         l.team_id, l.player_id, l.fixture_id,
-                        l.type_id  as lineup_type_id
+                        l.type_id  as lineup_type_id,
+                        upper(coalesce(t.developer_name, '')) as lineup_type_code
                     from football.fixture_lineups l
                     join football.fixtures f on f.id = l.fixture_id
+                    left join catalog.types t on t.id = l.type_id
                     where l.player_id is not null
                       and l.team_id   is not null
                       and f.state_id in (5, 7, 8)
                       and f.league_id is not null
                       and f.season_id is not null
+                      and (
+                          upper(coalesce(t.developer_name, '')) = 'LINEUP'
+                          or exists (
+                              select 1
+                              from football.fixture_events ev
+                              join catalog.types et on et.id = ev.type_id
+                              where ev.fixture_id = l.fixture_id
+                                and ev.player_id  = l.player_id
+                                and et.developer_name = 'SUBSTITUTION'
+                          )
+                      )
                 ),
                 events_agg as (
                     -- type_id mapping from catalog.types; the worker syncs

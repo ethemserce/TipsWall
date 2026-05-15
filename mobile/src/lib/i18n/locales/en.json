@@ -339,6 +339,37 @@
       "header": "About",
       "title": "Personal prediction tracker",
       "disclaimer": "This app does not place bets. It does not accept deposits, build coupons or link out to bookmakers. The prediction-tracking feature is for personal analysis only."
+    },
+    "marketPrefs": {
+      "label": "Favourite prediction types",
+      "hintSelected": "{{count}}/{{cap}} selected",
+      "hintEmpty": "Empty means every type is shown. Pick some to narrow the list."
+    },
+    "verifyEmail": {
+      "title": "Verify your email",
+      "hint": "Verify your email for account security. You can't save predictions until you do.",
+      "sentHint": "We sent a verification link to your inbox. Tap the link, then press \"I verified\".",
+      "errorHint": "Could not send the email. Try again in a moment.",
+      "sendBtn": "Send email",
+      "resendBtn": "Resend",
+      "refreshBtn": "I verified"
+    }
+  },
+  "marketPrefs": {
+    "title": "Favourite prediction types",
+    "counter": "{{count}}/{{cap}} selected",
+    "tier": {
+      "premium": "Premium: 30 prediction types",
+      "free": "Free: 10 prediction types · 30 with Premium",
+      "guest": "Guest: 3 prediction types · Sign up for 10"
+    },
+    "searchPlaceholder": "Search prediction types",
+    "empty": "No results for this search.",
+    "guestCta": "Sign up · pick up to 10",
+    "save": "Save",
+    "errors": {
+      "overCap": "Selection limit exceeded.",
+      "network": "Could not save. Check your connection."
     }
   },
   "marketOutcome": {
@@ -460,6 +491,11 @@
         "valuePlusRisk": "Value + risk tier together is tight — remove the risk filter.",
         "generic": "Try loosening the filters."
       }
+    },
+    "quickPicks": {
+      "title": "Today's Top Picks",
+      "openA11y": "Open today's top picks",
+      "empty": "No top picks match your filters today."
     }
   },
   "markets": {
