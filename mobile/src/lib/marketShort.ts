@@ -1,67 +1,120 @@
-// Shared between RateMatchCard (analysis) and OddsRatesCard (detail) so the
-// coupon stores the same shortcode regardless of where the user picked from.
-export const MARKET_SHORT: Record<number, string> = {
-  1: 'MS',
-  10: 'DNB',
-  14: 'KG',
-  18: 'EV',
-  19: 'DEP',
-  31: 'İY MS',
-  33: 'İY',
-  38: '2Y',
-  44: 'T/Ç',
-  52: 'EV/DEP',
-  80: 'A/Ü',
-};
+// ============================================================================
+// CANONICAL MARKET CATALOG
+// ----------------------------------------------------------------------------
+// Single source of truth for SportMonks market_id ↔ TR/EN short + long labels.
+// Locked down with Ethem on 2026-05-16 against İddaa terminology + the
+// international betting-market standards. If you need a new market ID
+// rendered nicely (short code for the pick column, long name for card
+// headers), add it HERE — not in a screen.
+//
+// Naming rules:
+//   * TR Kısa  → İddaa-flavoured Turkish shorthand (MS, ÇŞ, KG, ...)
+//   * EN Kısa  → International betting shorthand (FT, DC, BTTS, ...)
+//   * TR Uzun  → Full Turkish label used on card headers + Markets sheet.
+//   * EN Uzun  → Full English label, same surfaces, EN locale.
+//
+// Earlier the mobile maps had ID 31 wrongly mapped to "İlk Yarı / Maç Sonu"
+// (HT/FT combo) and ID 52 to plain "Çifte Şans". Both were SportMonks ID
+// collisions: 31 = HALF_TIME_RESULT (just the half-time result), 29 =
+// HALF_TIME_FULL_TIME (combo), 2 = DOUBLE_CHANCE (regular), 52 =
+// TEAM_DOUBLE_CHANCE (per-team double-chance). Backend CuratedMarkets.cs
+// comments are authoritative for the developer_name column.
+// ============================================================================
 
-// Long-form market names for card headers. Card titles previously
-// surfaced SportMonks' raw English market.name ("Fulltime Result", "Both
-// Teams To Score") — these tables replace that on the UI, keyed by
-// market_id so we don't depend on the upstream string. Pick the table
-// at render time via the active i18n language.
-export const MARKET_LONG_TR: Record<number, string> = {
-  1: 'Maç Sonucu',
-  10: 'Beraberlikte İade',
-  14: 'Karşılıklı Gol',
-  18: 'Ev Sahibi Kesin Skor',
-  19: 'Deplasman Kesin Skor',
-  31: 'İlk Yarı / Maç Sonu',
-  33: 'İlk Yarı Kesin Skor',
-  38: 'İkinci Yarı Kesin Skor',
-  39: 'Deplasman İki Yarıyı da Önde Bitirir',
-  41: 'Ev Sahibi İki Yarıyı da Önde Bitirir',
-  44: 'Toplam Gol Tek / Çift',
-  50: 'Ev Sahibi Kalesini Gole Kapatır',
-  51: 'Deplasman Kalesini Gole Kapatır',
-  52: 'Çifte Şans',
-  80: 'Toplam Gol Alt / Üst',
-};
+export interface MarketEntry {
+  /** SportMonks market_id (matches odds.markets.id) */
+  id: number;
+  /** SportMonks developer_name (matches odds.markets.developer_name) */
+  developerName: string;
+  /** TR shorthand surfaced on the pick column (header column "TAHMİN") */
+  shortTr: string;
+  /** EN shorthand surfaced when the active locale is English */
+  shortEn: string;
+  /** TR long label rendered on OddsRatesCard headers + Markets sheet */
+  longTr: string;
+  /** EN long label, same surfaces, EN locale */
+  longEn: string;
+}
 
-export const MARKET_LONG_EN: Record<number, string> = {
-  1: 'Match Result',
-  10: 'Draw No Bet',
-  14: 'Both Teams To Score',
-  18: 'Home Exact Score',
-  19: 'Away Exact Score',
-  31: 'Half Time / Full Time',
-  33: 'Half Time Exact Score',
-  38: 'Second Half Exact Score',
-  39: 'Away Wins Both Halves',
-  41: 'Home Wins Both Halves',
-  44: 'Total Goals Odd / Even',
-  50: 'Home Clean Sheet',
-  51: 'Away Clean Sheet',
-  52: 'Double Chance',
-  80: 'Total Goals Over / Under',
-};
+export const MARKET_CATALOG: readonly MarketEntry[] = [
+  { id: 1,   developerName: 'FULLTIME_RESULT',                shortTr: 'MS',          shortEn: 'FT',       longTr: 'Maç Sonucu',                       longEn: 'Full Time Result' },
+  { id: 2,   developerName: 'DOUBLE_CHANCE',                  shortTr: 'ÇŞ',          shortEn: 'DC',       longTr: 'Çifte Şans',                       longEn: 'Double Chance' },
+  { id: 6,   developerName: 'ASIAN_HANDICAP',                 shortTr: 'AH',          shortEn: 'AH',       longTr: 'Asya Handikap',                    longEn: 'Asian Handicap' },
+  { id: 9,   developerName: '3_WAY_HANDICAP',                 shortTr: 'HMS',         shortEn: 'EH',       longTr: 'Handikaplı Maç Sonucu',            longEn: '3-Way Handicap / European Handicap' },
+  { id: 10,  developerName: 'DRAW_NO_BET',                    shortTr: 'DNB',         shortEn: 'DNB',      longTr: 'Beraberlikte İade',                longEn: 'Draw No Bet' },
+  { id: 13,  developerName: 'RESULT_BOTH_TEAMS_TO_SCORE',     shortTr: 'MS/KG',       shortEn: 'FT/BTTS',  longTr: 'Maç Sonucu ve Karşılıklı Gol',     longEn: 'Match Result and Both Teams to Score' },
+  { id: 14,  developerName: 'BOTH_TEAMS_TO_SCORE',            shortTr: 'KG',          shortEn: 'BTTS',     longTr: 'Karşılıklı Gol Var/Yok',           longEn: 'Both Teams to Score' },
+  { id: 15,  developerName: 'BOTH_TEAMS_TO_SCORE_IN_1ST_HALF', shortTr: '1Y KG',      shortEn: '1H BTTS',  longTr: 'İlk Yarı Karşılıklı Gol',          longEn: 'Both Teams to Score in 1st Half' },
+  { id: 16,  developerName: 'BOTH_TEAMS_TO_SCORE_IN_2ND_HALF', shortTr: '2Y KG',      shortEn: '2H BTTS',  longTr: 'İkinci Yarı Karşılıklı Gol',       longEn: 'Both Teams to Score in 2nd Half' },
+  { id: 18,  developerName: 'HOME_TEAM_EXACT_GOALS',          shortTr: 'EV TGS',      shortEn: 'Home EG',  longTr: 'Ev Sahibi Tam Gol Sayısı',         longEn: 'Home Team Exact Goals' },
+  { id: 19,  developerName: 'AWAY_TEAM_EXACT_GOALS',          shortTr: 'DEP TGS',     shortEn: 'Away EG',  longTr: 'Deplasman Tam Gol Sayısı',         longEn: 'Away Team Exact Goals' },
+  { id: 28,  developerName: '1ST_HALF_GOALS',                 shortTr: '1Y TG',       shortEn: '1H TG',    longTr: 'İlk Yarı Toplam Gol',              longEn: '1st Half Total Goals' },
+  { id: 29,  developerName: 'HALF_TIME_FULL_TIME',            shortTr: 'İY/MS',       shortEn: 'HT/FT',    longTr: 'İlk Yarı / Maç Sonucu',            longEn: 'Half Time / Full Time' },
+  { id: 30,  developerName: 'HALF_TIME_CORRECT_SCORE',        shortTr: 'İY SKR',      shortEn: 'HT CS',    longTr: 'İlk Yarı Skor',                    longEn: 'Half Time Correct Score' },
+  { id: 31,  developerName: 'HALF_TIME_RESULT',               shortTr: 'İY',          shortEn: 'HT',       longTr: 'İlk Yarı Sonucu',                  longEn: 'Half Time Result' },
+  { id: 33,  developerName: '1ST_HALF_CORRECT_SCORE',         shortTr: 'İY SKR',      shortEn: '1H CS',    longTr: 'İlk Yarı Kesin Skor',              longEn: '1st Half Correct Score' },
+  { id: 35,  developerName: 'AWAY_TEAM_TO_SCORE',             shortTr: 'DEP GOL',     shortEn: 'Away TS',  longTr: 'Deplasman Gol Atar',               longEn: 'Away Team to Score' },
+  { id: 36,  developerName: 'HOME_TEAM_TO_SCORE',             shortTr: 'EV GOL',      shortEn: 'Home TS',  longTr: 'Ev Sahibi Gol Atar',               longEn: 'Home Team to Score' },
+  { id: 37,  developerName: 'RESULT_TOTAL_GOALS',             shortTr: 'MS/TG',       shortEn: 'FT/TG',    longTr: 'Maç Sonucu ve Toplam Gol',         longEn: 'Match Result and Total Goals' },
+  { id: 38,  developerName: '2ND_HALF_CORRECT_SCORE',         shortTr: '2Y SKR',      shortEn: '2H CS',    longTr: 'İkinci Yarı Kesin Skor',           longEn: 'Second Half Correct Score' },
+  { id: 44,  developerName: 'ODD_EVEN',                       shortTr: 'T/Ç',         shortEn: 'O/E',      longTr: 'Toplam Gol Tek / Çift',            longEn: 'Total Goals Odd / Even' },
+  { id: 45,  developerName: 'ODD_EVEN_1ST_HALF',              shortTr: '1Y T/Ç',      shortEn: '1H O/E',   longTr: 'İlk Yarı Tek / Çift',              longEn: '1st Half Goals Odd / Even' },
+  { id: 46,  developerName: 'WIN_TO_NIL',                     shortTr: 'gol yemeden', shortEn: 'Win to Nil', longTr: 'Gol Yemeden Kazanır',            longEn: 'Win to Nil' },
+  { id: 50,  developerName: 'CLEAN_SHEET_HOME',               shortTr: 'EV GYM',      shortEn: 'Home CS',  longTr: 'Ev Sahibi Gole Kapatır',           longEn: 'Home Clean Sheet' },
+  { id: 51,  developerName: 'CLEAN_SHEET_AWAY',               shortTr: 'DEP GYM',     shortEn: 'Away CS',  longTr: 'Deplasman Gole Kapatır',           longEn: 'Away Clean Sheet' },
+  { id: 52,  developerName: 'TEAM_DOUBLE_CHANCE',             shortTr: 'TÇŞ',         shortEn: 'Team DC',  longTr: 'Takım Çifte Şans (Ev/Dep)',        longEn: 'Team Double Chance' },
+  { id: 53,  developerName: '2ND_HALF_GOALS',                 shortTr: '2Y TG',       shortEn: '2H TG',    longTr: 'İkinci Yarı Toplam Gol',           longEn: '2nd Half Total Goals' },
+  { id: 56,  developerName: 'HANDICAP_RESULT',                shortTr: 'H',           shortEn: 'Hand',     longTr: 'Handikap Sonucu',                  longEn: 'Handicap Result' },
+  { id: 57,  developerName: 'CORRECT_SCORE',                  shortTr: 'SKR',         shortEn: 'CS',       longTr: 'Maç Skoru',                        longEn: 'Correct Score' },
+  { id: 80,  developerName: 'GOALS_OVER_UNDER',               shortTr: 'A/Ü',         shortEn: 'O/U',      longTr: 'Toplam Gol Alt / Üst',             longEn: 'Total Goals Over / Under' },
+  { id: 93,  developerName: 'EXACT_TOTAL_GOALS',              shortTr: 'TGS',         shortEn: 'ETG',      longTr: 'Toplam Gol Sayısı',                longEn: 'Exact Total Goals' },
+  { id: 97,  developerName: '2ND_HALF_RESULT',                shortTr: '2Y',          shortEn: '2H',       longTr: 'İkinci Yarı Sonucu',               longEn: '2nd Half Result' },
+  { id: 124, developerName: '2ND_HALF_GOALS_ODD_EVEN',        shortTr: '2Y T/Ç',      shortEn: '2H O/E',   longTr: 'İkinci Yarı Tek / Çift',           longEn: '2nd Half Goals Odd / Even' },
+];
 
-export function marketShort(marketId: number, fallbackName?: string | null): string {
-  return MARKET_SHORT[marketId] ?? fallbackName ?? `M${marketId}`;
+const BY_ID = new Map<number, MarketEntry>(MARKET_CATALOG.map((m) => [m.id, m]));
+
+// Back-compat exports — older screens still import these by name.
+// Kept as derived maps over MARKET_CATALOG so we don't double-maintain.
+export const MARKET_SHORT: Record<number, string> = Object.fromEntries(
+  MARKET_CATALOG.map((m) => [m.id, m.shortTr]),
+);
+
+export const MARKET_LONG_TR: Record<number, string> = Object.fromEntries(
+  MARKET_CATALOG.map((m) => [m.id, m.longTr]),
+);
+
+export const MARKET_LONG_EN: Record<number, string> = Object.fromEntries(
+  MARKET_CATALOG.map((m) => [m.id, m.longEn]),
+);
+
+// Pulled from the i18next instance lazily so we don't pay an import-time
+// cost on a function that might run before the runtime resolves the
+// active locale. Empty string falls through to the TR branch (default).
+function activeLang(): string {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const i18n = require('i18next');
+    return (i18n.default?.language ?? i18n.language ?? '') as string;
+  } catch {
+    return '';
+  }
+}
+
+export function marketShort(
+  marketId: number,
+  fallbackName?: string | null,
+): string {
+  const entry = BY_ID.get(marketId);
+  if (!entry) return fallbackName ?? `M${marketId}`;
+  return activeLang().toLowerCase().startsWith('en')
+    ? entry.shortEn
+    : entry.shortTr;
 }
 
 /**
  * Long-form market label for card headers, localised to the caller's
- * language. Falls back to the SportMonks-supplied English name when we
+ * language. Falls back to the SportMonks-supplied name when we
  * don't have a translation — better to show *something* than to break
  * the header for unmapped markets the worker happens to sync.
  */
@@ -70,10 +123,9 @@ export function marketLongName(
   lang: string | undefined,
   fallbackName?: string | null,
 ): string {
-  const table = lang && lang.toLowerCase().startsWith('tr')
-    ? MARKET_LONG_TR
-    : MARKET_LONG_EN;
-  return table[marketId] ?? fallbackName ?? `Market #${marketId}`;
+  const entry = BY_ID.get(marketId);
+  if (!entry) return fallbackName ?? `Market #${marketId}`;
+  return lang && lang.toLowerCase().startsWith('tr') ? entry.longTr : entry.longEn;
 }
 
 /**
