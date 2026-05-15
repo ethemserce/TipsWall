@@ -3,6 +3,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
+import { useEffect } from 'react';
 import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -13,6 +14,7 @@ import { QuotaLimitModal } from '@/src/components/QuotaLimitModal';
 import { ToastHost } from '@/src/components/ToastHost';
 import { useAutoSettleSavedCoupons } from '@/src/hooks/useCouponSettlement';
 import '@/src/lib/i18n';
+import { marketPreferencesStore } from '@/src/lib/marketPreferences/store';
 import { initMonitoring } from '@/src/lib/monitoring';
 import { queryClient } from '@/src/lib/queryClient';
 import {
@@ -55,6 +57,12 @@ function RootShell({ statusBarStyle }: { statusBarStyle: 'light' | 'dark' }) {
   // Settlement runs at the root so toasts fire on every screen, including
   // fixture / league detail pushed on top of (tabs).
   useAutoSettleSavedCoupons();
+  // Hydrate the market-preferences store once at boot. Best-effort:
+  // logged-in users get a backend round-trip, guests stay on local
+  // storage. The hook'd-in screens subscribe; nothing else to wire.
+  useEffect(() => {
+    void marketPreferencesStore.hydrate();
+  }, []);
 
   return (
     <View style={{ flex: 1 }}>
@@ -76,6 +84,7 @@ function RootShell({ statusBarStyle }: { statusBarStyle: 'light' | 'dark' }) {
           name="auth/forgot-password"
           options={{ headerShown: false }}
         />
+        <Stack.Screen name="market-preferences" options={{ headerShown: false }} />
       </Stack>
       <CouponBadge />
       <ToastHost />

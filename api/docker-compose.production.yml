@@ -156,10 +156,14 @@ services:
       # transfer data; sidelined is what we need (and it ships from a
       # different endpoint). Disable until a windowed transfer call lands.
       SportMonksTransferSidelinedSync__SyncLatestTransfers: "false"
-      # /players + /coaches + /rivals are reference-data dumps with no
-      # date filter — players alone is 89k+ rows per nightly run. Weekly
-      # re-sync is wasteful while we're unblocking the rest of the chain.
-      SportMonksPlayerReferenceSync__Enabled: "false"
+      # /players + /coaches + /rivals are reference-data dumps. Players
+      # alone is ~89k rows per run, but it ships canonical squad rosters
+      # (football.team_squads) which the team-detail squad tab and the
+      # PlayerPeekSheet need. Without it those views render empty.
+      # The worker enforces a weekly cadence (PlayerReferenceIntervalSeconds
+      # default = 604800), so steady-state cost is one heavy run per
+      # week, not every nightly cycle.
+      SportMonksPlayerReferenceSync__Enabled: "true"
       # NOTE: SportMonksFixtureBacklogSync__DaysForward/DaysBack used to
       # cap the window at 5/1 here because the single-shot multi-day
       # call was OOM'ing. ExecuteFixtureWindow now loops per-day, so the

@@ -96,7 +96,8 @@ with base as (
     inner join football.fixtures f on f.id = o.fixture_id
     inner join odds.markets m on m.id = o.market_id
     where o.winning is not null
-      and coalesce(m.has_winning_calculations, false) = true
+      and m.available_in_standard = true
+      and m.active = true
 ),
 windowed as (
     select b.*, w.code as window_code

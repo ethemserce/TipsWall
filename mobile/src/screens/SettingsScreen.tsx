@@ -16,6 +16,7 @@ import { ThemedText } from '@/components/themed-text';
 import { deleteAccount, logout } from '@/src/api/auth';
 import { AppBrand } from '@/src/components/AppBrand';
 import { useTier } from '@/src/lib/auth/authStore';
+import { useMarketPreferences } from '@/src/hooks/useMarketPreferences';
 import {
   setLanguageMode,
   setOddsHidden,
@@ -43,6 +44,7 @@ export function SettingsScreen() {
   const { t } = useTranslation();
   const { themeMode, languageMode, oddsHidden } = useSettings();
   const tier = useTier();
+  const marketPrefs = useMarketPreferences();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -283,6 +285,36 @@ export function SettingsScreen() {
                 ]}
               />
             </View>
+          </View>
+        </Pressable>
+
+        <Pressable
+          onPress={() => router.push('/market-preferences' as never)}
+          style={[
+            styles.card,
+            { backgroundColor: c.surfaceElevated, borderColor: c.borderSoft },
+          ]}>
+          <View style={styles.toggleRow}>
+            <View style={styles.toggleText}>
+              <ThemedText style={[styles.rowTitle, { color: c.text }]}>
+                {t('settings.marketPrefs.label', {
+                  defaultValue: 'Takip ettiğim oran tipleri',
+                })}
+              </ThemedText>
+              <ThemedText style={[styles.rowHint, { color: c.textMuted }]}>
+                {marketPrefs.marketIds.length > 0
+                  ? t('settings.marketPrefs.hintSelected', {
+                      defaultValue: '{{count}}/{{cap}} market seçili',
+                      count: marketPrefs.marketIds.length,
+                      cap: marketPrefs.cap,
+                    })
+                  : t('settings.marketPrefs.hintEmpty', {
+                      defaultValue:
+                        'Boş bırakırsan her market gelir. Seçim yaparsan sadece onlar görünür.',
+                    })}
+              </ThemedText>
+            </View>
+            <MaterialCommunityIcons name="chevron-right" size={20} color={c.textMuted} />
           </View>
         </Pressable>
 

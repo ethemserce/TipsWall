@@ -21,11 +21,12 @@ namespace PreOddsApi.WebApi.V3.Controllers
         public async Task<IActionResult> GetAsync(
             [FromQuery(Name = "continent_id")] long? continentId,
             [FromQuery(Name = "search")] string? search,
+            [FromQuery(Name = "iso2")] string? iso2,
             [FromQuery] PagedRequest paging,
             CancellationToken ct)
         {
             var (items, total) = await _reader.GetCountriesAsync(
-                continentId, search, paging.NormalizedPage, paging.NormalizedPerPage, ct);
+                continentId, search, iso2, paging.NormalizedPage, paging.NormalizedPerPage, ct);
             return OkPagedResponse(items, paging.NormalizedPage, paging.NormalizedPerPage, total);
         }
 

@@ -61,39 +61,88 @@ namespace PreOddsApi.ExternalApis.Analytics
 
         public async Task<int> RunSeasonTeamStatsAsync(CancellationToken cancellationToken = default)
         {
+            // v2: only count fixtures whose state is final (5/7/8) — the old
+            // `starting_at < now()` filter inflated matches_played with
+            // scheduled-but-not-played rows and left goals_for/against/
+            // clean_sheets etc. as NULL because the INSERT never referenced
+            // them. Pull scores via football.fixture_scores (CURRENT row
+            // per participant_location) and aggregate goals + derived
+            // metrics in one pass.
             const string sql = """
+                with team_fixtures as (
+                    select
+                        f.id as fixture_id, f.league_id, f.season_id,
+                        fp.team_id, fp.location, fp.winner
+                    from football.fixtures f
+                    inner join football.fixture_participants fp on fp.fixture_id = f.id
+                    where f.season_id is not null
+                      and f.state_id in (5, 7, 8)
+                ),
+                fixture_scores as (
+                    select
+                        s.fixture_id,
+                        max(case when s.description='CURRENT' and s.participant_location='home' then s.goals end)::int as h_goals,
+                        max(case when s.description='CURRENT' and s.participant_location='away' then s.goals end)::int as a_goals
+                    from football.fixture_scores s
+                    group by s.fixture_id
+                ),
+                enriched as (
+                    select tf.*,
+                        case when tf.location='home' then sc.h_goals else sc.a_goals end as goals_scored,
+                        case when tf.location='home' then sc.a_goals else sc.h_goals end as goals_conceded,
+                        sc.h_goals, sc.a_goals
+                    from team_fixtures tf
+                    left join fixture_scores sc on sc.fixture_id = tf.fixture_id
+                ),
+                expanded as (
+                    select e.*, scope.fixture_scope
+                    from enriched e
+                    cross join lateral (values
+                        ('all'),
+                        (case when e.location = 'home' then 'home' end),
+                        (case when e.location = 'away' then 'away' end)
+                    ) as scope(fixture_scope)
+                    where scope.fixture_scope is not null
+                )
                 insert into analytics.season_team_stats (
                     league_id, season_id, team_id, as_of_date, fixture_scope,
                     matches_played, matches_won, matches_drawn, matches_lost,
+                    goals_for, goals_against, goal_difference,
+                    clean_sheets, failed_to_score, both_teams_scored,
+                    average_goals_for, average_goals_against,
                     points, calculated_at)
                 select
-                    f.league_id,
-                    f.season_id,
-                    fp.team_id,
-                    current_date,
-                    scope.fixture_scope,
-                    count(*) filter (where f.starting_at < now()),
-                    count(*) filter (where fp.winner = true),
-                    count(*) filter (where f.starting_at < now() and fp.winner is null),
-                    count(*) filter (where fp.winner = false),
-                    coalesce(count(*) filter (where fp.winner = true), 0) * 3 +
-                        coalesce(count(*) filter (where f.starting_at < now() and fp.winner is null), 0),
+                    league_id, season_id, team_id, current_date, fixture_scope,
+                    count(*) as matches_played,
+                    count(*) filter (where winner = true)  as matches_won,
+                    count(*) filter (where winner is null) as matches_drawn,
+                    count(*) filter (where winner = false) as matches_lost,
+                    coalesce(sum(goals_scored), 0)::int   as goals_for,
+                    coalesce(sum(goals_conceded), 0)::int as goals_against,
+                    (coalesce(sum(goals_scored), 0) - coalesce(sum(goals_conceded), 0))::int as goal_difference,
+                    count(*) filter (where goals_conceded = 0) as clean_sheets,
+                    count(*) filter (where goals_scored = 0)   as failed_to_score,
+                    count(*) filter (where goals_scored >= 1 and goals_conceded >= 1) as both_teams_scored,
+                    round(coalesce(sum(goals_scored), 0)::numeric   / nullif(count(*), 0), 2) as average_goals_for,
+                    round(coalesce(sum(goals_conceded), 0)::numeric / nullif(count(*), 0), 2) as average_goals_against,
+                    coalesce(count(*) filter (where winner = true), 0) * 3 +
+                        coalesce(count(*) filter (where winner is null), 0) as points,
                     now()
-                from football.fixtures f
-                inner join football.fixture_participants fp on fp.fixture_id = f.id
-                cross join lateral (values
-                    ('all'),
-                    (case when fp.location = 'home' then 'home' end),
-                    (case when fp.location = 'away' then 'away' end)
-                ) as scope(fixture_scope)
-                where f.season_id is not null
-                  and scope.fixture_scope is not null
-                group by f.league_id, f.season_id, fp.team_id, scope.fixture_scope
+                from expanded
+                group by league_id, season_id, team_id, fixture_scope
                 on conflict (league_id, season_id, team_id, as_of_date, fixture_scope) do update set
                     matches_played = excluded.matches_played,
                     matches_won = excluded.matches_won,
                     matches_drawn = excluded.matches_drawn,
                     matches_lost = excluded.matches_lost,
+                    goals_for = excluded.goals_for,
+                    goals_against = excluded.goals_against,
+                    goal_difference = excluded.goal_difference,
+                    clean_sheets = excluded.clean_sheets,
+                    failed_to_score = excluded.failed_to_score,
+                    both_teams_scored = excluded.both_teams_scored,
+                    average_goals_for = excluded.average_goals_for,
+                    average_goals_against = excluded.average_goals_against,
                     points = excluded.points,
                     calculated_at = now(),
                     updated_at = now();
@@ -282,7 +331,17 @@ namespace PreOddsApi.ExternalApis.Analytics
                     inner join football.fixtures f on f.id = o.fixture_id
                     inner join odds.markets m on m.id = o.market_id
                     where o.winning is not null
-                      and coalesce(m.has_winning_calculations, false) = true
+                      -- Snapshot pipeline scope matches the broader display
+                      -- filter the rest of the app uses now (every active
+                      -- standard market) so /signals and /odds-rates show
+                      -- consistent rows. SportMonks doesn't grade most of
+                      -- these markets itself, so the OddOutcomeFinalizer
+                      -- (RunOddOutcomeFinalizerAsync) is responsible for
+                      -- populating o.winning via odds.evaluate_outcome —
+                      -- without it, this aggregation would inherit the
+                      -- stale `false` defaults SportMonks ships.
+                      and m.available_in_standard = true
+                      and m.active = true
                       -- SportMonks ships `winning=false` on rows that haven't
                       -- been settled yet (state_id=1, NotStarted, also on
                       -- in-play states 2/3/22 mid-match). Those rows were

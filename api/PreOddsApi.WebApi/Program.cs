@@ -115,6 +115,8 @@ builder.Services.AddSingleton<PreOddsApi.WebApi.V3.Data.IFixtureReader,
     PreOddsApi.WebApi.V3.Data.PostgresFixtureReader>();
 builder.Services.AddSingleton<PreOddsApi.WebApi.V3.Data.IPlayerReader,
     PreOddsApi.WebApi.V3.Data.PostgresPlayerReader>();
+builder.Services.AddSingleton<PreOddsApi.WebApi.V3.Data.IUserMarketPreferencesReader,
+    PreOddsApi.WebApi.V3.Data.PostgresUserMarketPreferencesReader>();
 builder.Services.AddSingleton<PreOddsApi.WebApi.V3.Data.IStandingsNewsReader,
     PreOddsApi.WebApi.V3.Data.PostgresStandingsNewsReader>();
 builder.Services.AddScoped<PreOddsApi.WebApi.V3.Data.IUserIdentityService,

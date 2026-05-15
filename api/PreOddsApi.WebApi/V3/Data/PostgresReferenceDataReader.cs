@@ -19,7 +19,7 @@ namespace PreOddsApi.WebApi.V3.Data
         }
 
         public async Task<(IReadOnlyList<CountryDto> Items, int Total)> GetCountriesAsync(
-            long? continentId, string? search, int page, int perPage, CancellationToken ct = default)
+            long? continentId, string? search, string? iso2, int page, int perPage, CancellationToken ct = default)
         {
             var (where, parameters) = BuildWhere(filters =>
             {
@@ -27,6 +27,8 @@ namespace PreOddsApi.WebApi.V3.Data
                     filters.Add("continent_id = @continent_id", new NpgsqlParameter("continent_id", continentId.Value));
                 if (!string.IsNullOrWhiteSpace(search))
                     filters.Add("name ilike @search", new NpgsqlParameter("search", $"%{search.Trim()}%"));
+                if (!string.IsNullOrWhiteSpace(iso2))
+                    filters.Add("lower(iso2) = lower(@iso2)", new NpgsqlParameter("iso2", iso2.Trim()));
             });
 
             var sql = $"""

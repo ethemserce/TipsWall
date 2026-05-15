@@ -55,6 +55,7 @@ import {
   useFixtureWeather,
 } from '@/src/hooks/useFixtureExtras';
 import { useFixtureOddsRates } from '@/src/hooks/useFixtureOddsRates';
+import { useMarketPreferences } from '@/src/hooks/useMarketPreferences';
 import { useFixtures } from '@/src/hooks/useFixtures';
 import { shareFixture } from '@/src/lib/share';
 import { useLeagueLookup } from '@/src/hooks/useLeagueLookup';
@@ -237,10 +238,13 @@ export function FixtureDetailScreen({ fixtureId }: FixtureDetailScreenProps) {
 
   // Hero shows scorer summary so we always need events.
   const events = useFixtureEvents(fixtureId);
+  // When the user has pinned a subset of markets in Settings, narrow
+  // the odds-rates query to that list. Empty selection = no filter.
+  const { marketIds: preferredMarketIds } = useMarketPreferences();
   const oddsRates = useFixtureOddsRates({
     fixtureId,
     bookmakerId: ODDS_BOOKMAKER_ID,
-    marketIds: ODDS_MARKET_IDS,
+    marketIds: preferredMarketIds.length > 0 ? preferredMarketIds : ODDS_MARKET_IDS,
     window: 'all',
   });
   const stats = useFixtureStatistics(fixtureId, tab === 'stats');

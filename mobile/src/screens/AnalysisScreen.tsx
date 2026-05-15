@@ -3,6 +3,7 @@ import { format } from 'date-fns';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+  ActivityIndicator,
   FlatList,
   Pressable,
   RefreshControl,
@@ -32,7 +33,8 @@ import { useFixtureLookup } from '@/src/hooks/useFixtureLookup';
 import { useLeagueLookup } from '@/src/hooks/useLeagueLookup';
 import { useLiveTicker } from '@/src/hooks/useLiveTicker';
 import { useMarkets } from '@/src/hooks/useMarkets';
-import { useSignals } from '@/src/hooks/useSignals';
+import { useInfiniteSignals } from '@/src/hooks/useSignals';
+import { useUserCountryId } from '@/src/hooks/useUserCountry';
 import { getStateBucket } from '@/src/lib/fixtureState';
 import { useTheme } from '@/src/lib/useTheme';
 import type { SignalSort } from '@/src/api/signals';
@@ -64,6 +66,7 @@ const normalizeForSearch = (value: string | null | undefined): string =>
 export function AnalysisScreen() {
   const c = useTheme();
   const { t } = useTranslation();
+  const userCountryId = useUserCountryId();
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [filters, setFilters] = useState<AnalysisFilterState>(DEFAULT_FILTERS);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -92,7 +95,17 @@ export function AnalysisScreen() {
     filters.riskCategory != null
       ? RISK_THRESHOLDS[filters.riskCategory]
       : null;
-  const { data, isLoading, isFetching, isError, error, refetch } = useSignals({
+  const {
+    data,
+    isLoading,
+    isFetching,
+    isError,
+    error,
+    refetch,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteSignals({
     bookmakerId: BOOKMAKER_ID,
     fixtureDate: format(selectedDate, 'yyyy-MM-dd'),
     window: filters.window,
@@ -105,11 +118,22 @@ export function AnalysisScreen() {
     minSampleCount: filters.kzMin,
     valueOnly: filters.valueOnly || undefined,
     topPerFixture: filters.topPerFixture ?? undefined,
-    perPage: 100,
   });
 
   const { lookup: marketLookup } = useMarkets();
-  const items = data?.data.items ?? [];
+  // Flatten paginated rows into the same shape the rest of the screen
+  // already operates on — grouping, search and lookup don't care that
+  // the data arrived in pages.
+  const items = useMemo(
+    () => data?.pages.flatMap((p) => p.data.items) ?? [],
+    [data?.pages],
+  );
+
+  const handleEndReached = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) {
+      void fetchNextPage();
+    }
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const fixtureGroups = useMemo<FixtureGroup[]>(() => {
     const map = new Map<number, RateResult[]>();
@@ -205,6 +229,11 @@ export function AnalysisScreen() {
       .sort((a, b) => {
         const la = leagueLookup.get(a.leagueId);
         const lb = leagueLookup.get(b.leagueId);
+        // National league first — mirrors the home tab so the sort is
+        // consistent across screens. See TodayMatchesScreen sort.
+        const homeA = userCountryId != null && la?.country_id === userCountryId ? 0 : 1;
+        const homeB = userCountryId != null && lb?.country_id === userCountryId ? 0 : 1;
+        if (homeA !== homeB) return homeA - homeB;
         const ca = la?.category ?? Number.MAX_SAFE_INTEGER;
         const cb = lb?.category ?? Number.MAX_SAFE_INTEGER;
         if (ca !== cb) return ca - cb;
@@ -218,7 +247,7 @@ export function AnalysisScreen() {
       sorted.push({ leagueId: -1, fixtures: orphans });
     }
     return sorted;
-  }, [filteredFixtureGroups, fixtureLookup, leagueLookup]);
+  }, [filteredFixtureGroups, fixtureLookup, leagueLookup, userCountryId]);
 
   // Per-league collapsed set + bulk toggle, mirroring the home list.
   const [collapsed, setCollapsed] = useState<Set<number>>(() => new Set());
@@ -412,6 +441,15 @@ export function AnalysisScreen() {
           data={leagueGroups}
           keyExtractor={(g) => String(g.leagueId)}
           keyboardShouldPersistTaps="handled"
+          onEndReached={handleEndReached}
+          onEndReachedThreshold={0.4}
+          ListFooterComponent={
+            isFetchingNextPage ? (
+              <View style={styles.footerLoading}>
+                <ActivityIndicator color={c.brand} />
+              </View>
+            ) : null
+          }
           renderItem={({ item }) => {
             const league = leagueLookup.get(item.leagueId);
             const country =
@@ -694,6 +732,11 @@ const styles = StyleSheet.create({
   fixtureSeparator: {
     height: StyleSheet.hairlineWidth,
     marginLeft: 16,
+  },
+  footerLoading: {
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   center: {
     flex: 1,
