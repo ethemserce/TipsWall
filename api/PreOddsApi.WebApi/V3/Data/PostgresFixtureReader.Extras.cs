@@ -203,7 +203,66 @@ namespace PreOddsApi.WebApi.V3.Data
             long fixtureId,
             CancellationToken ct = default)
         {
+            // VAR-cancelled goals: SportMonks doesn't ship a GOAL_CANCELLED
+            // event type — the original GOAL row stays in the feed and only
+            // a separate VAR event marks that a review happened. So when a
+            // goal is overturned, fixture_scores.CURRENT lands at the lower
+            // tally but the GOAL event is still in the timeline.
+            //
+            // We infer cancellation by reconciling: per team, if
+            // GOAL/OWNGOAL/PENALTY event count > final score AND the same
+            // player has a VAR event within ~5 minutes after the goal, that
+            // goal is treated as cancelled and hidden from the timeline.
+            // The VAR event itself stays visible so the timeline still
+            // tells the story of "review happened".
             const string sql = """
+                with goal_events as (
+                    select e.id, e.player_id, e.participant_id,
+                           e.minute, e.extra_minute
+                    from football.fixture_events e
+                    join catalog.types t on t.id = e.type_id
+                    where e.fixture_id = @fixture_id
+                      and t.developer_name in ('GOAL', 'OWNGOAL', 'PENALTY')
+                ),
+                var_events as (
+                    select e.player_id, e.participant_id,
+                           e.minute, e.extra_minute
+                    from football.fixture_events e
+                    join catalog.types t on t.id = e.type_id
+                    where e.fixture_id = @fixture_id
+                      and t.developer_name = 'VAR'
+                ),
+                participant_tally as (
+                    select fp.team_id,
+                           (
+                               select goals from football.fixture_scores
+                               where fixture_id = @fixture_id
+                                 and participant_location = fp.location
+                                 and description = 'CURRENT'
+                               order by id desc limit 1
+                           ) as final_goals,
+                           (
+                               select count(*) from goal_events g
+                               where g.participant_id = fp.team_id
+                           ) as goal_event_count
+                    from football.fixture_participants fp
+                    where fp.fixture_id = @fixture_id
+                ),
+                cancelled_goal_ids as (
+                    select g.id
+                    from goal_events g
+                    join participant_tally pt on pt.team_id = g.participant_id
+                    where coalesce(pt.final_goals, 0)
+                            < coalesce(pt.goal_event_count, 0)
+                      and exists (
+                          select 1 from var_events v
+                          where v.player_id     = g.player_id
+                            and v.participant_id = g.participant_id
+                            and (v.minute, coalesce(v.extra_minute, 0))
+                                  >= (g.minute, coalesce(g.extra_minute, 0))
+                            and (v.minute - g.minute) <= 5
+                      )
+                )
                 select e.id, e.minute, e.extra_minute,
                        e.type_id, t.developer_name as type_code, t.name as type_name,
                        e.participant_id,
@@ -220,6 +279,7 @@ namespace PreOddsApi.WebApi.V3.Data
                 left join football.fixture_participants fp_away
                     on fp_away.fixture_id = e.fixture_id and fp_away.location = 'away'
                 where e.fixture_id = @fixture_id
+                  and e.id not in (select id from cancelled_goal_ids)
                 order by e.minute nulls last, e.extra_minute nulls last, e.id;
                 """;
 

@@ -596,8 +596,8 @@ namespace PreOddsApi.ExternalApis.SportMonks.Sync.Writers
             command.Parameters.Add(Parameter("sort_order", period.SortOrder));
             command.Parameters.Add(TextParameter("description", NullIfWhiteSpace(period.Description)));
             command.Parameters.Add(IntegerParameter("time_added", period.TimeAdded));
-            command.Parameters.Add(Parameter("minutes", period.Minutes));
-            command.Parameters.Add(Parameter("seconds", period.Seconds));
+            command.Parameters.Add(IntegerParameter("minutes", period.Minutes));
+            command.Parameters.Add(IntegerParameter("seconds", period.Seconds));
 
             await command.ExecuteNonQueryAsync(cancellationToken);
         }

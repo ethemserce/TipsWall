@@ -34,10 +34,16 @@ namespace PreOddsApi.Entities.SportMonks.Football.V3
         [JsonProperty("time_added")]
         public int? TimeAdded { get; set; }
 
+        // SportMonks ships `null` for these on non-ticking periods (e.g.
+        // the synthetic "extra time" placeholder period that appears before
+        // ET starts). Newtonsoft.Json on a non-nullable int throws
+        // `Error converting value {null} to type 'System.Int32'`, which
+        // aborts the *entire* livescores/latest batch — every live fixture
+        // stays frozen until the worker restarts. Keep these nullable.
         [JsonProperty("minutes")]
-        public int Minutes { get; set; }
+        public int? Minutes { get; set; }
 
         [JsonProperty("seconds")]
-        public int Seconds { get; set; }
+        public int? Seconds { get; set; }
     }
 }
