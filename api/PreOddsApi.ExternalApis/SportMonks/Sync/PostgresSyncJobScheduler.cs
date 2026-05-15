@@ -78,6 +78,9 @@ namespace PreOddsApi.ExternalApis.SportMonks.Sync
             }
         }
 
+        public DateTimeOffset? GetLastRunUtc(string scheduleKey)
+            => GetLastRun(scheduleKey);
+
         private DateTimeOffset? GetLastRun(string scheduleKey)
         {
             if (_cache.TryGetValue(scheduleKey, out var cached))

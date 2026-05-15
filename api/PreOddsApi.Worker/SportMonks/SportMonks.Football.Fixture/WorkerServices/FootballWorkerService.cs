@@ -182,6 +182,12 @@ namespace SportMonks.Football.FixtureWorker.Services
         private DateTimeOffset? _nightlySnapshotNextRetryAt;
         private int _nightlySnapshotAttemptCount;
         private DateOnly _nightlySnapshotAttemptDate;
+        // UTC date of the last day we successfully ran (or gave up on
+        // after retries). Tracks "we already handled today" without
+        // depending on the interval-based ShouldRun, which drifts the
+        // run time earlier each day. Persisted in scheduler too via
+        // RecordRun, but cached here for cheap per-tick checks.
+        private DateOnly _nightlySnapshotLastRunDate;
 
         private List<League> _cachedLeagues = [];
 
@@ -240,6 +246,7 @@ namespace SportMonks.Football.FixtureWorker.Services
             _accountPurge = accountPurge;
             _emailService = emailService;
             _nightlySnapshotAttemptDate = DateOnly.MinValue;
+            _nightlySnapshotLastRunDate = DateOnly.MinValue;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -537,20 +544,31 @@ namespace SportMonks.Football.FixtureWorker.Services
             if (!GetBoolean("NightlySnapshot:Enabled", true))
                 return;
 
-            // Fire once per day starting at the configured UTC hour
-            // (default 03:00). The 23h sentinel in ShouldRun keeps the
-            // job from re-running within the same day even on worker
-            // restarts; the hour gate stops it from running at midnight
-            // UTC. Retry policy: one initial try at the hour-gate, one
-            // retry after RetryDelayMinutes (default 5), then admin
-            // email if both fail.
+            // Calendar-day-based scheduling. Fires once per UTC date at
+            // the configured target hour. Drift-resistant: a worker
+            // started mid-afternoon today won't run again until 03:00
+            // UTC tomorrow (vs. the old 23h interval which slid earlier
+            // each day). The hour gate keeps the run pinned to roughly
+            // the target hour.
             var targetHourUtc = GetInteger("NightlySnapshot:TargetHourUtc", 3);
-            if (DateTime.UtcNow.Hour < targetHourUtc) return;
-            if (!_scheduler.ShouldRun(ScheduleKey.NightlySnapshot, 23 * 60 * 60))
-                return;
+            var nowUtc = DateTime.UtcNow;
+            var todayUtc = DateOnly.FromDateTime(nowUtc);
+            if (nowUtc.Hour < targetHourUtc) return;
+
+            // Seed the local cache from the scheduler on first tick so
+            // a worker restart doesn't re-fire today's run. If
+            // ShouldRun-based persistence ran the job earlier today,
+            // GetLastRunUtc returns that timestamp; convert to UTC
+            // date and short-circuit if it's today.
+            if (_nightlySnapshotLastRunDate == DateOnly.MinValue)
+            {
+                var lastRun = _scheduler.GetLastRunUtc(ScheduleKey.NightlySnapshot);
+                if (lastRun.HasValue)
+                    _nightlySnapshotLastRunDate = DateOnly.FromDateTime(lastRun.Value.UtcDateTime);
+            }
+            if (_nightlySnapshotLastRunDate >= todayUtc) return;
 
             // Reset attempt counter for a new day.
-            var todayUtc = DateOnly.FromDateTime(DateTime.UtcNow);
             if (_nightlySnapshotAttemptDate != todayUtc)
             {
                 _nightlySnapshotAttemptDate = todayUtc;
@@ -584,6 +602,7 @@ namespace SportMonks.Football.FixtureWorker.Services
                     "NightlySnapshot success on attempt {Attempt}: outcomes_finalized={Finalized} snapshot_rows={Rows}",
                     attempt, finalized, snapshotRows);
                 _scheduler.RecordRun(ScheduleKey.NightlySnapshot);
+                _nightlySnapshotLastRunDate = todayUtc;
                 _nightlySnapshotNextRetryAt = null;
             }
             catch (Exception ex)
@@ -606,6 +625,7 @@ namespace SportMonks.Football.FixtureWorker.Services
                     // CPU all day, and email an admin so they can poke at
                     // it manually.
                     _scheduler.RecordRun(ScheduleKey.NightlySnapshot);
+                    _nightlySnapshotLastRunDate = todayUtc;
                     _nightlySnapshotNextRetryAt = null;
                     await TrySendNightlySnapshotFailureEmailAsync(ex, attempt, cancellationToken);
                 }
