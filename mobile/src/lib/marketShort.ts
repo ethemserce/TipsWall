@@ -88,17 +88,17 @@ export const MARKET_LONG_EN: Record<number, string> = Object.fromEntries(
   MARKET_CATALOG.map((m) => [m.id, m.longEn]),
 );
 
-// Pulled from the i18next instance lazily so we don't pay an import-time
-// cost on a function that might run before the runtime resolves the
-// active locale. Empty string falls through to the TR branch (default).
+// Read the active language from the singleton i18next instance directly.
+// Previously this went through `require('i18next')` lazily, but in
+// Metro/Hermes the lazy require resolves to a stub that never carries
+// the configured language — pick names stayed in Turkish even when the
+// user switched the app to English. Static import returns the same
+// instance that mobile/src/lib/i18n/index.ts configured at startup, so
+// .language reflects the latest changeLanguage() call.
+import i18nInstance from 'i18next';
+
 function activeLang(): string {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const i18n = require('i18next');
-    return (i18n.default?.language ?? i18n.language ?? '') as string;
-  } catch {
-    return '';
-  }
+  return (i18nInstance.language ?? '') as string;
 }
 
 export function marketShort(

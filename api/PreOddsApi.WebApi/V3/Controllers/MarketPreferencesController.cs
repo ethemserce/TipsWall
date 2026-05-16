@@ -28,12 +28,15 @@ namespace PreOddsApi.WebApi.V3.Controllers
                     ApiError.Codes.Unauthorized, "Invalid token."));
 
             var tier = GetTier();
+            var verified = GetEmailVerified();
+            var cap = CuratedMarkets.CapFor(tier, verified);
             var ids = await _reader.GetAsync(userId, ct);
             return OkResponse(new MarketPreferencesResponse
             {
                 MarketIds = ids,
-                Cap = CuratedMarkets.CapFor(tier),
+                Cap = cap,
                 Tier = tier,
+                EmailVerified = verified,
                 Defaults = CuratedMarkets.DefaultsFor(tier),
             });
         }
@@ -50,10 +53,11 @@ namespace PreOddsApi.WebApi.V3.Controllers
                 return BadRequestResponse("market_ids is required.");
 
             var tier = GetTier();
-            var cap = CuratedMarkets.CapFor(tier);
+            var verified = GetEmailVerified();
+            var cap = CuratedMarkets.CapFor(tier, verified);
             if (request.MarketIds.Count > cap)
                 return BadRequestResponse(
-                    $"Too many markets ({request.MarketIds.Count}); cap for tier '{tier}' is {cap}.");
+                    $"Too many markets ({request.MarketIds.Count}); cap is {cap}.");
 
             var persisted = await _reader.ReplaceAsync(userId, request.MarketIds, ct);
             return OkResponse(new MarketPreferencesResponse
@@ -61,6 +65,7 @@ namespace PreOddsApi.WebApi.V3.Controllers
                 MarketIds = persisted,
                 Cap = cap,
                 Tier = tier,
+                EmailVerified = verified,
                 Defaults = CuratedMarkets.DefaultsFor(tier),
             });
         }
@@ -74,6 +79,12 @@ namespace PreOddsApi.WebApi.V3.Controllers
         private new string GetTier()
         {
             return User.FindFirst("tier")?.Value ?? "free";
+        }
+
+        private bool GetEmailVerified()
+        {
+            var claim = User.FindFirst("email_verified")?.Value;
+            return string.Equals(claim, "true", StringComparison.OrdinalIgnoreCase);
         }
     }
 
@@ -112,6 +123,13 @@ namespace PreOddsApi.WebApi.V3.Controllers
         public IReadOnlyList<long> MarketIds { get; set; } = Array.Empty<long>();
         public int Cap { get; set; }
         public string Tier { get; set; } = "guest";
+        /// <summary>
+        /// True when the user has confirmed their email. Mobile uses
+        /// this together with `Tier` to render the right cap-hint copy
+        /// ("Free: 10 market" vs "Mail onayı bekleniyor: 3 market").
+        /// Anonymous /markets/curated endpoint leaves this false.
+        /// </summary>
+        public bool EmailVerified { get; set; }
         public IReadOnlyList<long> Defaults { get; set; } = Array.Empty<long>();
     }
 }

@@ -327,27 +327,48 @@ namespace PreOddsApi.ExternalApis.Analytics
 
         public async Task<int> RunOddAnalysisSnapshotsAsync(CancellationToken cancellationToken = default)
         {
-            // Snapshot SQL now generates rows for three kinds of windows:
-            //   * 'time'           — flat date lookback (1m/3m/6m/1y/all),
-            //                        existing behaviour.
-            //   * 'season_current' — per-league filter: fixture.season_id
-            //                        must match the league's current
-            //                        competition.seasons row (is_current).
-            //   * 'season_n'       — per-league filter: fixture.season_id
-            //                        in the top N seasons by starting_at
-            //                        for that league.
+            // Snapshot SQL has three notable design points:
             //
-            // The CTE `season_scope` materialises (window_code, league_id,
-            // season_id) tuples for every season-aware window; `windowed`
-            // unions the time-based and season-based paths so the final
-            // aggregate is uniform regardless of window kind.
+            // 1. WINDOW KIND DISPATCH — produces rows for three kinds of
+            //    windows driven by analytics.analysis_windows.kind:
+            //      * 'time'           — flat date lookback (1m/3m/6m/1y/all),
+            //                           original behaviour.
+            //      * 'season_current' — per-league filter: fixture.season_id
+            //                           matches the league's current
+            //                           competition.seasons row (is_current).
+            //      * 'season_n'       — per-league filter: fixture.season_id
+            //                           in the top N seasons by starting_at
+            //                           for that league (driven by
+            //                           analysis_windows.season_count).
+            //    The CTE `season_scope` materialises (window_code, league_id,
+            //    season_id) tuples for every season-aware window; `windowed`
+            //    UNIONs the time-based and season-based paths so the final
+            //    aggregate is uniform regardless of window kind.
+            //
+            // 2. CASE-FOLDED OUTCOME KEY — `outcome_key` normalises the label
+            //    with `lower(...)`, so the agg's GROUP BY must do the same on
+            //    `odd_label`. Earlier we used the original-case `o.label` in
+            //    GROUP BY which produced two distinct agg rows for the same
+            //    outcome_key when SportMonks shipped 'Home' from one
+            //    bookmaker and 'home' from another. INSERT then collided on
+            //    the unique constraint
+            //    odd_analysis_snapshots_as_of_date_..._outcome_key_key.
+            //
+            // 3. TRANSACTIONAL DELETE+INSERT — `begin; ... commit;` wraps
+            //    the DELETE-INSERT pair. Previously they ran as two
+            //    auto-commit statements; INSERT failing mid-way (e.g. the
+            //    case-collision above) left the snapshot table half-empty
+            //    because the DELETE had already committed. The transaction
+            //    wrap rolls failures back to the pre-run state.
             const string sql = """
+                begin;
+
                 delete from analytics.odd_analysis_snapshots where as_of_date = current_date;
 
                 with base as (
                     select
                         o.bookmaker_id, o.market_id,
-                        o.label as odd_label,
+                        lower(o.label) as odd_label,
                         nullif(o.total, '') as odd_total,
                         nullif(o.handicap, '') as odd_handicap,
                         o.value::numeric(12,4) as odd_value,
@@ -452,6 +473,8 @@ namespace PreOddsApi.ExternalApis.Analytics
                                 / nullif(win_count + lost_count, 0), 4),
                     odd_value
                 from agg;
+
+                commit;
                 """;
 
             await using var connection = await OpenAsync(cancellationToken);

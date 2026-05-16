@@ -19,7 +19,7 @@ import { ThemedText } from '@/components/themed-text';
 import { getCuratedMarkets } from '@/src/api/marketPreferences';
 import { useMarketPreferences } from '@/src/hooks/useMarketPreferences';
 import { useMarkets } from '@/src/hooks/useMarkets';
-import { useTier } from '@/src/lib/auth/authStore';
+import { useEmailVerified, useTier } from '@/src/lib/auth/authStore';
 import { marketPreferencesStore } from '@/src/lib/marketPreferences/store';
 import { useTheme } from '@/src/lib/useTheme';
 
@@ -36,6 +36,7 @@ export function MarketPreferencesScreen() {
   const insets = useSafeAreaInsets();
   const { marketIds, cap } = useMarketPreferences();
   const tier = useTier();
+  const emailVerified = useEmailVerified();
   const { lookup, isLoading } = useMarkets();
   const [search, setSearch] = useState('');
   const [draft, setDraft] = useState<Set<number>>(() => new Set(marketIds));
@@ -173,13 +174,18 @@ export function MarketPreferencesScreen() {
         <ThemedText style={[styles.summaryHint, { color: c.textMuted }]}>
           {tier === 'premium'
             ? t('marketPrefs.tier.premium', { defaultValue: 'Premium: 30 tahmin tipi' })
-            : tier === 'free'
-              ? t('marketPrefs.tier.free', {
-                  defaultValue: 'Free: 10 tahmin tipi · Premium ile 30',
+            : tier === 'free' && !emailVerified
+              ? t('marketPrefs.tier.unverified', {
+                  defaultValue:
+                    'Mail onayı bekleniyor: 3 tahmin tipi · Onayladığında 10 tipe çıkarsın',
                 })
-              : t('marketPrefs.tier.guest', {
-                  defaultValue: 'Misafir: 3 tahmin tipi · Üye ol, 10 tipe çıkar',
-                })}
+              : tier === 'free'
+                ? t('marketPrefs.tier.free', {
+                    defaultValue: 'Free: 10 tahmin tipi · Premium ile 30',
+                  })
+                : t('marketPrefs.tier.guest', {
+                    defaultValue: 'Misafir: 3 tahmin tipi · Üye ol, 10 tipe çıkar',
+                  })}
         </ThemedText>
       </View>
 

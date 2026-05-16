@@ -85,13 +85,25 @@ function Section({
 
 function EventRow({ event }: { event: FixtureEvent }) {
   const c = useTheme();
+  const { t } = useTranslation();
   const isHome = event.participant_location === 'home';
   const minuteLabel = formatMinute(event);
   const code = (event.type_code ?? '').toUpperCase();
   const isSubstitution = code === 'SUBSTITUTION';
+  const cancelled = event.cancelled === true;
   const icon = isSubstitution ? null : iconFor(event.type_code);
   const title = primaryLabel(event);
   const subtitle = secondaryLabel(event);
+
+  // SofaScore / FotMob convention: a VAR-overturned goal stays in the
+  // timeline with strikethrough text, muted colour, and an "İPTAL" /
+  // "CANCELLED" badge next to the scorer name. Removing it entirely
+  // would leave the user wondering where the goal they just watched
+  // went; keeping it transparent matches every major sports app.
+  const cancelledStyle = cancelled
+    ? { textDecorationLine: 'line-through' as const }
+    : null;
+  const textColor = cancelled ? c.textMuted : c.text;
 
   // Substitutions render as "{in} {out}" inline with a swap-icon in
   // between (matching the legacy fixture-card style). Other events keep
@@ -109,16 +121,27 @@ function EventRow({ event }: { event: FixtureEvent }) {
         />
       );
     }
+    const cancelBadge = cancelled ? (
+      <View
+        style={[
+          styles.cancelBadge,
+          { backgroundColor: c.danger ?? '#ef4444' },
+        ]}>
+        <ThemedText style={[styles.cancelBadgeText, { color: c.textInverse }]}>
+          {t('fixture.events.cancelledBadge', { defaultValue: 'İPTAL' })}
+        </ThemedText>
+      </View>
+    ) : null;
     const block = (
       <View style={isHome ? styles.textBlockHome : styles.textBlockAway}>
         <ThemedText
-          style={[styles.player, { color: c.text }]}
+          style={[styles.player, cancelledStyle, { color: textColor }]}
           numberOfLines={1}>
           {title}
         </ThemedText>
         {subtitle ? (
           <ThemedText
-            style={[styles.subtitle, { color: c.textMuted }]}
+            style={[styles.subtitle, cancelledStyle, { color: c.textMuted }]}
             numberOfLines={1}>
             {subtitle}
           </ThemedText>
@@ -129,9 +152,11 @@ function EventRow({ event }: { event: FixtureEvent }) {
       <View style={styles.homeContent}>
         <ThemedText style={styles.icon}>{icon}</ThemedText>
         {block}
+        {cancelBadge}
       </View>
     ) : (
       <View style={styles.awayContent}>
+        {cancelBadge}
         {block}
         <ThemedText style={styles.icon}>{icon}</ThemedText>
       </View>
@@ -358,6 +383,19 @@ const styles = StyleSheet.create({
   },
   icon: {
     fontSize: 14,
+  },
+  // VAR-overturned goal badge — small red pill next to the strikethrough
+  // scorer line. Sits between the icon and the text block (or after,
+  // mirrored to the away side) so it reads alongside the player name.
+  cancelBadge: {
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  cancelBadgeText: {
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   // Vertical stack: incoming player on top (regular weight), outgoing
   // underneath in a smaller, muted size. Right-side substitutions align

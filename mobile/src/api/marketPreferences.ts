@@ -5,6 +5,13 @@ export interface MarketPreferencesPayload {
   market_ids: number[];
   cap: number;
   tier: 'guest' | 'free' | 'premium';
+  /**
+   * Server-side mirror of the email_verified flag. When false on a
+   * 'free' tier account the server clamps `cap` to the guest value (3).
+   * Anonymous /markets/curated keeps this false; the mobile picker
+   * uses it (together with `tier`) to render the right hint copy.
+   */
+  email_verified?: boolean;
   defaults: number[];
 }
 

@@ -92,6 +92,18 @@ services:
       PREODDS_GOOGLE_CLIENT_ID_IOS: ${PREODDS_GOOGLE_CLIENT_ID_IOS:-}
       PREODDS_GOOGLE_CLIENT_ID_ANDROID: ${PREODDS_GOOGLE_CLIENT_ID_ANDROID:-}
       PREODDS_GOOGLE_CLIENT_ID_WEB: ${PREODDS_GOOGLE_CLIENT_ID_WEB:-}
+      # SMTP creds — AuthController issues the email-verify + password-
+      # reset links through IEmailService. Without these the service
+      # logs a "MAIL_PASSWORD not set" warning and silently no-ops, so
+      # the signup→verify mail never actually leaves the container.
+      # Same GoDaddy values the worker uses for nightly snapshot alerts;
+      # one .env, one mailbox.
+      MAIL_HOST: ${MAIL_HOST:-smtpout.secureserver.net}
+      MAIL_PORT: ${MAIL_PORT:-465}
+      MAIL_USERNAME: ${MAIL_USERNAME:-tipswall@tipswall.com}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-tipswall@tipswall.com}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-TipsWall}
       # Program.cs reads SENTRY_DSN directly via Environment.GetEnvironmentVariable
       # (the double-underscore IConfiguration form Sentry__Dsn was inert).
       # Empty string → SDK no-ops, so this is safe to commit even before

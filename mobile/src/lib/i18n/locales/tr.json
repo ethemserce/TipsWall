@@ -362,7 +362,8 @@
     "tier": {
       "premium": "Premium: 30 tahmin tipi",
       "free": "Free: 10 tahmin tipi · Premium ile 30",
-      "guest": "Misafir: 3 tahmin tipi · Üye ol, 10 tipe çıkar"
+      "guest": "Misafir: 3 tahmin tipi · Üye ol, 10 tipe çıkar",
+      "unverified": "Mail onayı bekleniyor: 3 tahmin tipi · Onayladığında 10 tipe çıkarsın"
     },
     "searchPlaceholder": "Tahmin tipi ara",
     "empty": "Bu aramada sonuç yok.",
