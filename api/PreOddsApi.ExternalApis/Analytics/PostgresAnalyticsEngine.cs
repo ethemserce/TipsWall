@@ -327,6 +327,20 @@ namespace PreOddsApi.ExternalApis.Analytics
 
         public async Task<int> RunOddAnalysisSnapshotsAsync(CancellationToken cancellationToken = default)
         {
+            // Snapshot SQL now generates rows for three kinds of windows:
+            //   * 'time'           — flat date lookback (1m/3m/6m/1y/all),
+            //                        existing behaviour.
+            //   * 'season_current' — per-league filter: fixture.season_id
+            //                        must match the league's current
+            //                        competition.seasons row (is_current).
+            //   * 'season_n'       — per-league filter: fixture.season_id
+            //                        in the top N seasons by starting_at
+            //                        for that league.
+            //
+            // The CTE `season_scope` materialises (window_code, league_id,
+            // season_id) tuples for every season-aware window; `windowed`
+            // unions the time-based and season-based paths so the final
+            // aggregate is uniform regardless of window kind.
             const string sql = """
                 delete from analytics.odd_analysis_snapshots where as_of_date = current_date;
 
@@ -340,6 +354,8 @@ namespace PreOddsApi.ExternalApis.Analytics
                         o.winning,
                         coalesce(o.feed_type, 'standard') as feed_type,
                         f.starting_at,
+                        f.league_id,
+                        f.season_id,
                         lower(coalesce(o.label, ''))
                             || ':' || coalesce(nullif(o.total, ''), '-')
                             || ':' || coalesce(nullif(o.handicap, ''), '-')
@@ -363,19 +379,56 @@ namespace PreOddsApi.ExternalApis.Analytics
                       -- SportMonks ships `winning=false` on rows that haven't
                       -- been settled yet (state_id=1, NotStarted, also on
                       -- in-play states 2/3/22 mid-match). Those rows were
-                      -- inflating "lost" counts — a Yes vs No bug-check on
-                      -- 2026-05-13 showed 1658 fixture-pairs where Yes and
-                      -- No were both winning=false, 1580 of them on yet-
-                      -- unplayed matches. Only count finished states:
+                      -- inflating "lost" counts — only count finished states:
                       --   5 = Full Time, 7 = AET, 8 = FT pen.
                       and f.state_id in (5, 7, 8)
+                      and f.league_id  is not null
+                      and f.season_id  is not null
+                ),
+                -- Per-window-per-league set of allowed season_ids. Two
+                -- producers UNION'd: current-season and last-N-seasons.
+                season_scope as (
+                    -- season_current: every league's current season
+                    select w.code as window_code, s.league_id, s.id as season_id
+                    from analytics.analysis_windows w
+                    join competition.seasons s on s.is_current = true
+                    where w.kind = 'season_current'
+
+                    union all
+
+                    -- season_n: top N seasons per league by starting_at desc
+                    select w.code as window_code, ranked.league_id, ranked.id as season_id
+                    from analytics.analysis_windows w
+                    join lateral (
+                        select s.id, s.league_id,
+                               row_number() over (
+                                   partition by s.league_id
+                                   order by s.starting_at desc nulls last, s.id desc
+                               ) as recency
+                        from competition.seasons s
+                    ) ranked on ranked.recency <= w.season_count
+                    where w.kind = 'season_n'
                 ),
                 windowed as (
+                    -- Time-based windows (existing path)
                     select b.*, w.code as window_code
                     from base b
                     cross join analytics.analysis_windows w
-                    where w.lookback_days is null
-                       or b.starting_at >= now() - (w.lookback_days || ' days')::interval
+                    where w.kind = 'time'
+                      and (w.lookback_days is null
+                           or b.starting_at >= now() - (w.lookback_days || ' days')::interval)
+
+                    union all
+
+                    -- Season-aware windows (new path) — JOIN on season_scope
+                    -- restricts the base sample to fixtures whose
+                    -- (league_id, season_id) the window covers for that
+                    -- league specifically.
+                    select b.*, ss.window_code
+                    from base b
+                    join season_scope ss
+                      on ss.league_id = b.league_id
+                     and ss.season_id = b.season_id
                 ),
                 agg as (
                     select bookmaker_id, market_id, window_code, outcome_key, feed_type,

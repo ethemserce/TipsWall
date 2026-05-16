@@ -49,7 +49,11 @@ export const DEFAULT_FILTERS: AnalysisFilterState = {
   kzMin: 3,
   valueOnly: false,
   topPerFixture: 3,
-  window: 'all',
+  // Default window now respects natural season boundaries — per-league
+  // current season filter. Time-based '1m'/'3m'/'6m' kept as opt-in
+  // chips; the deprecated 'all' / '1y' codes still type-check for old
+  // persisted state but never become the default.
+  window: 'season_current',
   riskCategory: null,
 };
 
@@ -81,7 +85,9 @@ export const PRESETS: Record<StrategyPreset, { filters: AnalysisFilterState }> =
       dsoMin: 50,
       kzMin: 5,
       valueOnly: true,
-      window: '1y',
+      // 2-season sample size for the value preset — broader history,
+      // still respecting current bookmaker regime (no 5+ year decay).
+      window: 'season_2y',
     },
   },
   longshot: {
@@ -90,7 +96,7 @@ export const PRESETS: Record<StrategyPreset, { filters: AnalysisFilterState }> =
       dsoMin: 30,
       kzMin: 3,
       valueOnly: true,
-      window: 'all',
+      window: 'season_2y',
       riskCategory: 'high',
     },
   },
@@ -108,6 +114,11 @@ const KZ_MAX_BY_WINDOW: Record<WindowCode, number> = {
   '6m': 8,
   '1y': 10,
   all: 10,
+  // Season windows carry meaningfully larger samples than 1-3 months
+  // but the rolling cap stays modest — most users want "≥5 samples"
+  // type asks; >15 is rarely reachable per outcome.
+  season_current: 10,
+  season_2y: 15,
 };
 
 // Hard floor of 3 — below that the win/loss split isn't statistically
@@ -161,7 +172,18 @@ interface AnalysisFiltersSheetProps {
 // Period chip labels come from rate.filters.windows.* — same abbreviation
 // scheme the legacy RateFilterBar uses. Resolved lazily inside the
 // component so the active language wins on re-render.
-const WINDOW_KEYS: WindowCode[] = ['1m', '3m', '6m', '1y', 'all'];
+// Five user-visible windows. Time-based first (sample by recency),
+// then season-based (sample by competition cycle). '1y' / 'all' are
+// dropped here because they conflate stale bookmaker pricing regimes;
+// the codes still exist in the WindowCode union for back-compat with
+// older persisted filter state.
+const WINDOW_KEYS: WindowCode[] = [
+  '1m',
+  '3m',
+  '6m',
+  'season_current',
+  'season_2y',
+];
 
 const RISK_CATEGORIES: RiskCategory[] = ['low', 'mid', 'high'];
 

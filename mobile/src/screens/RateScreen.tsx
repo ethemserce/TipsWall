@@ -44,7 +44,7 @@ export function RateScreen({ kind, title, primaryMetric }: RateScreenProps) {
   const { t } = useTranslation();
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [filters, setFilters] = useState<RateFilters>({
-    window: 'all',
+    window: 'season_current',
     rateValue: null,
     rateBound: 'min',
   });
