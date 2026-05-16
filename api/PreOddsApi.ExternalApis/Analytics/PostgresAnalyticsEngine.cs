@@ -327,13 +327,34 @@ namespace PreOddsApi.ExternalApis.Analytics
 
         public async Task<int> RunOddAnalysisSnapshotsAsync(CancellationToken cancellationToken = default)
         {
+            // Two adjustments from the original SQL:
+            //
+            // 1. The outcome_key normalises the label with `lower(...)` but
+            //    the agg's GROUP BY used the *original-case* label. When
+            //    SportMonks ships the same outcome from two bookmakers with
+            //    different casing ('Home' vs 'home'), the GROUP BY treats
+            //    them as two distinct rows yet they produce the same
+            //    outcome_key — and the unique constraint
+            //    odd_analysis_snapshots_as_of_date_..._outcome_key_key
+            //    then rejects the second row. Lower the label everywhere
+            //    we touch it so the bucket key is consistent end-to-end.
+            //
+            // 2. DELETE + INSERT used to be sent as two separate auto-commit
+            //    statements (no `begin`/`commit`). If the INSERT then failed
+            //    midway — like it just did with the case-collision above —
+            //    the DELETE was already committed, leaving the snapshot
+            //    table in a half-empty state. Wrapping both inside a single
+            //    transaction means a failure rolls back to the pre-run
+            //    snapshot rather than partially destroying it.
             const string sql = """
+                begin;
+
                 delete from analytics.odd_analysis_snapshots where as_of_date = current_date;
 
                 with base as (
                     select
                         o.bookmaker_id, o.market_id,
-                        o.label as odd_label,
+                        lower(o.label) as odd_label,
                         nullif(o.total, '') as odd_total,
                         nullif(o.handicap, '') as odd_handicap,
                         o.value::numeric(12,4) as odd_value,
@@ -399,6 +420,8 @@ namespace PreOddsApi.ExternalApis.Analytics
                                 / nullif(win_count + lost_count, 0), 4),
                     odd_value
                 from agg;
+
+                commit;
                 """;
 
             await using var connection = await OpenAsync(cancellationToken);
