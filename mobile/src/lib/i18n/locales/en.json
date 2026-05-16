@@ -78,13 +78,13 @@
       "save": "SAVE LIST"
     },
     "topPicks": {
-      "headerOne": "TOP PICK",
-      "headerMany": "TOP PICKS",
+      "headerOne": "DATA HIGHLIGHT",
+      "headerMany": "DATA HIGHLIGHTS",
       "valueBadge": "VALUE",
       "stats": "HIT {{dso}}% · IMP {{iko}}% · sample {{sample}}",
-      "actionInBasket": "ADDED",
+      "actionInBasket": "PICKED",
       "actionDisabled": "OFF",
-      "actionAdd": "ADD",
+      "actionAdd": "PICK",
       "actionOffList": "OFF LIST"
     },
     "stats": {
@@ -339,7 +339,7 @@
     "about": {
       "header": "About",
       "title": "Personal prediction tracker",
-      "disclaimer": "This app does not place bets. It does not accept deposits, build coupons or link out to bookmakers. The prediction-tracking feature is for personal analysis only."
+      "disclaimer": "This app does not make predictions and does not place bets. It does not accept deposits, build coupons or link out to bookmakers. It surfaces historical statistics through user-configurable filters; every choice belongs to the user."
     },
     "marketPrefs": {
       "label": "Favourite prediction types",
@@ -495,9 +495,9 @@
       }
     },
     "quickPicks": {
-      "title": "Today's Top Picks",
-      "openA11y": "Open today's top picks",
-      "empty": "No top picks match your filters today."
+      "title": "Today's Highlights",
+      "openA11y": "Open today's data highlights",
+      "empty": "No highlighted data matches your filters today."
     }
   },
   "markets": {
