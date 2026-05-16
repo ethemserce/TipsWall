@@ -37,8 +37,10 @@ import { useTheme } from '@/src/lib/useTheme';
 // device. When the platform id is missing we skip the entire Google child
 // so the hook never fires.
 function hasGoogleOnThisPlatform(): boolean {
-  if (Platform.OS === 'ios') return env.googleClientIdIos.length > 0;
-  if (Platform.OS === 'android') return env.googleClientIdAndroid.length > 0;
+  // The OAuth request is now Web-client-only on every platform (the
+  // iOS/Android client ids route through a deprecated custom URI
+  // scheme — see GoogleSignInButton below). Gate the button on the
+  // web id alone so we don't show it on builds where it can't fire.
   return env.googleClientIdWeb.length > 0;
 }
 
@@ -181,9 +183,16 @@ function GoogleSignInButton({
 }: GoogleSignInButtonProps) {
   const c = useTheme();
   const { t } = useTranslation();
+  // Web-client-only flow on every platform. Passing iosClientId /
+  // androidClientId routes Expo Auth Session through Google's reverse-
+  // domain custom URI scheme (e.g. com.googleusercontent.apps.NNN:/...).
+  // Google deprecated that scheme in 2025; even when re-enabled via the
+  // Cloud Console toggle, the response never lands back in the app
+  // because there is no matching intent filter in the APK manifest.
+  // Sticking to clientId (Web) routes the OAuth dance through Expo's
+  // HTTPS proxy (https://auth.expo.io/@ethemserce/PreOddsMobile), which
+  // Expo intercepts natively without any manifest work.
   const [, , promptGoogle] = Google.useIdTokenAuthRequest({
-    iosClientId: env.googleClientIdIos || undefined,
-    androidClientId: env.googleClientIdAndroid || undefined,
     clientId: env.googleClientIdWeb || undefined,
   });
 
