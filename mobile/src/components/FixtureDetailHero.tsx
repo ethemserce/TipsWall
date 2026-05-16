@@ -59,9 +59,15 @@ export function FixtureDetailHero({
   // Live-second counter. SportMonks publishes live_minute as an integer
   // (~1/min push). We tick locally between minute updates so the clock
   // doesn't sit on the same value for 60 seconds. Each new live_minute
-  // resets the counter to 0 — worst case the JS clock drifts a few
-  // seconds against the official one between pushes; close enough for
-  // a live indicator, and miles better than a stationary "45'".
+  // resets the counter to 0.
+  //
+  // Originally the display capped seconds at 59 (`Math.min(59, tick)`),
+  // which froze the clock at `MM:59` whenever the backend's live_minute
+  // update lagged (e.g. worker OOM swallowed a couple of pushes). The
+  // user-visible symptom: "the clock sits on 15:59 for 2+ minutes".
+  // Now we let tick roll the displayed minute forward as well —
+  // worst-case drift is bounded by the next backend push, which resets
+  // tick to 0 and snaps the display back to truth.
   const minute = fixture.live_minute;
   const [tick, setTick] = useState(0);
   useEffect(() => {
@@ -74,7 +80,9 @@ export function FixtureDetailHero({
   }, [live, minute]);
   const liveMinuteLabel =
     live && minute != null
-      ? `${minute}:${Math.min(59, tick).toString().padStart(2, '0')}`
+      ? `${minute + Math.floor(tick / 60)}:${(tick % 60)
+          .toString()
+          .padStart(2, '0')}`
       : null;
 
   // SportMonks state IDs (verified against catalog.states):
