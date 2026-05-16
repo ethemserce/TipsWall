@@ -4,9 +4,26 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/src/lib/useTheme';
 
-export type WindowCode = '1m' | '3m' | '6m' | '1y' | 'all';
+// User-visible windows. '1y' and 'all' are kept in the union as
+// deprecated codes so persisted state from older app versions still
+// type-checks; the backend continues to produce snapshots for them
+// (additive rollback safety). New UI never offers them.
+export type WindowCode =
+  | '1m'
+  | '3m'
+  | '6m'
+  | '1y'
+  | 'all'
+  | 'season_current'
+  | 'season_2y';
 
-const WINDOWS: WindowCode[] = ['1m', '3m', '6m', '1y', 'all'];
+const WINDOWS: WindowCode[] = [
+  '1m',
+  '3m',
+  '6m',
+  'season_current',
+  'season_2y',
+];
 
 export type RateBound = 'min' | 'max';
 
@@ -32,6 +49,8 @@ const WINDOW_LABEL_KEY: Record<WindowCode, string> = {
   '6m': 'rate.filters.windowsShort.6m',
   '1y': 'rate.filters.windowsShort.1y',
   all: 'rate.filters.windowsShort.all',
+  season_current: 'rate.filters.windowsShort.season_current',
+  season_2y: 'rate.filters.windowsShort.season_2y',
 };
 
 export function RateFilterBar({ filters, onChange }: RateFilterBarProps) {

@@ -327,25 +327,39 @@ namespace PreOddsApi.ExternalApis.Analytics
 
         public async Task<int> RunOddAnalysisSnapshotsAsync(CancellationToken cancellationToken = default)
         {
-            // Two adjustments from the original SQL:
+            // Snapshot SQL has three notable design points:
             //
-            // 1. The outcome_key normalises the label with `lower(...)` but
-            //    the agg's GROUP BY used the *original-case* label. When
-            //    SportMonks ships the same outcome from two bookmakers with
-            //    different casing ('Home' vs 'home'), the GROUP BY treats
-            //    them as two distinct rows yet they produce the same
-            //    outcome_key — and the unique constraint
-            //    odd_analysis_snapshots_as_of_date_..._outcome_key_key
-            //    then rejects the second row. Lower the label everywhere
-            //    we touch it so the bucket key is consistent end-to-end.
+            // 1. WINDOW KIND DISPATCH — produces rows for three kinds of
+            //    windows driven by analytics.analysis_windows.kind:
+            //      * 'time'           — flat date lookback (1m/3m/6m/1y/all),
+            //                           original behaviour.
+            //      * 'season_current' — per-league filter: fixture.season_id
+            //                           matches the league's current
+            //                           competition.seasons row (is_current).
+            //      * 'season_n'       — per-league filter: fixture.season_id
+            //                           in the top N seasons by starting_at
+            //                           for that league (driven by
+            //                           analysis_windows.season_count).
+            //    The CTE `season_scope` materialises (window_code, league_id,
+            //    season_id) tuples for every season-aware window; `windowed`
+            //    UNIONs the time-based and season-based paths so the final
+            //    aggregate is uniform regardless of window kind.
             //
-            // 2. DELETE + INSERT used to be sent as two separate auto-commit
-            //    statements (no `begin`/`commit`). If the INSERT then failed
-            //    midway — like it just did with the case-collision above —
-            //    the DELETE was already committed, leaving the snapshot
-            //    table in a half-empty state. Wrapping both inside a single
-            //    transaction means a failure rolls back to the pre-run
-            //    snapshot rather than partially destroying it.
+            // 2. CASE-FOLDED OUTCOME KEY — `outcome_key` normalises the label
+            //    with `lower(...)`, so the agg's GROUP BY must do the same on
+            //    `odd_label`. Earlier we used the original-case `o.label` in
+            //    GROUP BY which produced two distinct agg rows for the same
+            //    outcome_key when SportMonks shipped 'Home' from one
+            //    bookmaker and 'home' from another. INSERT then collided on
+            //    the unique constraint
+            //    odd_analysis_snapshots_as_of_date_..._outcome_key_key.
+            //
+            // 3. TRANSACTIONAL DELETE+INSERT — `begin; ... commit;` wraps
+            //    the DELETE-INSERT pair. Previously they ran as two
+            //    auto-commit statements; INSERT failing mid-way (e.g. the
+            //    case-collision above) left the snapshot table half-empty
+            //    because the DELETE had already committed. The transaction
+            //    wrap rolls failures back to the pre-run state.
             const string sql = """
                 begin;
 
@@ -361,6 +375,8 @@ namespace PreOddsApi.ExternalApis.Analytics
                         o.winning,
                         coalesce(o.feed_type, 'standard') as feed_type,
                         f.starting_at,
+                        f.league_id,
+                        f.season_id,
                         lower(coalesce(o.label, ''))
                             || ':' || coalesce(nullif(o.total, ''), '-')
                             || ':' || coalesce(nullif(o.handicap, ''), '-')
@@ -384,19 +400,56 @@ namespace PreOddsApi.ExternalApis.Analytics
                       -- SportMonks ships `winning=false` on rows that haven't
                       -- been settled yet (state_id=1, NotStarted, also on
                       -- in-play states 2/3/22 mid-match). Those rows were
-                      -- inflating "lost" counts — a Yes vs No bug-check on
-                      -- 2026-05-13 showed 1658 fixture-pairs where Yes and
-                      -- No were both winning=false, 1580 of them on yet-
-                      -- unplayed matches. Only count finished states:
+                      -- inflating "lost" counts — only count finished states:
                       --   5 = Full Time, 7 = AET, 8 = FT pen.
                       and f.state_id in (5, 7, 8)
+                      and f.league_id  is not null
+                      and f.season_id  is not null
+                ),
+                -- Per-window-per-league set of allowed season_ids. Two
+                -- producers UNION'd: current-season and last-N-seasons.
+                season_scope as (
+                    -- season_current: every league's current season
+                    select w.code as window_code, s.league_id, s.id as season_id
+                    from analytics.analysis_windows w
+                    join competition.seasons s on s.is_current = true
+                    where w.kind = 'season_current'
+
+                    union all
+
+                    -- season_n: top N seasons per league by starting_at desc
+                    select w.code as window_code, ranked.league_id, ranked.id as season_id
+                    from analytics.analysis_windows w
+                    join lateral (
+                        select s.id, s.league_id,
+                               row_number() over (
+                                   partition by s.league_id
+                                   order by s.starting_at desc nulls last, s.id desc
+                               ) as recency
+                        from competition.seasons s
+                    ) ranked on ranked.recency <= w.season_count
+                    where w.kind = 'season_n'
                 ),
                 windowed as (
+                    -- Time-based windows (existing path)
                     select b.*, w.code as window_code
                     from base b
                     cross join analytics.analysis_windows w
-                    where w.lookback_days is null
-                       or b.starting_at >= now() - (w.lookback_days || ' days')::interval
+                    where w.kind = 'time'
+                      and (w.lookback_days is null
+                           or b.starting_at >= now() - (w.lookback_days || ' days')::interval)
+
+                    union all
+
+                    -- Season-aware windows (new path) — JOIN on season_scope
+                    -- restricts the base sample to fixtures whose
+                    -- (league_id, season_id) the window covers for that
+                    -- league specifically.
+                    select b.*, ss.window_code
+                    from base b
+                    join season_scope ss
+                      on ss.league_id = b.league_id
+                     and ss.season_id = b.season_id
                 ),
                 agg as (
                     select bookmaker_id, market_id, window_code, outcome_key, feed_type,

@@ -245,7 +245,10 @@ export function FixtureDetailScreen({ fixtureId }: FixtureDetailScreenProps) {
     fixtureId,
     bookmakerId: ODDS_BOOKMAKER_ID,
     marketIds: preferredMarketIds.length > 0 ? preferredMarketIds : ODDS_MARKET_IDS,
-    window: 'all',
+    // 'season_current' aligns with the Analiz screen default — pick
+    // signals are scoped to the current bookmaker pricing regime
+    // rather than pulling in stale historical samples.
+    window: 'season_current',
   });
   const stats = useFixtureStatistics(fixtureId, tab === 'stats');
   const lineups = useFixtureLineups(fixtureId, tab === 'lineups');

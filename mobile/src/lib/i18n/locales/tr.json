@@ -785,14 +785,18 @@
         "3m": "3 Ay",
         "6m": "6 Ay",
         "1y": "1 Yıl",
-        "all": "Tümü"
+        "all": "Tümü",
+        "season_current": "Bu Sezon",
+        "season_2y": "Son 2 Sezon"
       },
       "windowsShort": {
         "1m": "1A",
         "3m": "3A",
         "6m": "6A",
         "1y": "1Y",
-        "all": "Tümü"
+        "all": "Tümü",
+        "season_current": "Bu Sezon",
+        "season_2y": "2 Sezon"
       },
       "bound": {
         "min": "MIN",

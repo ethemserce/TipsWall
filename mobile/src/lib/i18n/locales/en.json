@@ -785,14 +785,18 @@
         "3m": "3 Mo",
         "6m": "6 Mo",
         "1y": "1 Yr",
-        "all": "All"
+        "all": "All",
+        "season_current": "This Season",
+        "season_2y": "Last 2 Seasons"
       },
       "windowsShort": {
         "1m": "1m",
         "3m": "3m",
         "6m": "6m",
         "1y": "1y",
-        "all": "All"
+        "all": "All",
+        "season_current": "Season",
+        "season_2y": "2 Seasons"
       },
       "bound": {
         "min": "MIN",
