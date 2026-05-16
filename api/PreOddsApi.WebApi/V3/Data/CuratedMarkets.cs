@@ -87,6 +87,19 @@ namespace PreOddsApi.WebApi.V3.Data
              : tier == "free" ? RegisteredCap
              : GuestCap;
 
+        /// <summary>
+        /// Email-verification-aware variant. An unverified free user only
+        /// gets the guest cap (3) — the wider 10-market picker unlocks
+        /// after they click the email verification link. Premium tier
+        /// always trusts its own cap; the IAP flow has its own identity
+        /// checks separate from this email gate.
+        /// </summary>
+        public static int CapFor(string tier, bool emailVerified)
+        {
+            if (tier == "free" && !emailVerified) return GuestCap;
+            return CapFor(tier);
+        }
+
         public static IReadOnlyList<long> DefaultsFor(string tier)
             => tier == "premium" ? Premium
              : tier == "free" ? Registered

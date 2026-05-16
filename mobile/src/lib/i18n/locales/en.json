@@ -362,7 +362,8 @@
     "tier": {
       "premium": "Premium: 30 prediction types",
       "free": "Free: 10 prediction types · 30 with Premium",
-      "guest": "Guest: 3 prediction types · Sign up for 10"
+      "guest": "Guest: 3 prediction types · Sign up for 10",
+      "unverified": "Email verification pending: 3 prediction types · Verify to unlock 10"
     },
     "searchPlaceholder": "Search prediction types",
     "empty": "No results for this search.",
