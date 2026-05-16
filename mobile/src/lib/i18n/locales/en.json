@@ -84,7 +84,8 @@
       "stats": "HIT {{dso}}% · IMP {{iko}}% · sample {{sample}}",
       "actionInBasket": "ADDED",
       "actionDisabled": "OFF",
-      "actionAdd": "ADD"
+      "actionAdd": "ADD",
+      "actionOffList": "OFF LIST"
     },
     "stats": {
       "title": "My stats",

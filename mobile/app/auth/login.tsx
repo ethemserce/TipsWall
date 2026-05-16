@@ -100,7 +100,6 @@ export default function LoginScreen() {
               textContentType="username"
               returnKeyType="next"
               placeholderTextColor={c.textMuted}
-              placeholder="ornek@mail.com"
               style={[
                 styles.input,
                 { color: c.text, backgroundColor: c.surface, borderColor: c.borderSoft },

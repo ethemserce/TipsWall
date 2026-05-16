@@ -84,7 +84,8 @@
       "stats": "HIT {{dso}}% · IMP {{iko}}% · örnek {{sample}}",
       "actionInBasket": "EKLENDİ",
       "actionDisabled": "KAPALI",
-      "actionAdd": "EKLE"
+      "actionAdd": "EKLE",
+      "actionOffList": "LİSTEDE YOK"
     },
     "stats": {
       "title": "İstatistiklerim",

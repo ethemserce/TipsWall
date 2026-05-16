@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { useMarketPreferences } from '@/src/hooks/useMarketPreferences';
 import { useTryAddSelection } from '@/src/hooks/useTryAddSelection';
 import { useCouponStore } from '@/src/lib/coupons/store';
 import { marketShort, shortenOutcome } from '@/src/lib/marketShort';
@@ -157,6 +158,7 @@ function PickRow({
   const { t } = useTranslation();
   const tryAdd = useTryAddSelection();
   const draftSelections = useCouponStore((s) => s.draft.selections);
+  const { marketIds: preferredMarketIds } = useMarketPreferences();
   const inCoupon = draftSelections.some(
     (s) =>
       s.fixtureId === fixtureId &&
@@ -165,9 +167,17 @@ function PickRow({
       (s.total ?? '-') === (pick.total ?? '-') &&
       (s.handicap ?? '-') === (pick.handicap ?? '-'),
   );
+  // A pick whose market the user hasn't pinned in Settings should be
+  // visible (it's still informative) but un-addable to the prediction
+  // list — otherwise the list drifts off the user's curated set.
+  // Empty preferences = "no filter", every market is addable.
+  const marketAllowed =
+    preferredMarketIds.length === 0 || preferredMarketIds.includes(pick.marketId);
   // Disabled: not upcoming, OR a different selection from this fixture is
-  // already in the draft (one-pick-per-fixture rule).
-  const disabled = !upcoming || (fixtureAlreadyPicked && !inCoupon);
+  // already in the draft (one-pick-per-fixture rule), OR the market is
+  // outside the user's selected prediction-type prefs.
+  const disabled =
+    !upcoming || (fixtureAlreadyPicked && !inCoupon) || (!marketAllowed && !inCoupon);
 
   const handlePress = () => {
     if (disabled && !inCoupon) return;
@@ -192,14 +202,17 @@ function PickRow({
 
   const buttonLabel = inCoupon
     ? t('coupons.topPicks.actionInBasket')
-    : disabled
-      ? t('coupons.topPicks.actionDisabled')
-      : t('coupons.topPicks.actionAdd');
+    : !marketAllowed
+      ? t('coupons.topPicks.actionOffList', { defaultValue: 'Listende Yok' })
+      : disabled
+        ? t('coupons.topPicks.actionDisabled')
+        : t('coupons.topPicks.actionAdd');
 
-  // Only dim when the one-pick-per-fixture rule is the blocker. Finished
-  // / live matches stay full-opacity so the tip text + stats remain
-  // readable; the button itself still reflects the "KAPALI" state.
-  const dim = fixtureAlreadyPicked && !inCoupon;
+  // Dim when the row is blocked (one-pick-per-fixture rule OR the
+  // market isn't in the user's prefs). Finished / live matches stay
+  // full-opacity so the tip text + stats remain readable; the button
+  // itself still reflects the disabled state.
+  const dim = (fixtureAlreadyPicked && !inCoupon) || (!marketAllowed && !inCoupon);
   return (
     <Pressable
       onPress={handlePress}

@@ -140,7 +140,6 @@ export default function SignupScreen() {
               textContentType="username"
               returnKeyType="next"
               placeholderTextColor={c.textMuted}
-              placeholder="ornek_kullanici"
               style={[
                 styles.input,
                 { color: c.text, backgroundColor: c.surface, borderColor: c.borderSoft },
@@ -164,7 +163,6 @@ export default function SignupScreen() {
               textContentType="emailAddress"
               returnKeyType="next"
               placeholderTextColor={c.textMuted}
-              placeholder="ornek@mail.com"
               style={[
                 styles.input,
                 { color: c.text, backgroundColor: c.surface, borderColor: c.borderSoft },
@@ -286,6 +284,11 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '800',
     letterSpacing: 0.3,
+    // Explicit lineHeight so descenders (g, y) on a heavy 24px glyph
+    // don't bleed into the subtitle below. RN's auto line-height for
+    // bold text comes in a touch tighter than the font's bounding box.
+    lineHeight: 30,
+    marginBottom: 4,
   },
   subtitle: {
     fontSize: 13,
