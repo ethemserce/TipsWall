@@ -543,16 +543,6 @@ export function AnalysisFiltersSheet({
                         ]}>
                         {t(`filters.risk.${key}.label`)}
                       </ThemedText>
-                      <ThemedText
-                        style={[
-                          styles.riskHint,
-                          {
-                            color: active ? c.textInverse : c.textMuted,
-                          },
-                        ]}
-                        numberOfLines={1}>
-                        {t(`filters.risk.${key}.hint`)}
-                      </ThemedText>
                     </Pressable>
                   );
                 })}
@@ -760,20 +750,15 @@ const styles = StyleSheet.create({
     flexBasis: 0,
     minWidth: 80,
     paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingVertical: 6,
     borderRadius: 10,
     borderWidth: StyleSheet.hairlineWidth,
     alignItems: 'center',
-    gap: 2,
   },
   riskLabel: {
     fontSize: 12,
     fontWeight: '800',
     letterSpacing: 0.3,
-  },
-  riskHint: {
-    fontSize: 9,
-    fontWeight: '500',
   },
   presetRow: {
     flexDirection: 'row',
