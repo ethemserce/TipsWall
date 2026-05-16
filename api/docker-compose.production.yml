@@ -72,15 +72,18 @@ services:
       migrator:
         condition: service_completed_successfully
     environment:
-      # Command Timeout=600s so the admin /analytics/snapshot/rebuild
+      # Command Timeout=1800s (30 min) so the admin /analytics/snapshot/rebuild
       # endpoint can sit through the full 365-day finalizer +
       # season-team-stats + season-player-stats + snapshot pipeline.
-      # Default 30s wasn't enough — request 500'd at 31.5s mid-query
-      # with "Timeout during reading attempt". Regular hot-path reads
-      # (signals, fixtures, odds-rates) all finish well under 1s so
-      # the bumped ceiling is a safety net, not a regression risk.
-      PREODDS_POSTGRES_CONNECTION: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-preodds};Username=${POSTGRES_USER:-preodds};Password=${POSTGRES_PASSWORD};Command Timeout=600"
-      ConnectionStrings__PreOddsApiPostgresDb: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-preodds};Username=${POSTGRES_USER:-preodds};Password=${POSTGRES_PASSWORD};Command Timeout=600"
+      # Bumped from 600s after the window-codes refactor added the
+      # season_current + season_2y windows on top of the existing 5
+      # time-based ones — the new SQL produces ~3M snapshot rows and
+      # the pipeline now needs ~12-15 minutes end-to-end during a full
+      # rebuild. Regular hot-path reads (signals, fixtures, odds-rates)
+      # all finish well under 1s so the bumped ceiling is a safety net,
+      # not a regression risk.
+      PREODDS_POSTGRES_CONNECTION: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-preodds};Username=${POSTGRES_USER:-preodds};Password=${POSTGRES_PASSWORD};Command Timeout=1800"
+      ConnectionStrings__PreOddsApiPostgresDb: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-preodds};Username=${POSTGRES_USER:-preodds};Password=${POSTGRES_PASSWORD};Command Timeout=1800"
       PREODDS_JWT_SECRET: ${PREODDS_JWT_SECRET:?required}
       PREODDS_INTERNAL_API_KEY: ${PREODDS_INTERNAL_API_KEY:-}
       Authentication__Issuer: ${AUTH_ISSUER:?required}
@@ -152,11 +155,14 @@ services:
       migrator:
         condition: service_completed_successfully
     environment:
-      # Command Timeout=180 because the backlog raw_payloads INSERT can
-      # carry multi-MB SportMonks responses; the default 30s was hitting
-      # NpgsqlException "Timeout during reading attempt" during streaming.
-      PREODDS_POSTGRES_CONNECTION: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-preodds};Username=${POSTGRES_USER:-preodds};Password=${POSTGRES_PASSWORD};Command Timeout=180"
-      ConnectionStrings__PreOddsApiPostgresDb: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-preodds};Username=${POSTGRES_USER:-preodds};Password=${POSTGRES_PASSWORD};Command Timeout=180"
+      # Command Timeout=1800s (30 min) — covers both the backlog
+      # raw_payloads INSERT (multi-MB SportMonks responses) AND the
+      # nightly 03:00 UTC snapshot rebuild which now runs the wider
+      # season-window SQL and takes ~12-15 min after the window-codes
+      # refactor. Earlier 180s was tight even before, 1800s is the
+      # same ceiling the webapi uses for the manual rebuild path.
+      PREODDS_POSTGRES_CONNECTION: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-preodds};Username=${POSTGRES_USER:-preodds};Password=${POSTGRES_PASSWORD};Command Timeout=1800"
+      ConnectionStrings__PreOddsApiPostgresDb: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-preodds};Username=${POSTGRES_USER:-preodds};Password=${POSTGRES_PASSWORD};Command Timeout=1800"
       SportMonks__ApiToken: ${SPORTMONKS_API_TOKEN:?required}
       WORKER_HEALTH_PORT: "8080"
       # WorkerObservability.cs reads SENTRY_DSN directly. Empty string
