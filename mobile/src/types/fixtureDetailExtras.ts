@@ -13,6 +13,13 @@ export interface FixtureEvent {
   result: string | null;
   info: string | null;
   injured?: boolean | null;
+  /**
+   * True when the goal was overturned by VAR (server inference). The
+   * row stays in the timeline but is rendered with strikethrough +
+   * "İPTAL" badge — standard SofaScore/FotMob behaviour. Defaults to
+   * false on older backend builds that didn't emit this flag.
+   */
+  cancelled?: boolean;
 }
 
 export interface FixtureStatistic {

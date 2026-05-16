@@ -284,6 +284,7 @@ function GoalLine({
 }) {
   const c = useTheme();
   const code = (goal.type_code ?? '').toUpperCase();
+  const cancelled = goal.cancelled === true;
   const minuteStr =
     goal.minute != null
       ? goal.extra_minute && goal.extra_minute > 0
@@ -309,6 +310,10 @@ function GoalLine({
           styles.goalText,
           { color: c.textMuted },
           side === 'home' ? styles.goalTextHome : styles.goalTextAway,
+          // VAR-cancelled goals: strikethrough so the user can see what
+          // happened on the pitch (goal scored, then overturned) without
+          // mistaking the missing line for a sync bug.
+          cancelled && { textDecorationLine: 'line-through' },
         ]}
         numberOfLines={1}>
         {text}

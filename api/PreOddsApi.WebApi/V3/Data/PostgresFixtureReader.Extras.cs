@@ -209,12 +209,14 @@ namespace PreOddsApi.WebApi.V3.Data
             // goal is overturned, fixture_scores.CURRENT lands at the lower
             // tally but the GOAL event is still in the timeline.
             //
-            // We infer cancellation by reconciling: per team, if
-            // GOAL/OWNGOAL/PENALTY event count > final score AND the same
-            // player has a VAR event within ~5 minutes after the goal, that
-            // goal is treated as cancelled and hidden from the timeline.
-            // The VAR event itself stays visible so the timeline still
-            // tells the story of "review happened".
+            // Original behaviour FILTERED these out of the event list,
+            // which left users confused — they saw a goal live, then it
+            // disappeared from the timeline with no explanation. Industry
+            // standard (SofaScore / FotMob / FlashScore) is to KEEP the
+            // event visible but render it with strikethrough + an "İPTAL"
+            // / "CANCELLED" badge. We now mirror that: detection logic is
+            // unchanged, but the result is a `cancelled` boolean on the
+            // DTO and the row stays in the timeline.
             const string sql = """
                 with goal_events as (
                     select e.id, e.player_id, e.participant_id,
@@ -271,7 +273,8 @@ namespace PreOddsApi.WebApi.V3.Data
                            when fp_away.team_id = e.participant_id then 'away'
                        end as participant_location,
                        e.player_id, e.player_name, e.related_player_name,
-                       e.result, e.info, e.injured
+                       e.result, e.info, e.injured,
+                       (e.id in (select id from cancelled_goal_ids)) as cancelled
                 from football.fixture_events e
                 left join catalog.types t on t.id = e.type_id
                 left join football.fixture_participants fp_home
@@ -279,7 +282,6 @@ namespace PreOddsApi.WebApi.V3.Data
                 left join football.fixture_participants fp_away
                     on fp_away.fixture_id = e.fixture_id and fp_away.location = 'away'
                 where e.fixture_id = @fixture_id
-                  and e.id not in (select id from cancelled_goal_ids)
                 order by e.minute nulls last, e.extra_minute nulls last, e.id;
                 """;
 
@@ -306,7 +308,8 @@ namespace PreOddsApi.WebApi.V3.Data
                     RelatedPlayerName = ReadNullableString(reader, "related_player_name"),
                     Result = ReadNullableString(reader, "result"),
                     Info = ReadNullableString(reader, "info"),
-                    Injured = ReadNullableBool(reader, "injured")
+                    Injured = ReadNullableBool(reader, "injured"),
+                    Cancelled = reader.GetBoolean(reader.GetOrdinal("cancelled"))
                 });
             }
             return items;
