@@ -315,18 +315,16 @@ export function AnalysisScreen() {
           style={({ pressed }) => [
             styles.headerFlashBtn,
             {
-              // Persistent warning-coloured pill — amber/orange reads as
-              // "spotlight / hot pick" without competing with the brand
-              // colour. The whole point of this button is the user to
-              // notice it, so it stays vivid in both pressed and idle.
-              backgroundColor: c.warning ?? c.brand,
-              opacity: pressed || quickPicksOpen ? 0.85 : 1,
+              // Transparent button, red flash icon — colour grabs attention
+              // without the full pill background dominating the header.
+              backgroundColor:
+                pressed || quickPicksOpen ? c.dangerSoft ?? c.brandSoft : 'transparent',
             },
           ]}>
           <MaterialCommunityIcons
-            name="lightning-bolt"
-            size={20}
-            color={c.textInverse ?? '#fff'}
+            name="flash"
+            size={22}
+            color={c.danger ?? '#ef4444'}
           />
         </Pressable>
         <AppBrand />
