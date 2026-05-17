@@ -480,12 +480,22 @@ namespace SportMonks.Football.FixtureWorker.Services
 
         private async Task MaybeRunLivescoresLatestAsync(CancellationToken cancellationToken)
         {
-            // /livescores/latest returns just the fixtures that changed state in
-            // the last few seconds. Cheap enough to run on a 30s cadence even
-            // across a wide league portfolio. Subscriptions without livescores
-            // access return 403 — we fall back to fixtures/between/today/today
-            // so live tier still produces updates (one heavier call instead of
-            // a delta).
+            // /livescores/latest returns ONLY fixtures changed in the last 10
+            // seconds (SportMonks's documented contract — see
+            // docs.sportmonks.com/football/endpoints-and-entities/endpoints/
+            // livescores). That makes the natural polling cadence 10 seconds:
+            // anything slower opens a blind spot where a fixture transition
+            // (minute increment, score, state) happens AND then doesn't change
+            // again before the next poll, dropping that transition forever.
+            //
+            // We previously ran on 30s which lost ~67% of the API window. The
+            // user-visible symptom was the live minute clock drifting several
+            // minutes behind reality. With 10s the worst-case lag between a
+            // SportMonks update and our DB row is ~10s + transport.
+            //
+            // Subscriptions without livescores access return 403 — we fall
+            // back to fixtures/between/today/today so the live tier still
+            // produces updates (one heavier call instead of a delta).
             if (!GetBoolean("SportMonksFixtureLiveSync:Enabled",
                     GetBoolean("SportMonksFixtureSync:Enabled", false)))
                 return;
