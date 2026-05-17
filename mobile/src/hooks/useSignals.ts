@@ -23,11 +23,17 @@ export function useSignals(params: SignalQueryParams = {}) {
   });
 }
 
-const INFINITE_PAGE_SIZE = 40;
+// Bumped from 40 → 200 (backend's MaxPerPage). On a normal day the full
+// day's signal volume fits in one request, so the meta row's
+// "N lig · M maç" count is stable from the very first render instead of
+// climbing as the user scrolls — fixing the confusing UX Ethem flagged.
+// On the rare day with 200+ signals (high-coverage festival days), the
+// infinite-scroll fallback still kicks in.
+const INFINITE_PAGE_SIZE = 200;
 
 /**
  * Paginated signals query for the Analysis screen. Returns one page at
- * a time so the initial render only has to layout ~40 fixture cards;
+ * a time so the initial render only has to layout ~200 fixture cards;
  * FlatList onEndReached pulls the next page when the user scrolls near
  * the bottom. The query key omits page/perPage so the cache key stays
  * stable across pages.
