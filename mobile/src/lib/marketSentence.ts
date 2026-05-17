@@ -39,8 +39,10 @@ export function outcomeSentence(
     if (lower === 'no') return t('marketOutcome.btts_no');
   }
 
-  // Total Goals Over/Under (e.g. 2.5 Over → "Maçta 3+ gol")
-  if (marketId === 80 && total) {
+  // Total Goals Over/Under (e.g. 2.5 Over → "Maçta 3+ gol").
+  // 80 and 81 (Alternative Total Goals) share the same template — the
+  // only difference is which total lines SportMonks ships for each.
+  if ((marketId === 80 || marketId === 81) && total) {
     const totalNum = Number.parseFloat(total);
     if (Number.isFinite(totalNum)) {
       const overGoals = Math.ceil(totalNum);

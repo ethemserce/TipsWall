@@ -70,6 +70,14 @@ export const MARKET_CATALOG: readonly MarketEntry[] = [
   { id: 93,  developerName: 'EXACT_TOTAL_GOALS',              shortTr: 'TGS',         shortEn: 'ETG',      longTr: 'Toplam Gol Sayısı',                longEn: 'Exact Total Goals' },
   { id: 97,  developerName: '2ND_HALF_RESULT',                shortTr: '2Y',          shortEn: '2H',       longTr: 'İkinci Yarı Sonucu',               longEn: '2nd Half Result' },
   { id: 124, developerName: '2ND_HALF_GOALS_ODD_EVEN',        shortTr: '2Y T/Ç',      shortEn: '2H O/E',   longTr: 'İkinci Yarı Tek / Çift',           longEn: '2nd Half Goals Odd / Even' },
+  // 81/82/83 are additional total-goals families that SportMonks bundles
+  // alongside the canonical 80 (GOALS_OVER_UNDER). 81 ships the same
+  // shape as 80 (Over/Under outcomes) but with extended total lines —
+  // commonly seen in the OddsRatesCard mid-list. 82 combines totals with
+  // BTTS; 83 is a discrete exact-match-goal-count market.
+  { id: 81,  developerName: 'ALTERNATIVE_TOTAL_GOALS',         shortTr: 'A/Ü+',        shortEn: 'O/U+',     longTr: 'Alternatif Toplam Gol Alt / Üst',  longEn: 'Alternative Total Goals Over / Under' },
+  { id: 82,  developerName: 'TOTAL_GOALS_BOTH_TEAMS_TO_SCORE', shortTr: 'TG+KG',       shortEn: 'TG+BTTS',  longTr: 'Toplam Gol ve Karşılıklı Gol',     longEn: 'Total Goals and Both Teams to Score' },
+  { id: 83,  developerName: 'NUMBER_OF_GOALS_IN_MATCH',        shortTr: 'Maç TG',      shortEn: 'Match TG', longTr: 'Maçta Toplam Gol Sayısı',          longEn: 'Number of Goals in Match' },
 ];
 
 const BY_ID = new Map<number, MarketEntry>(MARKET_CATALOG.map((m) => [m.id, m]));
@@ -172,8 +180,9 @@ export function shortenOutcome(label: string, marketId: number): string {
     if (lower === 'odd') return en ? 'Odd' : 'Tek';
     if (lower === 'even') return en ? 'Even' : 'Çift';
   }
-  // Goals Over/Under — locale-aware.
-  if (marketId === 80) {
+  // Goals Over/Under — locale-aware. 80 and 81 (Alternative Total
+  // Goals) share the same Over/Under outcome shape.
+  if (marketId === 80 || marketId === 81) {
     if (lower === 'over') return en ? 'Over' : 'Üst';
     if (lower === 'under') return en ? 'Under' : 'Alt';
   }
