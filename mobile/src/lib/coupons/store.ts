@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useRef, useState } from 'react';
 
 import { selectionKey, type Coupon, type CouponSelection } from '@/src/lib/coupons/types';
+import { marketShort } from '@/src/lib/marketShort';
 
 const DRAFT_KEY = 'preodds.coupons.draft.v1';
 const SAVED_KEY = 'preodds.coupons.saved.v1';
@@ -107,7 +108,21 @@ function migrateSelection(raw: unknown): CouponSelection | null {
     startingAt: s.startingAt ?? null,
     bookmakerId: s.bookmakerId ?? 2,
     marketId: s.marketId ?? 0,
-    marketShort: s.marketShort ?? `M${s.marketId ?? 0}`,
+    // Earlier coupons stored marketShort verbatim ('M80', 'M81') when the
+    // canonical catalogue didn't cover the id. Re-resolve every load
+    // through the canonical helper so legacy/incomplete saves and
+    // post-locale-switch renders both come out with the correct short
+    // code in the user's current language ("A/Ü" in TR, "O/U" in EN).
+    // If the saved short looks like a sensible non-"M{id}" string and
+    // the canonical helper still can't resolve the id, fall back to
+    // the stored value so we never make displays *worse* on rehydrate.
+    marketShort: (() => {
+      const canonical = marketShort(s.marketId ?? 0, s.marketShort ?? null);
+      if (canonical.startsWith('M') && /^M\d+$/.test(canonical) && s.marketShort) {
+        return s.marketShort;
+      }
+      return canonical;
+    })(),
     outcomeLabel: s.outcomeLabel,
     // outcomeDisplay is newer than the original schema — older coupons fall
     // back to outcomeLabel via the consumer's nullish coalescing.
