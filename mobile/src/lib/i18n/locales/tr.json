@@ -527,6 +527,9 @@
       "title": "Günün Öne Çıkanları",
       "openA11y": "Günün öne çıkanlarını aç",
       "empty": "Bugün için filtrelerine uyan öne çıkan veri yok."
+    },
+    "hitStats": {
+      "a11y": "{{won}} / {{finished}} bitmiş tahmin tuttu, %{{rate}} isabet"
     }
   },
   "leagueScope": {
@@ -691,6 +694,10 @@
       "firstHalf": "1. Yarı",
       "secondHalf": "2. Yarı",
       "cancelledBadge": "İPTAL"
+    },
+    "hitStats": {
+      "title": "Maç sonu: tahminlerin",
+      "subtitle": "{{won}} / {{finished}} tahmin tuttu (%{{rate}})"
     },
     "hero": {
       "halfTimeShort": "İY {{home}}-{{away}}",

@@ -36,6 +36,7 @@ import { useFixtureLookup } from '@/src/hooks/useFixtureLookup';
 import { useLeagueLookup } from '@/src/hooks/useLeagueLookup';
 import { useLiveTicker } from '@/src/hooks/useLiveTicker';
 import { useManualRefresh } from '@/src/hooks/useManualRefresh';
+import { computeHitStats, getSignalWinning } from '@/src/lib/signals/hitStats';
 import { useMarketPreferences } from '@/src/hooks/useMarketPreferences';
 import { useMarkets } from '@/src/hooks/useMarkets';
 import { useInfiniteSignals } from '@/src/hooks/useSignals';
@@ -154,6 +155,10 @@ export function AnalysisScreen() {
     () => data?.pages.flatMap((p) => p.data.items) ?? [],
     [data?.pages],
   );
+  // Retro-accuracy across the currently-displayed (filtered) signal set.
+  // Filter changes propagate here naturally — the meta badge always
+  // reflects "how my current filter scored today".
+  const hitStats = useMemo(() => computeHitStats(items, getSignalWinning), [items]);
 
   const handleEndReached = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) {
@@ -595,6 +600,42 @@ export function AnalysisScreen() {
               </Pressable>
             ) : null}
           </Pressable>
+          {hitStats.finished > 0 ? (
+            <View
+              style={[
+                styles.hitPill,
+                {
+                  borderColor:
+                    hitStats.hitRate >= 50 ? c.success : c.danger,
+                  backgroundColor:
+                    hitStats.hitRate >= 50
+                      ? (c.successSoft ?? 'transparent')
+                      : (c.dangerSoft ?? 'transparent'),
+                },
+              ]}
+              accessibilityLabel={t('analysis.hitStats.a11y', {
+                won: hitStats.won,
+                finished: hitStats.finished,
+                rate: Math.round(hitStats.hitRate),
+              })}>
+              <MaterialCommunityIcons
+                name={
+                  hitStats.hitRate >= 50 ? 'check-circle' : 'close-circle'
+                }
+                size={12}
+                color={hitStats.hitRate >= 50 ? c.success : c.danger}
+              />
+              <ThemedText
+                style={[
+                  styles.hitText,
+                  {
+                    color: hitStats.hitRate >= 50 ? c.success : c.danger,
+                  },
+                ]}>
+                {hitStats.won}/{hitStats.finished} ({Math.round(hitStats.hitRate)}%)
+              </ThemedText>
+            </View>
+          ) : null}
           {allCollapsed || leagueGroups.length === 0 ? null : (
             <Pressable
               onPress={collapseAll}
@@ -973,6 +1014,21 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     letterSpacing: 0.3,
+  },
+  hitPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  hitText: {
+    fontSize: 11,
+    fontWeight: '700',
+    fontVariant: ['tabular-nums'],
+    letterSpacing: 0.2,
   },
   toggleAllBtn: {
     flexDirection: 'row',

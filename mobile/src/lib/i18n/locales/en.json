@@ -527,6 +527,9 @@
       "title": "Today's Highlights",
       "openA11y": "Open today's data highlights",
       "empty": "No highlighted data matches your filters today."
+    },
+    "hitStats": {
+      "a11y": "{{won}} of {{finished}} finished picks hit, {{rate}}% accuracy"
     }
   },
   "leagueScope": {
@@ -697,6 +700,10 @@
       "firstHalf": "1st Half",
       "secondHalf": "2nd Half",
       "cancelledBadge": "CANCELLED"
+    },
+    "hitStats": {
+      "title": "Full time: your picks",
+      "subtitle": "{{won}} of {{finished}} hit ({{rate}}%)"
     },
     "info": {
       "title": "Match Info",
