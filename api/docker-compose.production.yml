@@ -280,6 +280,19 @@ services:
       # requirement. Re-enable after the finalizer SQL is windowed by
       # bookmaker filter + lookback shrunk.
       OddOutcomeFinalize__Enabled: "false"
+      # Hourly analytics rebuild was the *actual* root cause of the
+      # repeated "live tracking dies" pattern on 2026-05-17:
+      # MaybeRunAnalyticsAsync runs every 3600s, calls
+      # RunOddAnalysisSnapshotsAsync (`with base as ... bookmaker_id,
+      # market_id, lower(label)`) + RunFixtureSignalsAsync. Each call
+      # is a multi-million-row join across every bookmaker (read-side
+      # filter isn't applied) and takes 5-30 minutes — overlapping
+      # with the next hourly trigger. Symptoms: postgres CPU 190%+,
+      # MEM 97%+, every worker tick blocked behind these queries.
+      # NightlySnapshot (03:00 UTC) already does the same job once a
+      # day, which is enough for the analysis screen. Disable until
+      # the snapshot SQL is bookmaker-filtered on the read side too.
+      AnalyticsSync__Enabled: "false"
       # Only persist prematch odds for bookmaker 2 — the single
       # bookmaker the mobile UI defaults to and the only one analysis
       # is built against. SportMonksPrematchOddsWriter reads this list
