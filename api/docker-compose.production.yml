@@ -252,6 +252,22 @@ services:
       # match facts only in a niche tab (acceptable temporary cost).
       # Re-enable once the pagination is windowed / rate-paced.
       SportMonksMatchFactsSync__Enabled: "false"
+      # Backlog window — was 2 back / 14 forward (16 days × multi-page
+      # SportMonks calls per pulse cycle). Even at 1 day per tick, the
+      # accumulated paginations were keeping HttpClient busy and pulse
+      # tier from finishing in a reasonable time. Tighten to 1 back /
+      # 3 forward — enough to refresh recent + near-future fixtures
+      # without a 16-day fan-out. Re-widen once the worker batches
+      # writes more efficiently.
+      SportMonksFixtureBacklogSync__DaysBack: "1"
+      SportMonksFixtureBacklogSync__DaysForward: "3"
+      # Inplay odds was bundled into the live tick body (livescores +
+      # inplay together) — at 30s inner gate, every third live tick
+      # added a 5-10s inplay roundtrip, stretching cycle time to ~30s
+      # instead of the target 10s. Bumping to 120s makes inplay run
+      # 1/12 ticks (every 2 minutes), keeping live cycles tight.
+      # Mobile odds still refresh on focus + SignalR push.
+      SportMonksWorkerSettings__InplayOddsIntervalSeconds: "120"
     deploy:
       resources:
         limits:
