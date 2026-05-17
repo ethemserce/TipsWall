@@ -503,8 +503,11 @@ export function AnalysisFiltersSheet({
                         style={[
                           styles.segmentText,
                           { color: active ? c.textInverse : c.text },
-                        ]}>
-                        {t(`rate.filters.windows.${key}`)}
+                        ]}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.8}>
+                        {t(`rate.filters.windowsShort.${key}`)}
                       </ThemedText>
                     </Pressable>
                   );

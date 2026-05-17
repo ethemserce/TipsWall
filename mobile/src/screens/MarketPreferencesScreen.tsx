@@ -21,6 +21,7 @@ import { useMarketPreferences } from '@/src/hooks/useMarketPreferences';
 import { useMarkets } from '@/src/hooks/useMarkets';
 import { useEmailVerified, useTier } from '@/src/lib/auth/authStore';
 import { marketPreferencesStore } from '@/src/lib/marketPreferences/store';
+import { marketLongName } from '@/src/lib/marketShort';
 import { useTheme } from '@/src/lib/useTheme';
 
 /**
@@ -32,12 +33,17 @@ import { useTheme } from '@/src/lib/useTheme';
  */
 export function MarketPreferencesScreen() {
   const c = useTheme();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const { marketIds, cap } = useMarketPreferences();
   const tier = useTier();
   const emailVerified = useEmailVerified();
   const { lookup, isLoading } = useMarkets();
+  // Active locale drives the row label — earlier the picker rendered
+  // the SportMonks-supplied English `m.name` even when the app was in
+  // Turkish. marketLongName looks up the curated TR/EN catalogue first
+  // and falls back to the upstream name only for unmapped markets.
+  const activeLang = i18n.language ?? '';
   const [search, setSearch] = useState('');
   const [draft, setDraft] = useState<Set<number>>(() => new Set(marketIds));
   const [saving, setSaving] = useState(false);
@@ -250,7 +256,7 @@ export function MarketPreferencesScreen() {
                 <ThemedText
                   numberOfLines={1}
                   style={[styles.rowName, { color: c.text }]}>
-                  {item.name ?? `Market #${item.id}`}
+                  {marketLongName(item.id, activeLang, item.name)}
                 </ThemedText>
               </Pressable>
             );
