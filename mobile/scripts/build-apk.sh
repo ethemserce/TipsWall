@@ -26,18 +26,31 @@ cd "$(dirname "$0")/.."
 
 GITIGNORE="$(pwd)/.gitignore"
 
+# CRLF-tolerant patterns. .gitignore is checked out with CRLF on Windows
+# (default git autocrlf), which makes a naïve `^...\.json$` miss the
+# match because of the trailing \r. `\r?$` accepts both LF and CRLF;
+# the `(\r?)` capture restores the original line ending after the
+# replacement so we don't mix line endings in the file.
+
 restore_gitignore() {
-  # The replacements are no-ops if the lines are already uncommented
-  # (sed runs idempotent on the un-prefixed match), so this is safe to
-  # call even on early-exit paths.
-  sed -i 's|^#google-services\.json$|google-services.json|'       "$GITIGNORE" 2>/dev/null || true
-  sed -i 's|^#GoogleService-Info\.plist$|GoogleService-Info.plist|' "$GITIGNORE" 2>/dev/null || true
+  # The replacements are no-ops if the lines are already uncommented,
+  # so this is safe to call even on early-exit paths.
+  sed -i -E 's|^#google-services\.json(\r?)$|google-services.json\1|'         "$GITIGNORE" 2>/dev/null || true
+  sed -i -E 's|^#GoogleService-Info\.plist(\r?)$|GoogleService-Info.plist\1|' "$GITIGNORE" 2>/dev/null || true
 }
 trap restore_gitignore EXIT
 
 echo "[build-apk] uncommenting Firebase config lines in .gitignore…"
-sed -i 's|^google-services\.json$|#google-services.json|'       "$GITIGNORE"
-sed -i 's|^GoogleService-Info\.plist$|#GoogleService-Info.plist|' "$GITIGNORE"
+sed -i -E 's|^google-services\.json(\r?)$|#google-services.json\1|'         "$GITIGNORE"
+sed -i -E 's|^GoogleService-Info\.plist(\r?)$|#GoogleService-Info.plist\1|' "$GITIGNORE"
+
+# Sanity check: if the toggle didn't take, the build is doomed. Fail
+# loud rather than letting EAS produce the cryptic ENOENT we kept hitting.
+if grep -qE '^google-services\.json\r?$' "$GITIGNORE"; then
+  echo "[build-apk] ERROR: .gitignore still ignores google-services.json after toggle." >&2
+  echo "  Check $GITIGNORE manually; the sed pattern may need adjusting for an unusual line ending." >&2
+  exit 1
+fi
 
 echo "[build-apk] killing stale Gradle daemons + lock files…"
 pkill -9 -f 'GradleDaemon|gradle' 2>/dev/null || true
