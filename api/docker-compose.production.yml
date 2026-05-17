@@ -308,6 +308,19 @@ services:
       # Add more ids ("__1=5") if a second bookmaker becomes relevant
       # to the analysis pipeline.
       SportMonksPrematchOddsSync__AllowedBookmakerIds__0: "2"
+      # NightlySnapshot has a half-broken hour gate:
+      #   `if (nowUtc.Hour < targetHourUtc) return;`
+      # accepts every hour from `targetHourUtc` (default 3) through 23,
+      # not just 03:xx. So on a worker restart at, say, 23:30 UTC the
+      # in-memory _nightlySnapshotLastRunDate is MinValue, the
+      # _scheduler.GetLastRunUtc seed comes back empty, the hour gate
+      # passes (23 > 3), and the snapshot rebuild — finalizer +
+      # RunOddAnalysisSnapshotsAsync — fires immediately. That's how
+      # ~20 `with current_odds`/`with base as` queries pinned postgres
+      # tonight even though all the *other* tier flags were off.
+      # Disabling at the env layer until the gate is tightened to a
+      # narrow [targetHourUtc, targetHourUtc+1) window.
+      NightlySnapshot__Enabled: "false"
     deploy:
       resources:
         limits:
