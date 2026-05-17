@@ -48,7 +48,18 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1500M
+          # Bumped from 1500M to 2560M after Postgres was repeatedly
+          # OOM-killed (signal 9) by the Linux kernel on 2026-05-17.
+          # Trigger: `insert into sync.raw_payloads` with multi-MB
+          # SportMonks JSON payloads while shared_buffers (512M) +
+          # work_mem*40 (640M peak) + maintenance_work_mem (128M) +
+          # WAL buffers already had the previous 1.5G ceiling pinned.
+          # Each kill triggered ~5s of `57P03 in recovery mode` on the
+          # workers, which then dropped live tick writes and froze the
+          # mobile live-minute display on completed fixtures (the
+          # Napoli match symptom). Hetzner CX32 8GB has the budget —
+          # OS + page cache still has ~2.2G after this bump.
+          memory: 2560M
 
   migrator:
     image: ghcr.io/${GHCR_OWNER:?required}/tipswall-migrator:${IMAGE_TAG:-latest}
