@@ -70,6 +70,36 @@ namespace SportMonks.Football.FixtureWorker.Services
             "referees"
         ];
 
+        // Minimum include set for the 10-second live tick. Trimmed from
+        // FixtureSyncIncludes (the full set used by pulse + nightly + the
+        // backlog/today calls) down to just the fields that drift on a
+        // sub-minute cadence during a live match: state machine, scores
+        // (current + per-half), per-period clock, events (goals / cards /
+        // subs), and statistics. Participants is needed to map scores
+        // back to home / away.
+        //
+        // Everything else (lineups, formations, sidelined, referees,
+        // venue, league, season / stage / round / group meta, tv
+        // stations, weather, news, timeline trends) is refreshed by the
+        // 30-minute pulse tier — none of those drift between minute X
+        // and minute X+1 of the same fixture, so paying the bandwidth +
+        // JSON parse + DB-write cost on every 10s tick was waste that
+        // also starved the live cycle (response large enough to slow
+        // the tick body well past its 10s budget).
+        //
+        // Writer upserts already use COALESCE(excluded.X, table.X), so a
+        // null arriving here doesn't blank out the previously-stored
+        // lineup / formation / referee values.
+        private static readonly string[] FixtureLiveTickIncludes =
+        [
+            "state",
+            "scores",
+            "participants",
+            "periods",
+            "events",
+            "statistics"
+        ];
+
         private static readonly string[] FixtureSidelinedIncludes =
         [
             "sidelined",
@@ -506,7 +536,7 @@ namespace SportMonks.Football.FixtureWorker.Services
 
             const string endpoint = "livescores/latest";
             var request = SportMonksApiRequest.Create(endpoint)
-                .WithInclude(BuildFixtureSyncIncludes(allowOddsInclude: false).ToArray());
+                .WithInclude(FixtureLiveTickIncludes);
 
             var timezone = NullIfWhiteSpace(_configuration["SportMonksFixtureLiveSync:Timezone"])
                 ?? NullIfWhiteSpace(_configuration["SportMonksFixtureSync:Timezone"]);

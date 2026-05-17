@@ -261,13 +261,14 @@ services:
       # writes more efficiently.
       SportMonksFixtureBacklogSync__DaysBack: "1"
       SportMonksFixtureBacklogSync__DaysForward: "3"
-      # Inplay odds was bundled into the live tick body (livescores +
-      # inplay together) — at 30s inner gate, every third live tick
-      # added a 5-10s inplay roundtrip, stretching cycle time to ~30s
-      # instead of the target 10s. Bumping to 120s makes inplay run
-      # 1/12 ticks (every 2 minutes), keeping live cycles tight.
-      # Mobile odds still refresh on focus + SignalR push.
-      SportMonksWorkerSettings__InplayOddsIntervalSeconds: "120"
+      # Inplay odds — product decision (2026-05-17): we don't surface
+      # live odds in the UI at all, the user's analysis is based on
+      # pre-match odds and stays valid once the match is underway.
+      # Disabling the entire inplay sync removes the HTTP round-trip
+      # AND the per-fixture upsert into odds.inplay_odds_current,
+      # freeing live-tick budget and DB write capacity. Re-enable if
+      # we ever ship a live-odds view.
+      SportMonksInplayOddsSync__Enabled: "false"
     deploy:
       resources:
         limits:
