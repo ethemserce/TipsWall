@@ -218,10 +218,23 @@ services:
       SeasonBackfill__FromDate: ${SEASON_BACKFILL_FROM:-}
       SeasonBackfill__ToDate: ${SEASON_BACKFILL_TO:-}
       SeasonBackfill__DaysPerTick: ${SEASON_BACKFILL_DAYS_PER_TICK:-2}
+      # Pulse OOM fix (2026-05-17): the 18934-row fixture-trends upsert
+      # was the canary for a wider memory pressure issue in pulse —
+      # disabling SyncTrends at the env layer cuts the heaviest single
+      # pulse step. Mobile doesn't surface trend data; re-enable once
+      # the worker streams per-page upserts instead of buffering them.
+      SportMonksFixtureTimelineSync__SyncTrends: "false"
     deploy:
       resources:
         limits:
-          memory: 1280M
+          # Bumped from 1280M to 2048M after live tick cadence collapsed
+          # following a pulse OOM (System.OutOfMemoryException). The
+          # process caught the exception but heap fragmentation + GC
+          # pressure left live ticks firing every ~30-60s instead of
+          # every 10s. 2GB gives the 4-tier loop enough headroom even
+          # during the 18k-row pulse upserts; Hetzner CX32 8GB has the
+          # budget (other services total ~2.5GB).
+          memory: 2048M
 
   worker-odds:
     image: ghcr.io/${GHCR_OWNER:?required}/tipswall-worker-odds:${IMAGE_TAG:-latest}
