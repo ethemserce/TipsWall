@@ -78,13 +78,13 @@
       "save": "TAHMİNİ KAYDET"
     },
     "topPicks": {
-      "headerOne": "ÖNERİLEN TAHMİN",
-      "headerMany": "ÖNERİLEN TAHMİNLER",
+      "headerOne": "VERİ ÖNE ÇIKARIYOR",
+      "headerMany": "VERİ ÖNE ÇIKARANLAR",
       "valueBadge": "DEĞER",
       "stats": "HIT {{dso}}% · IMP {{iko}}% · örnek {{sample}}",
-      "actionInBasket": "EKLENDİ",
+      "actionInBasket": "SEÇİLDİ",
       "actionDisabled": "KAPALI",
-      "actionAdd": "EKLE",
+      "actionAdd": "TERCİH ET",
       "actionOffList": "LİSTEDE YOK"
     },
     "stats": {
@@ -339,7 +339,7 @@
     "about": {
       "header": "Hakkında",
       "title": "Kişisel tahmin takip uygulaması",
-      "disclaimer": "Bu uygulama bahis oynatmaz. Para yatırma, kupon oluşturma veya bahis sitesine yönlendirme içermez. Tahmin takip özelliği yalnızca kişisel analiz amacıyla sunulur."
+      "disclaimer": "Bu uygulama tahmin yapmaz, bahis oynatmaz. Para yatırma, kupon oluşturma veya bahis sitesine yönlendirme içermez. Geçmiş istatistikleri filtrelenebilir biçimde sunar; her tercih kullanıcıya aittir."
     },
     "marketPrefs": {
       "label": "Favori Tahmin Tipleri",
@@ -495,9 +495,9 @@
       }
     },
     "quickPicks": {
-      "title": "Günün Önerileri",
-      "openA11y": "Günün önerilerini aç",
-      "empty": "Bugün için filtrelerine uyan bir öneri yok."
+      "title": "Günün Öne Çıkanları",
+      "openA11y": "Günün öne çıkanlarını aç",
+      "empty": "Bugün için filtrelerine uyan öne çıkan veri yok."
     }
   },
   "markets": {
