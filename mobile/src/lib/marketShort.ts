@@ -131,6 +131,17 @@ export function marketLongName(
 /**
  * Strip exact-goals labels down to their core ("AGF Aarhus - 3+ Goals" → "3+")
  * and translate common 1/X/2-style outcomes for display + coupon storage.
+ *
+ * Match is case-insensitive — SportMonks ships labels in mixed case
+ * across providers; earlier the screen rendered the raw English label
+ * because we compared against title-case only. Lowering before compare
+ * keeps the conversion robust.
+ *
+ * Yes/No, Odd/Even, Over/Under are locale-aware (i18n.language). 1/X/2
+ * stays language-neutral — the same codes are used in every betting
+ * market vocabulary worldwide.
+ *
+ * Market id coverage matches the canonical 33-entry MARKET_CATALOG.
  */
 export function shortenOutcome(label: string, marketId: number): string {
   if (marketId === 18 || marketId === 19) {
@@ -141,18 +152,37 @@ export function shortenOutcome(label: string, marketId: number): string {
   if (marketId === 33 || marketId === 38) {
     return label.replace(/\s+Goals?$/i, '');
   }
-  if (marketId === 1) {
-    if (label === 'Home') return '1';
-    if (label === 'Draw') return 'X';
-    if (label === 'Away') return '2';
+  const lower = label.toLowerCase();
+  const en = activeLang().toLowerCase().startsWith('en');
+  // Fulltime 1X2 + half-time 1X2 — neutral codes (international standard).
+  if (marketId === 1 || marketId === 31) {
+    if (lower === 'home') return '1';
+    if (lower === 'draw') return 'X';
+    if (lower === 'away') return '2';
   }
-  if (marketId === 14) {
-    if (label === 'Yes') return 'Var';
-    if (label === 'No') return 'Yok';
+  // BTTS + per-side "team to score" + clean-sheet + win-to-nil all use Yes/No.
+  if (marketId === 14 || marketId === 15 || marketId === 16
+      || marketId === 35 || marketId === 36 || marketId === 46
+      || marketId === 50 || marketId === 51) {
+    if (lower === 'yes') return en ? 'Yes' : 'Var';
+    if (lower === 'no') return en ? 'No' : 'Yok';
   }
-  if (marketId === 44) {
-    if (label === 'Odd') return 'Tek';
-    if (label === 'Even') return 'Çift';
+  // Odd/Even — full match, 1st half, 2nd half all share the mapping.
+  if (marketId === 44 || marketId === 45 || marketId === 124) {
+    if (lower === 'odd') return en ? 'Odd' : 'Tek';
+    if (lower === 'even') return en ? 'Even' : 'Çift';
+  }
+  // Goals Over/Under — locale-aware.
+  if (marketId === 80) {
+    if (lower === 'over') return en ? 'Over' : 'Üst';
+    if (lower === 'under') return en ? 'Under' : 'Alt';
+  }
+  // Double Chance + Team Double Chance — universal compact codes used on
+  // Turkish bet slips and most European bookmakers.
+  if (marketId === 2 || marketId === 52) {
+    if (lower === 'home/draw' || lower === 'home or draw') return '1X';
+    if (lower === 'home/away' || lower === 'home or away') return '12';
+    if (lower === 'draw/away' || lower === 'draw or away') return 'X2';
   }
   return label;
 }

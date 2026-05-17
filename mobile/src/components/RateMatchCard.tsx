@@ -12,6 +12,10 @@ import { useTryAddSelection } from '@/src/hooks/useTryAddSelection';
 import { useCouponStore } from '@/src/lib/coupons/store';
 import { getStateBucket } from '@/src/lib/fixtureState';
 import { outcomeLiveStatus } from '@/src/lib/liveOutcome';
+import {
+  marketShort as marketShortCanonical,
+  shortenOutcome as shortenOutcomeCanonical,
+} from '@/src/lib/marketShort';
 import { useTheme } from '@/src/lib/useTheme';
 import type { FixtureDetail } from '@/src/types/fixtureDetail';
 import type { Market } from '@/src/types/market';
@@ -303,11 +307,11 @@ export function RateMatchCard({
             startingAt: fixture?.fixture.starting_at ?? null,
             bookmakerId: 2,
             marketId: s.market_id,
-            marketShort: MARKET_SHORT[s.market_id] ?? `M${s.market_id}`,
+            marketShort: marketShortCanonical(s.market_id),
             // Store raw label (matches bookmaker feed) so settlement and
             // duplicate detection round-trip cleanly.
             outcomeLabel: rawLabel,
-            outcomeDisplay: shortenOutcome(rawLabel, s.market_id),
+            outcomeDisplay: shortenOutcomeCanonical(rawLabel, s.market_id),
             total: s.total,
             handicap: s.handicap,
             oddValue: 0,
@@ -415,48 +419,19 @@ function TeamColumn({
   );
 }
 
-// Compact Turkish bet-slip shortcodes per market — displayed before the
-// outcome label so "MS 1" reads naturally even when 8 markets are stacked.
-const MARKET_SHORT: Record<number, string> = {
-  1: 'MS',    // Fulltime Result
-  10: 'DNB',  // Draw No Bet
-  14: 'KG',   // Both Teams To Score
-  18: 'EV',   // Home Team Exact Goals
-  19: 'DEP',  // Away Team Exact Goals
-  33: 'İY',   // First Half Exact Goals
-  38: '2Y',   // Second Half Exact Goals
-  44: 'T/Ç',  // Odd / Even
-};
-
-function shortenOutcome(label: string, marketId: number): string {
-  // "AGF Aarhus - 3+ Goals" → "3+", "1 Goal" / "5+ Goals" → "1" / "5+"
-  if (marketId === 18 || marketId === 19) {
-    const dash = label.lastIndexOf(' - ');
-    const tail = dash >= 0 ? label.slice(dash + 3) : label;
-    return tail.replace(/\s+Goals?$/i, '');
-  }
-  if (marketId === 33 || marketId === 38) {
-    return label.replace(/\s+Goals?$/i, '');
-  }
-  if (marketId === 1) {
-    if (label === 'Home') return '1';
-    if (label === 'Draw') return 'X';
-    if (label === 'Away') return '2';
-  }
-  if (marketId === 14) {
-    if (label === 'Yes') return 'Var';
-    if (label === 'No') return 'Yok';
-  }
-  if (marketId === 44) {
-    if (label === 'Odd') return 'Tek';
-    if (label === 'Even') return 'Çift';
-  }
-  return label;
-}
+// The canonical MARKET_CATALOG in mobile/src/lib/marketShort.ts now
+// owns short codes + outcome shortening for all 33 supported markets.
+// Earlier this file shipped a local fallback that only covered 8 ids
+// (MS / DNB / KG / EV / DEP / İY / 2Y / T/Ç) so anything outside it —
+// like market 80 (GOALS_OVER_UNDER) — fell back to the SportMonks
+// long name ("Goals Over/Under Over"). Delegate to the canonical
+// helpers so AnalysisScreen / RateScreen pick labels read the same
+// short codes the fixture-detail Analiz tab uses ("A/Ü Üst 2.5" instead
+// of "Goals Over/Under Over 2.5", "MS 1" instead of "Home", etc.).
 
 function formatLabel(s: RateResult, market: Market | undefined): string {
-  const short = MARKET_SHORT[s.market_id] ?? market?.name ?? `M${s.market_id}`;
-  const outcome = shortenOutcome(s.label || '', s.market_id);
+  const short = marketShortCanonical(s.market_id, market?.name);
+  const outcome = shortenOutcomeCanonical(s.label || '', s.market_id);
   if (s.total != null) return `${short} ${outcome} ${s.total}`.trim();
   if (s.handicap != null) return `${short} ${outcome} ${s.handicap}`.trim();
   return `${short} ${outcome}`.trim();
