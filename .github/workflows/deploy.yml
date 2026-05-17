@@ -8,6 +8,7 @@ on:
     # changed — mobile-only commits don't need a server redeploy.
     paths:
       - 'api/**'
+      - 'web/**'  # admin dashboard ships from the same VPS
       - '.github/workflows/deploy.yml'
       - 'mobile/openapi.json'  # if mobile commits a regenerated schema
   # Allow a manual "redeploy current main" from the Actions UI in case
@@ -38,14 +39,26 @@ jobs:
         include:
           - image: tipswall-webapi
             dockerfile: api/Dockerfile.webapi
+            context: api
           - image: tipswall-migrator
             dockerfile: api/Dockerfile.migrator
+            context: api
           - image: tipswall-worker-core
             dockerfile: api/Dockerfile.worker.core
+            context: api
           - image: tipswall-worker-football
             dockerfile: api/Dockerfile.worker.football
+            context: api
           - image: tipswall-worker-odds
             dockerfile: api/Dockerfile.worker.odds
+            context: api
+          - image: tipswall-web
+            dockerfile: web/Dockerfile
+            context: web
+            # Browser-visible env baked at build time. Override via
+            # workflow input later if we deploy to a different host.
+            build_args: |
+              NEXT_PUBLIC_API_BASE_URL=https://api.tipswall.com
     steps:
       - uses: actions/checkout@v4
 
@@ -65,10 +78,12 @@ jobs:
       - name: Build & push ${{ matrix.image }}
         uses: docker/build-push-action@v5
         with:
-          # Build context is the api/ folder — Dockerfiles assume their
-          # csproj paths relative to there.
-          context: api
+          # Build context is the per-image folder (api/ for backend
+          # images, web/ for the Next.js image). Dockerfiles assume
+          # paths relative to their own context.
+          context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
+          build-args: ${{ matrix.build_args }}
           push: true
           tags: |
             ${{ steps.prefix.outputs.value }}/${{ matrix.image }}:latest

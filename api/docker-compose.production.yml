@@ -98,6 +98,12 @@ services:
       Authentication__Issuer: ${AUTH_ISSUER:?required}
       Authentication__Audience: ${AUTH_AUDIENCE:?required}
       Cors__AllowedOrigins__0: ${CORS_ORIGIN_0:?required}
+      # Admin dashboard origin (https://admin.tipswall.com). Optional —
+      # leave unset until DNS lands; the admin host has its own login
+      # screen + server-side cookie session, so until CORS opens the
+      # browser-facing fetches will only succeed when the dashboard
+      # is on a registered origin.
+      Cors__AllowedOrigins__1: ${CORS_ORIGIN_1:-}
       # Social sign-in: missing values keep the buttons hidden client-
       # side and return a clear "not configured" 503 server-side.
       PREODDS_APPLE_CLIENT_ID: ${PREODDS_APPLE_CLIENT_ID:-}
@@ -337,11 +343,34 @@ services:
         limits:
           memory: 384M
 
+  web:
+    # Next.js admin dashboard. Standalone build (~150 MB), runs as
+    # non-root on port 3000. Caddy fronts admin.tipswall.com to it.
+    image: ghcr.io/${GHCR_OWNER:?required}/tipswall-web:${IMAGE_TAG:-latest}
+    pull_policy: always
+    restart: unless-stopped
+    environment:
+      # Browser hits the public API host directly; baked at build time
+      # because Next.js needs NEXT_PUBLIC_* during the build step. The
+      # CI image is built with this same value via deploy.yml.
+      NEXT_PUBLIC_API_BASE_URL: ${ADMIN_API_BASE_URL:-https://api.tipswall.com}
+      NODE_ENV: production
+    expose:
+      - "3000"
+    deploy:
+      resources:
+        limits:
+          # Tight by design — Next.js standalone idles ~100-150 MB.
+          # 256M gives headroom for peak request handling on the 4 GB
+          # host without crowding postgres / workers.
+          memory: 256M
+
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
     depends_on:
       - webapi
+      - web
     ports:
       - "80:80"
       - "443:443"
