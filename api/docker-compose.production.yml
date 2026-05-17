@@ -388,6 +388,11 @@ services:
       # unset (or "dummy.invalid") to keep the legal pages only on the
       # API host while DNS still points elsewhere.
       LEGAL_DOMAINS: ${LEGAL_DOMAINS:-dummy.invalid}
+      # Admin dashboard host. Caddyfile reads {$ADMIN_DOMAIN}; without
+      # this pass-through the block falls back to the loopback default
+      # and the public DNS A record gets no TLS provision (browsers see
+      # ERR_SSL_PROTOCOL_ERROR). Leave unset to disable the admin block.
+      ADMIN_DOMAIN: ${ADMIN_DOMAIN:-http://localhost:9998}
     deploy:
       resources:
         limits:
