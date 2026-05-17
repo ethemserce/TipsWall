@@ -245,6 +245,13 @@ services:
       # sync.raw_payloads is debug-only — no production read path uses
       # it. Disable archival until the table is partitioned / dropped.
       SportMonksSync__StoreRawPayloads: "false"
+      # MatchFacts is paginated per-fixture (sometimes 14+ pages each)
+      # and was monopolising the HttpClient connection pool, starving
+      # the live tier of its `livescores/latest` slot. With match-facts
+      # off, the live tick wakes up on schedule. Mobile UI surfaces
+      # match facts only in a niche tab (acceptable temporary cost).
+      # Re-enable once the pagination is windowed / rate-paced.
+      SportMonksMatchFactsSync__Enabled: "false"
     deploy:
       resources:
         limits:
