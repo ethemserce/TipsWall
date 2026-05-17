@@ -59,7 +59,8 @@
             "useFrameworks": "static"
           }
         }
-      ]
+      ],
+      "./plugins/with-gradle-jvm-memory"
     ],
     "experiments": {
       "typedRoutes": true,

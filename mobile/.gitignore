@@ -44,6 +44,12 @@ app-example
 /ios
 /android
 
+# EAS local build outputs — `eas build --local` drops APK/AAB files in
+# the project root with a timestamp suffix. Keep them out of git so the
+# repo stays clean across release builds.
+build-*.apk
+build-*.aab
+
 # Firebase config files — downloaded from Firebase Console per
 # environment. Mirror them in EAS Secrets (or commit *.example variants)
 # so the build pipeline can drop them in at build time without leaking
