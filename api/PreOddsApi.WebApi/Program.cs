@@ -109,6 +109,8 @@ builder.Services.AddSingleton<PreOddsApi.WebApi.V3.Data.IAppSchemaService,
     PreOddsApi.WebApi.V3.Data.PostgresAppSchemaService>();
 builder.Services.AddSingleton<PreOddsApi.WebApi.V3.Data.ISyncDiagnostics,
     PreOddsApi.WebApi.V3.Data.PostgresSyncDiagnostics>();
+builder.Services.AddSingleton<PreOddsApi.WebApi.V3.Admin.IAdminOpsReader,
+    PreOddsApi.WebApi.V3.Admin.PostgresAdminOpsReader>();
 builder.Services.AddSingleton<PreOddsApi.WebApi.V3.Data.IReferenceDataReader,
     PreOddsApi.WebApi.V3.Data.PostgresReferenceDataReader>();
 builder.Services.AddSingleton<PreOddsApi.WebApi.V3.Data.IFixtureReader,
@@ -318,6 +320,19 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
         ValidAudience = authOptions.Audience,
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(authOptions.JwtSecret))
     };
+});
+
+// AdminOnly policy — gates /api/v3/admin/* on the `admin` JWT claim
+// emitted by AuthController.GenerateAccessToken when user.IsAdmin = true.
+// Default-deny: a missing claim fails the policy, no extra setup needed
+// for non-admin tokens. Flip a user with `UPDATE app.users SET is_admin
+// = TRUE WHERE email = '...'`; effect lands on the next refresh-token
+// swap (~15 min).
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminOnly", policy =>
+        policy.RequireAuthenticatedUser()
+              .RequireClaim("admin", "true"));
 });
 
 var corsAllowedOrigins = builder.Configuration

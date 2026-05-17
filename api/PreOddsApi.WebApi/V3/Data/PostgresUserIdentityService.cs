@@ -149,7 +149,7 @@ namespace PreOddsApi.WebApi.V3.Data
             await using var command = new NpgsqlCommand(
                 """
                 select id, username, email, display_name, role,
-                       tier, tier_expires_at, password_hash,
+                       tier, tier_expires_at, password_hash, is_admin,
                        (email_verified_at is not null) as email_verified
                 from app.users
                 where status = 'active'
@@ -171,7 +171,8 @@ namespace PreOddsApi.WebApi.V3.Data
                 Role = reader.GetString(reader.GetOrdinal("role")),
                 Tier = reader.GetString(reader.GetOrdinal("tier")),
                 TierExpiresAt = ReadNullableDateTimeOffset(reader, "tier_expires_at"),
-                EmailVerified = reader.GetBoolean(reader.GetOrdinal("email_verified"))
+                EmailVerified = reader.GetBoolean(reader.GetOrdinal("email_verified")),
+                IsAdmin = reader.GetBoolean(reader.GetOrdinal("is_admin"))
             };
             var hash = ReadNullableString(reader, "password_hash");
             return (user, hash);
@@ -185,6 +186,7 @@ namespace PreOddsApi.WebApi.V3.Data
             await using var command = new NpgsqlCommand(
                 """
                 select id, username, email, display_name, role, tier, tier_expires_at,
+                       is_admin,
                        (email_verified_at is not null) as email_verified
                 from app.users
                 where id = @id and status = 'active'
@@ -205,7 +207,8 @@ namespace PreOddsApi.WebApi.V3.Data
                 Role = reader.GetString(reader.GetOrdinal("role")),
                 Tier = reader.GetString(reader.GetOrdinal("tier")),
                 TierExpiresAt = ReadNullableDateTimeOffset(reader, "tier_expires_at"),
-                EmailVerified = reader.GetBoolean(reader.GetOrdinal("email_verified"))
+                EmailVerified = reader.GetBoolean(reader.GetOrdinal("email_verified")),
+                IsAdmin = reader.GetBoolean(reader.GetOrdinal("is_admin"))
             };
         }
 

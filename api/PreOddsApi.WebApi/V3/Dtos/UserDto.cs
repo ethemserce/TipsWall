@@ -34,5 +34,13 @@ namespace PreOddsApi.WebApi.V3.Dtos
         /// provider already verifies the email.
         /// </summary>
         public bool EmailVerified { get; init; }
+
+        /// <summary>
+        /// Orthogonal to <see cref="Tier"/>. Ops / dashboard access only —
+        /// flipped manually via SQL by an existing admin. Stamped into
+        /// the JWT as the `admin` claim, gated on the new /api/v3/admin/*
+        /// routes via `[Authorize(Policy = "AdminOnly")]`.
+        /// </summary>
+        public bool IsAdmin { get; init; }
     }
 }

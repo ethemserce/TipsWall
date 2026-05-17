@@ -489,8 +489,16 @@ namespace PreOddsApi.WebApi.V3.Controllers
                 // can hide the "verify your email" banner without a /me
                 // round trip. Refresh after verifying picks up the new
                 // value within 15 min.
-                new("email_verified", user.EmailVerified ? "true" : "false")
+                new("email_verified", user.EmailVerified ? "true" : "false"),
+                // Admin claim — gates the /api/v3/admin/* routes
+                // through the AdminOnly policy. Orthogonal to tier;
+                // flipped manually via SQL (see migration 031). Only
+                // emitted when true so non-admins don't carry a noisy
+                // `admin: false` claim.
             };
+
+            if (user.IsAdmin)
+                claims.Add(new Claim("admin", "true"));
 
             if (!string.IsNullOrWhiteSpace(user.Email))
                 claims.Add(new Claim(JwtRegisteredClaimNames.Email, user.Email));
