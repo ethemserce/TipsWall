@@ -35,6 +35,8 @@ interface Pick {
   iko: number;
   vbet: number | null;
   sampleCount: number;
+  /** Retro outcome flag — set only after the host fixture has settled. */
+  winning: boolean | null;
 }
 
 const TOP_LIMIT = 2;
@@ -85,6 +87,7 @@ export function FixtureTopPicksCard({
           iko: o.iko,
           vbet: o.earning_percent,
           sampleCount: sample,
+          winning: o.winning ?? null,
         });
       }
     }
@@ -213,6 +216,16 @@ function PickRow({
   // full-opacity so the tip text + stats remain readable; the button
   // itself still reflects the disabled state.
   const dim = (fixtureAlreadyPicked && !inCoupon) || (!marketAllowed && !inCoupon);
+  // Retro outcome — only true / false count; mid-game or pre-game stay
+  // neutral. Coloured tip + soft row tint mirror the QuickPicks sheet.
+  const settled = pick.winning === true || pick.winning === false;
+  const won = pick.winning === true;
+  const tipColor = settled ? (won ? c.success : c.danger) : c.brand;
+  const rowTint = settled
+    ? won
+      ? (c.successSoft ?? 'transparent')
+      : (c.dangerSoft ?? 'transparent')
+    : 'transparent';
   return (
     <Pressable
       onPress={handlePress}
@@ -220,13 +233,19 @@ function PickRow({
       style={({ pressed }) => [
         styles.row,
         {
-          backgroundColor: pressed ? c.bg : 'transparent',
+          backgroundColor: pressed ? c.bg : rowTint,
           borderTopColor: c.border,
           opacity: dim ? 0.5 : 1,
         },
       ]}>
       <View style={styles.pickInfo}>
-        <ThemedText style={[styles.pickTip, { color: c.brand }]} numberOfLines={2}>
+        <ThemedText
+          style={[
+            styles.pickTip,
+            { color: tipColor },
+            settled && !won && styles.lostStrike,
+          ]}
+          numberOfLines={2}>
           {outcomeSentence(t, pick.marketId, pick.outcomeLabel, pick.total, pick.handicap)}
         </ThemedText>
         <ThemedText style={[styles.pickStats, { color: c.textMuted }]}>
@@ -237,22 +256,30 @@ function PickRow({
           })}
         </ThemedText>
       </View>
-      <View
-        style={[
-          styles.btn,
-          {
-            backgroundColor: inCoupon ? c.brand : 'transparent',
-            borderColor: c.brand,
-          },
-        ]}>
-        <ThemedText
+      {settled ? (
+        <MaterialCommunityIcons
+          name={won ? 'check-circle' : 'close-circle'}
+          size={24}
+          color={won ? c.success : c.danger}
+        />
+      ) : (
+        <View
           style={[
-            styles.btnText,
-            { color: inCoupon ? c.textInverse : c.brand },
+            styles.btn,
+            {
+              backgroundColor: inCoupon ? c.brand : 'transparent',
+              borderColor: c.brand,
+            },
           ]}>
-          {buttonLabel}
-        </ThemedText>
-      </View>
+          <ThemedText
+            style={[
+              styles.btnText,
+              { color: inCoupon ? c.textInverse : c.brand },
+            ]}>
+            {buttonLabel}
+          </ThemedText>
+        </View>
+      )}
     </Pressable>
   );
 }
@@ -318,5 +345,9 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 0.6,
+  },
+  lostStrike: {
+    textDecorationLine: 'line-through',
+    textDecorationStyle: 'solid',
   },
 });

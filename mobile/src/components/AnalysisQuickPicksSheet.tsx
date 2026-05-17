@@ -197,6 +197,11 @@ function QuickPickRow({
   const label = `${marketShort} · ${signal.label}`;
   const hit = signal.winning_percent != null ? Math.round(signal.winning_percent) : null;
   const imp = signal.iko != null ? Math.round(signal.iko) : null;
+  // Retro outcome colouring. `bet_winning` is stamped by the outcome
+  // finalizer only after the fixture has settled, so a non-null value
+  // is safe to trust — anything mid-match stays at the neutral default.
+  const settled = signal.bet_winning === true || signal.bet_winning === false;
+  const won = signal.bet_winning === true;
 
   const handle = async () => {
     const res = await tryAdd({
@@ -219,21 +224,40 @@ function QuickPickRow({
     if (res.ok) onAfterAdd();
   };
 
+  // Settled rows pick up a soft tint + the stat pill swaps to a
+  // win/loss colour. The "+ to coupon" action stays interactive so the
+  // user can still add settled picks (no-op for FT matches but the
+  // store / quota gate handles that uniformly).
+  const rowTint = settled
+    ? won
+      ? (c.successSoft ?? 'transparent')
+      : (c.dangerSoft ?? 'transparent')
+    : 'transparent';
+
   return (
     <Pressable
       onPress={handle}
       style={({ pressed }) => [
         styles.row,
+        { backgroundColor: rowTint },
         pressed && { backgroundColor: c.brandSoft },
       ]}>
       <View style={styles.rowInfo}>
         <ThemedText
-          style={[styles.rowTeams, { color: c.text }]}
+          style={[
+            styles.rowTeams,
+            { color: c.text },
+            settled && !won && styles.lostStrike,
+          ]}
           numberOfLines={1}>
           {teams}
         </ThemedText>
         <ThemedText
-          style={[styles.rowTip, { color: c.textMuted }]}
+          style={[
+            styles.rowTip,
+            { color: settled ? (won ? c.success : c.danger) : c.textMuted },
+            settled && !won && styles.lostStrike,
+          ]}
           numberOfLines={1}>
           {label}
         </ThemedText>
@@ -252,12 +276,21 @@ function QuickPickRow({
           </ThemedText>
         ) : null}
       </View>
-      <MaterialCommunityIcons
-        name={inDraft ? 'check-circle' : 'plus-circle-outline'}
-        size={22}
-        color={inDraft ? c.success : c.brand}
-        style={styles.rowAction}
-      />
+      {settled ? (
+        <MaterialCommunityIcons
+          name={won ? 'check-circle' : 'close-circle'}
+          size={22}
+          color={won ? c.success : c.danger}
+          style={styles.rowAction}
+        />
+      ) : (
+        <MaterialCommunityIcons
+          name={inDraft ? 'check-circle' : 'plus-circle-outline'}
+          size={22}
+          color={inDraft ? c.success : c.brand}
+          style={styles.rowAction}
+        />
+      )}
     </Pressable>
   );
 }
@@ -306,6 +339,10 @@ const styles = StyleSheet.create({
   statText: { fontSize: 10, fontWeight: '800' },
   impText: { fontSize: 10, fontWeight: '600' },
   rowAction: { marginLeft: 4 },
+  lostStrike: {
+    textDecorationLine: 'line-through',
+    textDecorationStyle: 'solid',
+  },
   center: {
     paddingVertical: 32,
     alignItems: 'center',
