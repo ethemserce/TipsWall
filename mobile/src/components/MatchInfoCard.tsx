@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { countryName } from '@/src/lib/countryName';
 import { useTheme } from '@/src/lib/useTheme';
 import type { Country } from '@/src/types/country';
 import type { FixtureSummary } from '@/src/types/fixture';
@@ -24,7 +25,7 @@ export function MatchInfoCard({ fixture, league, country }: MatchInfoCardProps) 
     rows.push({ label: t('fixture.info.tournament'), value: league.name });
   }
   if (country?.name) {
-    rows.push({ label: t('fixture.info.country'), value: country.name });
+    rows.push({ label: t('fixture.info.country'), value: countryName(country) });
   }
   if (league?.type) {
     rows.push({

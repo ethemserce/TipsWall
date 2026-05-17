@@ -36,6 +36,7 @@ import { useLeagueTable } from '@/src/hooks/useLeagueTable';
 import { useTeam } from '@/src/hooks/useTeam';
 import { useTeamSeasonStats } from '@/src/hooks/useTeamSeasonStats';
 import { useTeamSquad } from '@/src/hooks/useTeamSquad';
+import { countryName } from '@/src/lib/countryName';
 import { useTheme } from '@/src/lib/useTheme';
 import type { FixtureSummary } from '@/src/types/fixture';
 
@@ -215,7 +216,7 @@ export function TeamDetailScreen({ teamId }: TeamDetailScreenProps) {
               <ThemedText
                 style={[styles.headerSub, { color: c.textMuted }]}
                 numberOfLines={1}>
-                {country.name}
+                {countryName(country)}
                 {team?.founded ? ` · ${team.founded}` : ''}
               </ThemedText>
             ) : null}

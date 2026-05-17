@@ -34,6 +34,7 @@ import { useCountryLookup } from '@/src/hooks/useCountryLookup';
 import { useFixtures } from '@/src/hooks/useFixtures';
 import { useLeagueLookup } from '@/src/hooks/useLeagueLookup';
 import { useLeagueTable } from '@/src/hooks/useLeagueTable';
+import { countryName } from '@/src/lib/countryName';
 import { getStateBucket } from '@/src/lib/fixtureState';
 import { useTheme } from '@/src/lib/useTheme';
 import type { FixtureSummary } from '@/src/types/fixture';
@@ -196,7 +197,7 @@ export function LeagueDetailScreen({ leagueId }: LeagueDetailScreenProps) {
               <ThemedText
                 style={[styles.headerSub, { color: c.textMuted }]}
                 numberOfLines={1}>
-                {country.name}
+                {countryName(country)}
               </ThemedText>
             ) : null}
           </View>
