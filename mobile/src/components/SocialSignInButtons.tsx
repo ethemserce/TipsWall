@@ -37,11 +37,16 @@ import { useTheme } from '@/src/lib/useTheme';
 // device. When the platform id is missing we skip the entire Google child
 // so the hook never fires.
 function hasGoogleOnThisPlatform(): boolean {
-  // The OAuth request is now Web-client-only on every platform (the
-  // iOS/Android client ids route through a deprecated custom URI
-  // scheme — see GoogleSignInButton below). Gate the button on the
-  // web id alone so we don't show it on builds where it can't fire.
-  return env.googleClientIdWeb.length > 0;
+  // All three client ids are required by useIdTokenAuthRequest on
+  // production builds (see the comment above the hook call below).
+  // The Web id alone is not enough because Expo defaults to the
+  // app's custom scheme on native, which the WEB client rejects.
+  // Show the button only when every id is set so we don't fire the
+  // hook with missing config.
+  if (env.googleClientIdWeb.length === 0) return false;
+  if (Platform.OS === 'ios') return env.googleClientIdIos.length > 0;
+  if (Platform.OS === 'android') return env.googleClientIdAndroid.length > 0;
+  return true;
 }
 
 export function SocialSignInButtons() {
@@ -183,16 +188,33 @@ function GoogleSignInButton({
 }: GoogleSignInButtonProps) {
   const c = useTheme();
   const { t } = useTranslation();
-  // Web-client-only flow on every platform. Passing iosClientId /
-  // androidClientId routes Expo Auth Session through Google's reverse-
-  // domain custom URI scheme (e.g. com.googleusercontent.apps.NNN:/...).
-  // Google deprecated that scheme in 2025; even when re-enabled via the
-  // Cloud Console toggle, the response never lands back in the app
-  // because there is no matching intent filter in the APK manifest.
-  // Sticking to clientId (Web) routes the OAuth dance through Expo's
-  // HTTPS proxy (https://auth.expo.io/@ethemserce/PreOddsMobile), which
-  // Expo intercepts natively without any manifest work.
+  // All three client IDs are required for production builds on Expo
+  // SDK 54+:
+  //
+  //   * iosClientId + androidClientId let useIdTokenAuthRequest pick the
+  //     reverse-domain redirect URI (com.googleusercontent.apps.NNN:/
+  //     oauthredirect) that Google's native client types accept.
+  //   * clientId (Web) is still required so Expo can fill the standard
+  //     PKCE/OAuth params (audience etc.) for token exchange.
+  //
+  // Two earlier attempts failed:
+  //   * Removing ios/android client ids and shipping only the web id
+  //     produced "Custom scheme URIs are not allowed for 'WEB' client
+  //     type" — Expo defaulted to the app's preoddsmobile:// custom
+  //     scheme which the WEB OAuth client rejects. Expo's old
+  //     auth.expo.io HTTPS proxy was removed in SDK 49 so we can't
+  //     route the web client through a hosted https redirect.
+  //   * Keeping all three ids but with the Android client's "Enable
+  //     Custom URI scheme" toggle OFF produced "Custom URI scheme is
+  //     not enabled for your Android client".
+  //
+  // Working configuration:
+  //   * All three client ids passed below.
+  //   * Google Cloud Console → Android client → enable "Custom URI
+  //     scheme" (a one-time toggle on the Android client page).
   const [, , promptGoogle] = Google.useIdTokenAuthRequest({
+    iosClientId: env.googleClientIdIos || undefined,
+    androidClientId: env.googleClientIdAndroid || undefined,
     clientId: env.googleClientIdWeb || undefined,
   });
 
