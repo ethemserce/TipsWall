@@ -190,16 +190,7 @@
         "description": "How many times this same pick has won (W) and lost (L) historically. Samples with a total below 3 are hidden — too noisy to read."
       }
     },
-    "markets": {
-      "MS": "Match Result",
-      "DNB": "Draw Refund",
-      "KG": "Both Teams To Score",
-      "EV": "Home Exact Goals",
-      "DEP": "Away Exact Goals",
-      "iy": "1st Half Exact Goals",
-      "y2": "2nd Half Exact Goals",
-      "tc": "Odd / Even"
-    }
+    "_marketsDeprecated": "MARKET_CATALOG owns these now — see lib/marketShort.ts"
   },
   "tabs": {
     "home": "Matches",

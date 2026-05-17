@@ -190,16 +190,7 @@
         "description": "Geçmiş örneklemde aynı tahminin kaç kez kazandığı (KZ) ve kaç kez kaybettiği (KY). Toplamı 3'ten az olan istatistikler bu sayfada gösterilmez — anlamlı olmuyor."
       }
     },
-    "markets": {
-      "MS": "Maç Sonucu",
-      "DNB": "Beraberlikte İade",
-      "KG": "Karşılıklı Gol",
-      "EV": "Ev Sahibi Tam Skor",
-      "DEP": "Deplasman Tam Skor",
-      "iy": "1. Yarı Tam Skor",
-      "y2": "2. Yarı Tam Skor",
-      "tc": "Tek / Çift Gol"
-    }
+    "_marketsDeprecated": "MARKET_CATALOG owns these now — see lib/marketShort.ts"
   },
   "tabs": {
     "home": "Maçlar",

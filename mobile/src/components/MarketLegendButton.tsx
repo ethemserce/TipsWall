@@ -1,9 +1,10 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { MARKET_CATALOG } from '@/src/lib/marketShort';
 import { useTheme } from '@/src/lib/useTheme';
 
 // Metric column shortcodes used in card rows. Long names + descriptions
@@ -22,21 +23,27 @@ const METRIC_KEYS: { key: 'dso' | 'vbet' | 'iko' | 'kzky' }[] = [
   { key: 'kzky' },
 ];
 
-const MARKET_KEYS: { short: string; key: string }[] = [
-  { short: 'MS', key: 'MS' },
-  { short: 'DNB', key: 'DNB' },
-  { short: 'KG', key: 'KG' },
-  { short: 'EV', key: 'EV' },
-  { short: 'DEP', key: 'DEP' },
-  { short: 'İY', key: 'iy' },
-  { short: '2Y', key: 'y2' },
-  { short: 'T/Ç', key: 'tc' },
-];
+// MARKET_KEYS used to live as a hardcoded 8-entry array with its own
+// legend.markets.* locale block. We've migrated to a single source —
+// MARKET_CATALOG in lib/marketShort.ts — so the legend now iterates the
+// same 33 entries the pick column / coupon basket / picker list read
+// from, and adding a new market is one line in the catalog (no parallel
+// locale entries to keep in sync).
 
 export function MarketLegendButton() {
   const c = useTheme();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [open, setOpen] = useState(false);
+
+  const isTr = (i18n.language ?? '').toLowerCase().startsWith('tr');
+  const marketEntries = useMemo(
+    () =>
+      MARKET_CATALOG.map((m) => ({
+        short: isTr ? m.shortTr : m.shortEn,
+        long: isTr ? m.longTr : m.longEn,
+      })),
+    [isTr],
+  );
 
   return (
     <>
@@ -107,15 +114,15 @@ export function MarketLegendButton() {
                 ]}>
                 {t('legend.marketsHeader')}
               </ThemedText>
-              {MARKET_KEYS.map((e) => (
+              {marketEntries.map((e, idx) => (
                 <View
-                  key={e.short}
+                  key={`${e.short}-${idx}`}
                   style={[styles.row, { borderTopColor: c.border }]}>
                   <ThemedText style={[styles.short, { color: c.text }]}>
                     {e.short}
                   </ThemedText>
                   <ThemedText style={[styles.long, { color: c.textMuted }]}>
-                    {t(`legend.markets.${e.key}`)}
+                    {e.long}
                   </ThemedText>
                 </View>
               ))}
