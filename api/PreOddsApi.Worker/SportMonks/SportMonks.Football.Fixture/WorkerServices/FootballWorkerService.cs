@@ -639,14 +639,24 @@ namespace SportMonks.Football.FixtureWorker.Services
                 await _analyticsEngine.RunSeasonStatsAsync(cancellationToken);
                 await _analyticsEngine.RunSeasonTeamStatsAsync(cancellationToken);
                 await _analyticsEngine.RunSeasonPlayerStatsAsync(cancellationToken);
+                // Lookback was 24 * 365 (one year), which produced a
+                // multi-million-row join every nightly run and could
+                // pin postgres for 20+ minutes. Product intent is "o
+                // günün oranları için analiz" — finalize whatever
+                // settled today + a safety buffer for late-arriving
+                // matches. 72h (3 days) is plenty: anything older than
+                // that already has its `winning` flag stamped from a
+                // previous run, the finalizer is idempotent.
+                var finalizeLookbackHours = GetInteger(
+                    "NightlySnapshot:FinalizeLookbackHours", 72);
                 var finalized = await _analyticsEngine.RunOddOutcomeFinalizerAsync(
-                    24 * 365, cancellationToken);
+                    finalizeLookbackHours, cancellationToken);
                 var snapshotRows = await _analyticsEngine.RunOddAnalysisSnapshotsAsync(
                     cancellationToken);
 
                 _logger.LogInformation(
-                    "NightlySnapshot success on attempt {Attempt}: outcomes_finalized={Finalized} snapshot_rows={Rows}",
-                    attempt, finalized, snapshotRows);
+                    "NightlySnapshot success on attempt {Attempt}: outcomes_finalized={Finalized} snapshot_rows={Rows} (lookback={LookbackHours}h)",
+                    attempt, finalized, snapshotRows, finalizeLookbackHours);
                 _scheduler.RecordRun(ScheduleKey.NightlySnapshot);
                 _nightlySnapshotLastRunDate = todayUtc;
                 _nightlySnapshotNextRetryAt = null;
