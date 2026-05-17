@@ -6,7 +6,15 @@ import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { getStateBucket, getStateLabel } from '@/src/lib/fixtureState';
+import {
+  getMatchPhase,
+  getStateBucket,
+  getStateLabel,
+  phaseShowsFulltimeSub,
+  phaseShowsHalfTime,
+  phaseShowsPenaltyScore,
+  type MatchPhase,
+} from '@/src/lib/fixtureState';
 import { useTheme } from '@/src/lib/useTheme';
 import type { Country } from '@/src/types/country';
 import type { FixtureSummary } from '@/src/types/fixture';
@@ -85,45 +93,30 @@ export function FixtureDetailHero({
           .padStart(2, '0')}`
       : null;
 
-  // SportMonks state IDs (verified against catalog.states):
-  //   2  INPLAY_1ST_HALF             3  HT
-  //   4  BREAK                       5  FT
-  //   6  INPLAY_ET                   7  AET
-  //   8  FT_PEN (after penalties)    9  INPLAY_PENALTIES
-  //   21 EXTRA_TIME_BREAK            22 INPLAY_2ND_HALF
-  //   23 INPLAY_ET_SECOND_HALF       25 PEN_BREAK
-  //
-  // The earlier version had 22 listed as "ETB" and 19 as "PEN shootout",
-  // both wrong — 22 is the in-play 2nd half and 19 is "Awaiting Updates".
-  // The bug surfaced as the full-time (MS) sub-score appearing while
-  // the match was still in regulation 2nd half.
-  const stateId = fixture.state_id ?? 0;
-  const inOrAfterET =
-    stateId === 6  || // INPLAY_ET (1st half of ET)
-    stateId === 7  || // AET (finished)
-    stateId === 8  || // FT_PEN (finished after penalties)
-    stateId === 9  || // INPLAY_PENALTIES (shootout in progress)
-    stateId === 21 || // ETB (extra time break)
-    stateId === 23 || // INPLAY_ET_SECOND_HALF
-    stateId === 25;   // PEN_BREAK
-  const inShootout = stateId === 8 || stateId === 9 || stateId === 25;
+  // Match phase derived once + branched against everywhere — was a
+  // dozen inline `stateId === N || stateId === M` chains before, with
+  // overlap that caused real bugs (22 conflated with 19, full-time
+  // sub-score leaking into 2nd-half live). See lib/fixtureState.ts
+  // for the canonical state-id-to-phase mapping.
+  const phase: MatchPhase = getMatchPhase(fixture.state_id);
+  const inShootout = phase === 'pen' || phase === 'pen_break' || phase === 'ft_pen';
 
-  // Halftime score: hide while 1st half is still in play (state 2). All
-  // other in-play / finished states show it.
+  // Halftime score: visible from HT onwards (not during 1st half itself
+  // — the line score IS the 1H score at that point).
   const firstHalfPart =
-    scored && stateId !== 2
+    scored && phaseShowsHalfTime(phase)
       ? findHalfScore(scores, '1ST_HALF')
       : null;
-  // Full-90 result before extra time kicked in. SportMonks ships this
-  // under description "FULLTIME" (or "NORMAL_TIME" on some plans);
-  // try both so the row appears regardless of feed shape.
-  const fullTimePart = inOrAfterET
+  // Regulation-90 result, only shown once extra time / penalties kick in.
+  // SportMonks ships this under description "FULLTIME" (or "NORMAL_TIME"
+  // on some plans); try both so the row appears regardless of feed shape.
+  const fullTimePart = phaseShowsFulltimeSub(phase)
     ? findHalfScore(scores, 'FULLTIME') ??
       findHalfScore(scores, 'NORMAL_TIME') ??
       findHalfScore(scores, '2ND_HALF')
     : null;
   // Penalty shootout running count, when the feed publishes one.
-  const penaltyPart = inShootout
+  const penaltyPart = phaseShowsPenaltyScore(phase)
     ? findHalfScore(scores, 'PENALTY_SHOOTOUT') ??
       findHalfScore(scores, 'PENALTIES')
     : null;
@@ -237,7 +230,7 @@ export function FixtureDetailHero({
               })}
             </ThemedText>
           ) : null}
-          {scored && (live || stateId === 7 || stateId === 8) ? (
+          {scored && (live || phase === 'aet' || phase === 'ft_pen') ? (
             <ThemedText
               style={[
                 styles.statusText,

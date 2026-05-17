@@ -55,6 +55,89 @@ export function isLive(stateId: number | null | undefined): boolean {
   return getStateBucket(stateId) === 'live';
 }
 
+/**
+ * Match phase — finer-grained than StateBucket so the hero can render
+ * the right combination of score / minute / sub-scores per phase.
+ *
+ * Mapping derives from the catalog.states list above:
+ *   pre        — 1 (NS), 13 (TBA), 16 (DELAYED), 26 (PENDING)
+ *   1h         — 2 (INPLAY_1ST_HALF)
+ *   ht         — 3 (HT), 4 (BREAK)
+ *   2h         — 22 (INPLAY_2ND_HALF), 19 (AWAITING_UPDATES — treat as 2H)
+ *   et_break   — 21 (EXTRA_TIME_BREAK)
+ *   et_1h      — 6 (INPLAY_ET)
+ *   et_2h      — 23 (INPLAY_ET_SECOND_HALF)
+ *   pen_break  — 25 (PEN_BREAK)
+ *   pen        — 9 (INPLAY_PENALTIES)
+ *   ft         — 5 (FT, full-time regulation only)
+ *   aet        — 7 (AET)
+ *   ft_pen     — 8 (FT_PEN)
+ *   other      — postponed / cancelled / suspended / abandoned / etc.
+ */
+export type MatchPhase =
+  | 'pre'
+  | '1h'
+  | 'ht'
+  | '2h'
+  | 'et_break'
+  | 'et_1h'
+  | 'et_2h'
+  | 'pen_break'
+  | 'pen'
+  | 'ft'
+  | 'aet'
+  | 'ft_pen'
+  | 'other';
+
+export function getMatchPhase(stateId: number | null | undefined): MatchPhase {
+  if (stateId == null) return 'other';
+  switch (stateId) {
+    case 1:
+    case 13:
+    case 16:
+    case 26: return 'pre';
+    case 2:  return '1h';
+    case 3:
+    case 4:  return 'ht';
+    case 22:
+    case 19: return '2h';
+    case 21: return 'et_break';
+    case 6:  return 'et_1h';
+    case 23: return 'et_2h';
+    case 25: return 'pen_break';
+    case 9:  return 'pen';
+    case 5:  return 'ft';
+    case 7:  return 'aet';
+    case 8:  return 'ft_pen';
+    default: return 'other';
+  }
+}
+
+// True for in-play states where the live ticker should run (minute counts up).
+export function phaseHasLiveMinute(phase: MatchPhase): boolean {
+  return phase === '1h' || phase === '2h'
+      || phase === 'et_1h' || phase === 'et_2h';
+}
+
+// True when the half-time (1H) sub-score should be visible.
+// 1st-half-only phase hides it (the line score is the HT score itself).
+export function phaseShowsHalfTime(phase: MatchPhase): boolean {
+  return phase !== 'pre' && phase !== '1h' && phase !== 'other';
+}
+
+// True when the regulation full-time (90-min) sub-score should be shown
+// — only after ET kicks in (or once the match finishes via ET / Pen).
+export function phaseShowsFulltimeSub(phase: MatchPhase): boolean {
+  return phase === 'et_break' || phase === 'et_1h' || phase === 'et_2h'
+      || phase === 'pen_break' || phase === 'pen'
+      || phase === 'aet' || phase === 'ft_pen';
+}
+
+// True when penalty shootout score should appear.
+export function phaseShowsPenaltyScore(phase: MatchPhase): boolean {
+  return phase === 'pen_break' || phase === 'pen' || phase === 'ft_pen';
+}
+
 export function getStateLabel(stateId: number | null | undefined): string {
   switch (stateId) {
     case 1:  return 'NS';
