@@ -53,6 +53,8 @@ build-*.aab
 # Firebase config files — downloaded from Firebase Console per
 # environment. Mirror them in EAS Secrets (or commit *.example variants)
 # so the build pipeline can drop them in at build time without leaking
-# the project_id / app_id pair into the public repo.
+# the project_id / app_id pair into the public repo. Use
+# `./scripts/build-apk.sh` to build locally — it toggles these lines
+# around the build automatically.
 google-services.json
 GoogleService-Info.plist
