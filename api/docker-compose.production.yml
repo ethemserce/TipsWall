@@ -48,18 +48,16 @@ services:
     deploy:
       resources:
         limits:
-          # Bumped from 1500M to 2560M after Postgres was repeatedly
-          # OOM-killed (signal 9) by the Linux kernel on 2026-05-17.
-          # Trigger: `insert into sync.raw_payloads` with multi-MB
-          # SportMonks JSON payloads while shared_buffers (512M) +
-          # work_mem*40 (640M peak) + maintenance_work_mem (128M) +
-          # WAL buffers already had the previous 1.5G ceiling pinned.
-          # Each kill triggered ~5s of `57P03 in recovery mode` on the
-          # workers, which then dropped live tick writes and froze the
-          # mobile live-minute display on completed fixtures (the
-          # Napoli match symptom). Hetzner CX32 8GB has the budget —
-          # OS + page cache still has ~2.2G after this bump.
-          memory: 2560M
+          # Host is 4 GB (not 8 — `free -h` showed Mem: 3.8Gi total on
+          # 2026-05-17). The earlier 2560M bump overcommitted relative
+          # to the real budget; combined with the worker bump it pushed
+          # the cluster past host RAM and Linux OOM-killed postgres
+          # back into a recovery cycle. Revert to 1500M; with
+          # raw_payloads archival now disabled (see
+          # SportMonksSync__StoreRawPayloads below + the code gate in
+          # SportMonksSyncRunner.cs), the original trigger for the OOM
+          # is gone and 1500M is plenty for steady-state working set.
+          memory: 1500M
 
   migrator:
     image: ghcr.io/${GHCR_OWNER:?required}/tipswall-migrator:${IMAGE_TAG:-latest}
@@ -239,17 +237,25 @@ services:
       # Mobile UI doesn't surface trend / pressure / commentary data;
       # re-enable once the upsert is streamed instead of buffered.
       SportMonksFixtureTimelineSync__Enabled: "false"
+      # Archival of every SportMonks response into sync.raw_payloads was
+      # the smoking gun for the Postgres OOM-kill / recovery cycles on
+      # 2026-05-17: a single multi-MB JSONB insert pushed the DB over
+      # its memory ceiling, Linux SIGKILL'd the backend, and every
+      # parallel worker tick failed with 57P03 during the ~5s recovery.
+      # sync.raw_payloads is debug-only — no production read path uses
+      # it. Disable archival until the table is partitioned / dropped.
+      SportMonksSync__StoreRawPayloads: "false"
     deploy:
       resources:
         limits:
-          # Bumped from 1280M to 2048M after live tick cadence collapsed
-          # following a pulse OOM (System.OutOfMemoryException). The
-          # process caught the exception but heap fragmentation + GC
-          # pressure left live ticks firing every ~30-60s instead of
-          # every 10s. 2GB gives the 4-tier loop enough headroom even
-          # during the 18k-row pulse upserts; Hetzner CX32 8GB has the
-          # budget (other services total ~2.5GB).
-          memory: 2048M
+          # Host is 4 GB — see postgres comment. Reverted from 2048M to
+          # 1280M now that raw_payloads archival is disabled (was the
+          # main allocator behind pulse-tier .NET OOMs; JSON serialize
+          # of multi-MB responses + immediate JSONB insert was peaking
+          # heap pressure). 1280M is the pre-incident steady-state and
+          # fits inside the real host budget alongside postgres 1.5G
+          # + 3×384M small services + 128M caddy ≈ 3.8G total.
+          memory: 1280M
 
   worker-odds:
     image: ghcr.io/${GHCR_OWNER:?required}/tipswall-worker-odds:${IMAGE_TAG:-latest}

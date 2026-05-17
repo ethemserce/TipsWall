@@ -21,6 +21,16 @@ namespace PreOddsApi.ExternalApis.SportMonks.Sync
         private readonly SportMonksApiOptions _apiOptions;
         private readonly ILogger<SportMonksSyncRunner> _logger;
         private readonly string? _connectionString;
+        // Off-switch for the debug-only raw_payloads archival. SportMonks
+        // responses can be multi-MB JSON; bulk inserts into sync.raw_payloads
+        // were the smoking gun for the Postgres OOM-kill / recovery cycles
+        // seen 2026-05-17 (single INSERT pushed the DB over its memory
+        // limit, Linux SIGKILL'd the backend process, all live + pulse
+        // ticks failed with 57P03 during the recovery window). Override
+        // with env var `SportMonksSync__StoreRawPayloads=false` to skip
+        // the insert entirely. Default stays true so dev / staging still
+        // captures payloads for audit.
+        private readonly bool _storeRawPayloads;
 
         public SportMonksSyncRunner(
             ISportMonksApiClient apiClient,
@@ -33,6 +43,7 @@ namespace PreOddsApi.ExternalApis.SportMonks.Sync
             _logger = logger;
             _connectionString = Environment.GetEnvironmentVariable("PREODDS_POSTGRES_CONNECTION")
                 ?? configuration.GetConnectionString("PreOddsApiPostgresDb");
+            _storeRawPayloads = configuration.GetValue("SportMonksSync:StoreRawPayloads", true);
         }
 
         public async Task<IReadOnlyList<TItem>> GetAllAsync<TItem>(
@@ -237,6 +248,12 @@ namespace PreOddsApi.ExternalApis.SportMonks.Sync
             object payload,
             CancellationToken cancellationToken)
         {
+            // Skip the insert entirely when archival is disabled. The
+            // serialize step alone can allocate tens of MB on a large
+            // fixtures-between response, so we short-circuit before the
+            // allocation rather than after.
+            if (!_storeRawPayloads) return;
+
             var payloadJson = JsonConvert.SerializeObject(payload);
 
             await using var connection = await OpenConnectionAsync(cancellationToken);
