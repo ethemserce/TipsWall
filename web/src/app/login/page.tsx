@@ -21,7 +21,13 @@ async function signIn(formData: FormData): Promise<void> {
     res = await fetch(`${env.apiBaseUrl}/api/v3/auth/token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username_or_email: email, password }),
+      // Backend's V3 LoginRequest binds `username` + `password` (it
+      // accepts either the username or the email in that field via
+      // IUserIdentityService.AuthenticateAsync). Earlier draft sent
+      // `username_or_email` which silently bound to nothing and the
+      // controller responded 400 with "username and password are
+      // required".
+      body: JSON.stringify({ username: email, password }),
       cache: 'no-store',
     });
   } catch {
