@@ -17,6 +17,7 @@ import { MarketLegendButton } from '@/src/components/MarketLegendButton';
 import { RateFilterBar, type RateFilters } from '@/src/components/RateFilterBar';
 import { RateMatchCard } from '@/src/components/RateMatchCard';
 import { useFixtureLookup } from '@/src/hooks/useFixtureLookup';
+import { useManualRefresh } from '@/src/hooks/useManualRefresh';
 import { useMarkets } from '@/src/hooks/useMarkets';
 import { useRate, type RateKind } from '@/src/hooks/useRates';
 import { useTheme } from '@/src/lib/useTheme';
@@ -49,7 +50,7 @@ export function RateScreen({ kind, title, primaryMetric }: RateScreenProps) {
     rateBound: 'min',
   });
 
-  const { data, isLoading, isFetching, isError, error, refetch } = useRate(kind, {
+  const { data, isLoading, isError, error, refetch } = useRate(kind, {
     bookmakerId: BOOKMAKER_ID,
     fixtureDate: format(selectedDate, 'yyyy-MM-dd'),
     window: filters.window,
@@ -63,6 +64,7 @@ export function RateScreen({ kind, title, primaryMetric }: RateScreenProps) {
         : undefined,
     perPage: 100,
   });
+  const { refreshing, onRefresh } = useManualRefresh(refetch);
 
   const { lookup: marketLookup } = useMarkets();
   const items = data?.data.items ?? [];
@@ -147,8 +149,8 @@ export function RateScreen({ kind, title, primaryMetric }: RateScreenProps) {
           }
           refreshControl={
             <RefreshControl
-              refreshing={isFetching}
-              onRefresh={refetch}
+              refreshing={refreshing}
+              onRefresh={onRefresh}
               tintColor={c.brand}
             />
           }

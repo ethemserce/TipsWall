@@ -26,6 +26,7 @@ import { StateFilterBar, type FixtureFilter } from '@/src/components/StateFilter
 import { useCountryLookup } from '@/src/hooks/useCountryLookup';
 import { useFixtures } from '@/src/hooks/useFixtures';
 import { useLeagueLookup } from '@/src/hooks/useLeagueLookup';
+import { useManualRefresh } from '@/src/hooks/useManualRefresh';
 import { useUserCountryId } from '@/src/hooks/useUserCountry';
 import { useLiveTicker } from '@/src/hooks/useLiveTicker';
 import { getStateBucket } from '@/src/lib/fixtureState';
@@ -146,9 +147,10 @@ export function TodayMatchesScreen() {
   const searchActive = normalizedQuery.length > 0;
 
   const queryClient = useQueryClient();
-  const { data, isLoading, isFetching, isError, error, refetch } = useFixtures(
+  const { data, isLoading, isError, error, refetch } = useFixtures(
     { date: isoDate, perPage: 200 },
   );
+  const { refreshing, onRefresh } = useManualRefresh(refetch);
   const hasLive = useMemo(
     () => (data?.items ?? []).some((f) => getStateBucket(f.state_id) === 'live'),
     [data?.items],
@@ -494,8 +496,8 @@ export function TodayMatchesScreen() {
           contentContainerStyle={styles.list}
           refreshControl={
             <RefreshControl
-              refreshing={isFetching}
-              onRefresh={refetch}
+              refreshing={refreshing}
+              onRefresh={onRefresh}
               tintColor={c.brand}
             />
           }

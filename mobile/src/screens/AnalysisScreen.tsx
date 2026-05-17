@@ -35,6 +35,7 @@ import { useCountryLookup } from '@/src/hooks/useCountryLookup';
 import { useFixtureLookup } from '@/src/hooks/useFixtureLookup';
 import { useLeagueLookup } from '@/src/hooks/useLeagueLookup';
 import { useLiveTicker } from '@/src/hooks/useLiveTicker';
+import { useManualRefresh } from '@/src/hooks/useManualRefresh';
 import { useMarketPreferences } from '@/src/hooks/useMarketPreferences';
 import { useMarkets } from '@/src/hooks/useMarkets';
 import { useInfiniteSignals } from '@/src/hooks/useSignals';
@@ -118,7 +119,6 @@ export function AnalysisScreen() {
   const {
     data,
     isLoading,
-    isFetching,
     isError,
     error,
     refetch,
@@ -144,6 +144,7 @@ export function AnalysisScreen() {
     // there's no selection.
     marketIds: favouriteMarketIds.length > 0 ? favouriteMarketIds : undefined,
   });
+  const { refreshing, onRefresh } = useManualRefresh(refetch);
 
   const { lookup: marketLookup } = useMarkets();
   // Flatten paginated rows into the same shape the rest of the screen
@@ -808,8 +809,8 @@ export function AnalysisScreen() {
           }
           refreshControl={
             <RefreshControl
-              refreshing={isFetching}
-              onRefresh={refetch}
+              refreshing={refreshing}
+              onRefresh={onRefresh}
               tintColor={c.brand}
             />
           }

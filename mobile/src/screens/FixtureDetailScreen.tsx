@@ -61,6 +61,7 @@ import { shareFixture } from '@/src/lib/share';
 import { useLeagueLookup } from '@/src/hooks/useLeagueLookup';
 import { useLeagueTable } from '@/src/hooks/useLeagueTable';
 import { useLiveFixture } from '@/src/hooks/useLiveFixture';
+import { useManualRefresh } from '@/src/hooks/useManualRefresh';
 import { getStateBucket } from '@/src/lib/fixtureState';
 import { useTheme } from '@/src/lib/useTheme';
 import type { FixtureSummary } from '@/src/types/fixture';
@@ -103,8 +104,9 @@ export function FixtureDetailScreen({ fixtureId }: FixtureDetailScreenProps) {
   const c = useTheme();
   const { t } = useTranslation();
   const [tab, setTab] = useState<DetailTab>('details');
-  const { data, isLoading, isFetching, isError, error, refetch } =
+  const { data, isLoading, isError, error, refetch } =
     useFixture(fixtureId);
+  const { refreshing, onRefresh } = useManualRefresh(refetch);
 
   // Sticky tab bar pattern: hero scrolls inside the ScrollView as natural
   // content, the [hero, tabBar] section index 1 is `stickyHeaderIndices`.
@@ -377,8 +379,8 @@ export function FixtureDetailScreen({ fixtureId }: FixtureDetailScreenProps) {
         stickyHeaderIndices={[1]}
         refreshControl={
           <RefreshControl
-            refreshing={isFetching}
-            onRefresh={refetch}
+            refreshing={refreshing}
+            onRefresh={onRefresh}
             tintColor={c.brand}
           />
         }>
