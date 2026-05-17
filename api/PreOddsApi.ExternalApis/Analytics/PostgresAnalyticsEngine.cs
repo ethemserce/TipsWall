@@ -363,6 +363,19 @@ namespace PreOddsApi.ExternalApis.Analytics
             const string sql = """
                 begin;
 
+                -- Retention sweep: anything older than ~6 months stops
+                -- being useful (mobile windows max out at 1y / season_2y
+                -- which still satisfies from the trailing 180-day slice)
+                -- and just bloats the table + indexes. Mobile read path
+                -- already falls back to the most recent as_of_date when
+                -- a fixture's own snapshot day isn't present, so old
+                -- daily snapshots are pure ballast. Cap retention at 180
+                -- days so nightly rebuild stays cheap forever. If a
+                -- season-split history table ships later, this clause
+                -- moves to that table instead of dropping rows.
+                delete from analytics.odd_analysis_snapshots
+                 where as_of_date < current_date - interval '180 days';
+
                 delete from analytics.odd_analysis_snapshots where as_of_date = current_date;
 
                 with base as (
