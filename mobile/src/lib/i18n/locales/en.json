@@ -437,13 +437,22 @@
       "tomorrow": "Tomorrow"
     },
     "stats": {
-      "played": "Played",
-      "wins": "Wins",
-      "draws": "Draws",
-      "losses": "Losses",
+      "title": "SEASON STATS",
+      "pointsShort": "P",
+      "played": "P",
+      "won": "W",
+      "drawn": "D",
+      "lost": "L",
       "goalsFor": "Scored",
+      "goalDiff": "GD",
       "goalsAgainst": "Conceded",
-      "goalDiff": "GD"
+      "cleanSheets": "Clean sheets",
+      "btts": "BTTS",
+      "form": "LAST 5",
+      "empty": "No stats yet for this team"
+    },
+    "squad": {
+      "empty": "Squad data not available."
     }
   },
   "league": {
@@ -609,6 +618,31 @@
       }
     }
   },
+  "player": {
+    "notFound": "Player not found.",
+    "currentTeam": "CURRENT TEAM",
+    "bio": {
+      "title": "INFO",
+      "age": "Age",
+      "height": "Height",
+      "weight": "Weight"
+    },
+    "stats": {
+      "empty": "Season stats haven't been computed for this player yet.",
+      "matches": "MATCH",
+      "started": "FIRST XI",
+      "minutes": "MIN",
+      "goals": "GOAL",
+      "assists": "ASSIST",
+      "cards": "YC/RC",
+      "penalty": "Penalties: {{scored}} scored, {{missed}} missed"
+    },
+    "peek": {
+      "thisMatch": "THIS MATCH",
+      "empty": "No stats this season.",
+      "openDetail": "Open profile"
+    }
+  },
   "fixture": {
     "tabs": {
       "details": "Details",
@@ -627,7 +661,8 @@
     },
     "events": {
       "firstHalf": "1st Half",
-      "secondHalf": "2nd Half"
+      "secondHalf": "2nd Half",
+      "cancelledBadge": "CANCELLED"
     },
     "info": {
       "title": "Match Info",

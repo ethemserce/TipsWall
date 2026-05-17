@@ -437,13 +437,22 @@
       "tomorrow": "Yarın"
     },
     "stats": {
-      "played": "Oynanan",
-      "wins": "Galibiyet",
-      "draws": "Beraberlik",
-      "losses": "Mağlubiyet",
+      "title": "SEZON İSTATİSTİKLERİ",
+      "pointsShort": "P",
+      "played": "O",
+      "won": "G",
+      "drawn": "B",
+      "lost": "M",
       "goalsFor": "Atılan",
+      "goalDiff": "Av.",
       "goalsAgainst": "Yenilen",
-      "goalDiff": "Averaj"
+      "cleanSheets": "Gol yemediği",
+      "btts": "KG Var",
+      "form": "SON 5",
+      "empty": "Bu takım için henüz istatistik yok"
+    },
+    "squad": {
+      "empty": "Kadro bilgisi yok."
     }
   },
   "league": {
@@ -609,6 +618,31 @@
       }
     }
   },
+  "player": {
+    "notFound": "Oyuncu bulunamadı.",
+    "currentTeam": "MEVCUT TAKIM",
+    "bio": {
+      "title": "BİLGİLER",
+      "age": "Yaş",
+      "height": "Boy",
+      "weight": "Kilo"
+    },
+    "stats": {
+      "empty": "Bu oyuncu için sezon istatistiği henüz hesaplanmadı.",
+      "matches": "MAÇ",
+      "started": "İLK 11",
+      "minutes": "DK",
+      "goals": "GOL",
+      "assists": "ASİST",
+      "cards": "SK/KK",
+      "penalty": "Penaltı: {{scored}} gol, {{missed}} kaçırma"
+    },
+    "peek": {
+      "thisMatch": "BU MAÇTA",
+      "empty": "Bu sezon için istatistik yok.",
+      "openDetail": "Detaya git"
+    }
+  },
   "fixture": {
     "tabs": {
       "details": "Detaylar",
@@ -621,7 +655,8 @@
     },
     "events": {
       "firstHalf": "1. Yarı",
-      "secondHalf": "2. Yarı"
+      "secondHalf": "2. Yarı",
+      "cancelledBadge": "İPTAL"
     },
     "hero": {
       "halfTimeShort": "İY {{home}}-{{away}}",
