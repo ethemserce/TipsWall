@@ -223,7 +223,36 @@ function GoogleSignInButton({
     onStart();
     try {
       const result = await promptGoogle();
-      if (result?.type !== 'success' || !result.params.id_token) return;
+      // Silent cancellation — user backed out of the Google sheet on
+      // purpose. Don't toast on these.
+      if (
+        !result ||
+        result.type === 'dismiss' ||
+        result.type === 'cancel' ||
+        result.type === 'opened' ||
+        result.type === 'locked'
+      ) {
+        return;
+      }
+      // Loud failure. Previously this branch (result.type === 'error' or
+      // a non-success result with no id_token) was silently dropped, so
+      // the user saw the app "do nothing" after granting consent on the
+      // Google page — exactly the symptom of a SHA-1 / custom-URI-scheme
+      // misconfig where Google ships the redirect but the device can't
+      // open it. Now we surface the provider error verbatim so the
+      // mistake is obvious from the device itself.
+      if (result.type !== 'success' || !result.params.id_token) {
+        const detail =
+          result.type === 'error'
+            ? result.error?.message ?? result.params?.error_description ?? null
+            : null;
+        notify({
+          kind: 'loss',
+          title: t('auth.social.errorTitle'),
+          body: detail ?? t('auth.social.errorGoogle'),
+        });
+        return;
+      }
       await socialSignIn('google', result.params.id_token);
       onSuccess();
     } catch (err) {
