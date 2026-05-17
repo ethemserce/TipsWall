@@ -218,12 +218,16 @@ services:
       SeasonBackfill__FromDate: ${SEASON_BACKFILL_FROM:-}
       SeasonBackfill__ToDate: ${SEASON_BACKFILL_TO:-}
       SeasonBackfill__DaysPerTick: ${SEASON_BACKFILL_DAYS_PER_TICK:-2}
-      # Pulse OOM fix (2026-05-17): the 18934-row fixture-trends upsert
-      # was the canary for a wider memory pressure issue in pulse —
-      # disabling SyncTrends at the env layer cuts the heaviest single
-      # pulse step. Mobile doesn't surface trend data; re-enable once
-      # the worker streams per-page upserts instead of buffering them.
-      SportMonksFixtureTimelineSync__SyncTrends: "false"
+      # Pulse OOM fix (2026-05-17): kill the entire fixture-timeline
+      # sync. SyncTrends=false alone wasn't enough because the gate is
+      # `Enabled AND (SyncTrends OR SyncPressureTrends OR SyncCommentaries)` —
+      # production has SyncPressureTrends=true, so the writer was still
+      # invoked and SportMonks's `pressure` include populates the same
+      # `fixture.Trends` bucket the trend upsert reads from. Disabling
+      # at the Enabled gate stops every include + writer call cold.
+      # Mobile UI doesn't surface trend / pressure / commentary data;
+      # re-enable once the upsert is streamed instead of buffered.
+      SportMonksFixtureTimelineSync__Enabled: "false"
     deploy:
       resources:
         limits:
