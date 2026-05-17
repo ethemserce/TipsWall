@@ -17,6 +17,7 @@ import { useAppFocusBridge } from '@/src/hooks/useAppFocusBridge';
 import { useAutoSettleSavedCoupons } from '@/src/hooks/useCouponSettlement';
 import { useTrackScreens } from '@/src/hooks/useTrackScreens';
 import { analytics } from '@/src/lib/analytics';
+import { getAuthSnapshot, subscribeAuth } from '@/src/lib/auth/authStore';
 import '@/src/lib/i18n';
 import { marketPreferencesStore } from '@/src/lib/marketPreferences/store';
 import { initMonitoring } from '@/src/lib/monitoring';
@@ -69,8 +70,25 @@ function RootShell({ statusBarStyle }: { statusBarStyle: 'light' | 'dark' }) {
   // Hydrate the market-preferences store once at boot. Best-effort:
   // logged-in users get a backend round-trip, guests stay on local
   // storage. The hook'd-in screens subscribe; nothing else to wire.
+  //
+  // Also subscribe to auth-token changes so a login / signup / logout
+  // mid-session re-pulls the tier-aware cap (3 → 10 → 30) and the
+  // server-saved selection without needing the user to relaunch the
+  // app. Ethem hit this on 2026-05-18: signed up, market cap was
+  // still stuck at the guest 3 until he killed and reopened the app.
   useEffect(() => {
     void marketPreferencesStore.hydrate();
+    let lastToken = getAuthSnapshot().accessToken;
+    const unsubscribe = subscribeAuth(() => {
+      const nextToken = getAuthSnapshot().accessToken;
+      if (nextToken === lastToken) return;
+      lastToken = nextToken;
+      // Token transition (login / logout / refresh path) — re-hydrate
+      // with force so cap + tier + market list all refresh against the
+      // new session.
+      void marketPreferencesStore.hydrate(true);
+    });
+    return () => unsubscribe();
   }, []);
 
   // Analytics bootstrap: hydrate the persisted consent choice, then push

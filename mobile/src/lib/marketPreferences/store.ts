@@ -92,8 +92,19 @@ export const marketPreferencesStore = {
     };
   },
 
-  async hydrate(): Promise<void> {
-    if (state.hydrated) return;
+  /**
+   * Pulls the current state from disk + server. Idempotent unless
+   * `force=true`, which short-circuits the "already hydrated" guard so
+   * a login / logout transition can re-fetch the tier-aware cap and
+   * server-saved preferences without an app restart.
+   */
+  async hydrate(force = false): Promise<void> {
+    if (state.hydrated && !force) return;
+    if (force) {
+      // Reset to the safe defaults so a logout → login switch doesn't
+      // bleed the previous user's selection into the new session.
+      state = { marketIds: [], cap: 3, tier: 'guest', hydrated: false, hasUserChoice: false };
+    }
     const tier = tierFromAuth();
     try {
       const raw = await AsyncStorage.getItem(STORAGE_KEY);
