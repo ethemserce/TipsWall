@@ -269,6 +269,17 @@ services:
       # freeing live-tick budget and DB write capacity. Re-enable if
       # we ever ship a live-odds view.
       SportMonksInplayOddsSync__Enabled: "false"
+      # Outcome finalizer was the smoking gun for a 26-minute Postgres
+      # CPU lockup on 2026-05-17: the 36h lookback × every bookmaker ×
+      # every market × every outcome on every FT fixture is a massive
+      # join that compounded when many fixtures flipped to FT in one
+      # batch (manual catch-up SQL). Disable for now; mobile-side coupon
+      # settlement still works because the mobile defensive gate
+      # (decideSettlement) only trusts `winning` once the fixture state
+      # bucket is `finished` — the stamp is a nice-to-have, not a hard
+      # requirement. Re-enable after the finalizer SQL is windowed by
+      # bookmaker filter + lookback shrunk.
+      OddOutcomeFinalize__Enabled: "false"
     deploy:
       resources:
         limits:
