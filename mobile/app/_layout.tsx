@@ -13,6 +13,7 @@ import { CouponBadge } from '@/src/components/CouponBadge';
 import { LiveStatusBanner } from '@/src/components/LiveStatusBanner';
 import { QuotaLimitModal } from '@/src/components/QuotaLimitModal';
 import { ToastHost } from '@/src/components/ToastHost';
+import { useAppFocusBridge } from '@/src/hooks/useAppFocusBridge';
 import { useAutoSettleSavedCoupons } from '@/src/hooks/useCouponSettlement';
 import { useTrackScreens } from '@/src/hooks/useTrackScreens';
 import { analytics } from '@/src/lib/analytics';
@@ -57,6 +58,11 @@ export default function RootLayout() {
 // inside react-query's provider) can use the QueryClientProvider context
 // — RootLayout itself sits above the provider.
 function RootShell({ statusBarStyle }: { statusBarStyle: 'light' | 'dark' }) {
+  // App-focus bridge: wires React Native AppState into TanStack Query's
+  // focusManager + nudges SignalR back to life when the app resumes.
+  // Without this, live-minute can sit frozen if the user backgrounds
+  // the app long enough for SignalR's retry budget to run out.
+  useAppFocusBridge();
   // Settlement runs at the root so toasts fire on every screen, including
   // fixture / league detail pushed on top of (tabs).
   useAutoSettleSavedCoupons();

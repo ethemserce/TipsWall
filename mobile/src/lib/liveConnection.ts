@@ -32,7 +32,22 @@ function build(): HubConnection {
       transport:
         HttpTransportType.WebSockets | HttpTransportType.LongPolling,
     })
-    .withAutomaticReconnect([0, 1000, 2000, 5000, 10000, 20000])
+    // Unbounded retry policy. The default 6-step ramp (0,1,2,5,10,20s)
+    // gives up after ~38 seconds — easy to exhaust if the user lets the
+    // phone sleep for a few minutes or rides a flaky 4G link, and once
+    // exhausted the connection sits at "disconnected" forever with no
+    // way back without an app restart. We cap each attempt at 30s so
+    // the loop stays cheap, and the AppState bridge in useAppFocusBridge
+    // still calls ensureLiveConnected on foreground as a belt-and-braces
+    // kicker.
+    .withAutomaticReconnect({
+      nextRetryDelayInMilliseconds: (ctx) => {
+        const i = ctx.previousRetryCount;
+        if (i === 0) return 0;
+        if (i < 6) return Math.min(30_000, 1000 * 2 ** (i - 1));
+        return 30_000;
+      },
+    })
     .configureLogging(LogLevel.Warning)
     .build();
 
