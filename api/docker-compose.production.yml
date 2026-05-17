@@ -280,6 +280,15 @@ services:
       # requirement. Re-enable after the finalizer SQL is windowed by
       # bookmaker filter + lookback shrunk.
       OddOutcomeFinalize__Enabled: "false"
+      # Only persist prematch odds for bookmaker 2 — the single
+      # bookmaker the mobile UI defaults to and the only one analysis
+      # is built against. SportMonksPrematchOddsWriter reads this list
+      # at startup and silently drops every row from other bookmakers,
+      # cutting the write volume by 10-20x and shrinking the dataset
+      # the outcome finalizer would need to scan once it's re-enabled.
+      # Add more ids ("__1=5") if a second bookmaker becomes relevant
+      # to the analysis pipeline.
+      SportMonksPrematchOddsSync__AllowedBookmakerIds__0: "2"
     deploy:
       resources:
         limits:
