@@ -529,6 +529,20 @@
       "empty": "Bugün için filtrelerine uyan öne çıkan veri yok."
     }
   },
+  "leagueScope": {
+    "title": "Ligleri seç",
+    "summary": "{{selected}} / {{total}} lig seçili",
+    "selectAll": "Hepsi",
+    "clear": "Hiçbiri",
+    "done": "Tamam",
+    "empty": "Bu tarihte lig bulunmuyor.",
+    "openA11y": "Lig seçimini aç",
+    "clearA11y": "Lig seçimini temizle",
+    "emptyTitle": "Seçili lig için maç yok",
+    "emptyBody": "Seçtiğin lig(ler) için bu tarihte maç bulunmuyor. Tarihi değiştir veya seçimi düzenle.",
+    "emptyEdit": "Lig Seçimi",
+    "emptyClear": "Sıfırla"
+  },
   "markets": {
     "tbd": "TBD",
     "fallback": "Tahmin #{{id}}",

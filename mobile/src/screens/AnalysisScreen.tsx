@@ -1,6 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { format } from 'date-fns';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
@@ -26,9 +26,11 @@ import { AnalysisQuickPicksSheet } from '@/src/components/AnalysisQuickPicksShee
 import { AppBrand } from '@/src/components/AppBrand';
 import { DateBar } from '@/src/components/DateBar';
 import { LeagueHeader } from '@/src/components/LeagueHeader';
+import { LeagueScopeSheet, type LeagueScopeRow } from '@/src/components/LeagueScopeSheet';
 import { MarketLegendButton } from '@/src/components/MarketLegendButton';
 import { RateMatchCard } from '@/src/components/RateMatchCard';
 import { LeagueSectionSkeleton } from '@/src/components/Skeleton';
+import { StateFilterBar, type FixtureFilter } from '@/src/components/StateFilterBar';
 import { useCountryLookup } from '@/src/hooks/useCountryLookup';
 import { useFixtureLookup } from '@/src/hooks/useFixtureLookup';
 import { useLeagueLookup } from '@/src/hooks/useLeagueLookup';
@@ -73,6 +75,19 @@ export function AnalysisScreen() {
   const [filters, setFilters] = useState<AnalysisFilterState>(DEFAULT_FILTERS);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [quickPicksOpen, setQuickPicksOpen] = useState(false);
+  // Same all/live/upcoming/finished filter the matches tab uses, applied
+  // on top of search + analysis filters. Lives at the fixture level —
+  // signals stay grouped per fixture so a single match either passes or
+  // fails as a whole.
+  const [stateFilter, setStateFilter] = useState<FixtureFilter>('all');
+  // League scope — empty set means "no scope, show everything"; any
+  // non-empty set means "only these leagues". Stable across date changes
+  // by design: league ids persist while the available fixtures rotate
+  // (a stale id naturally filters out whatever isn't on the new date).
+  const [scopedLeagueIds, setScopedLeagueIds] = useState<Set<number>>(
+    () => new Set(),
+  );
+  const [scopeSheetOpen, setScopeSheetOpen] = useState(false);
 
   // SignalR push subscriber. Idempotent if Home is already mounted —
   // the underlying connection is a singleton, handlers stack. With it
@@ -210,12 +225,113 @@ export function AnalysisScreen() {
     });
   }, [fixtureGroups, fixtureLookup, leagueLookup, countryLookup, normalizedQuery, searchActive]);
 
+  // League scope — applied BEFORE the state filter so the picker rows
+  // stay stable as the user toggles all/live/upcoming/finished. The
+  // alternative (scope after state) would silently drop the user's
+  // league selection whenever a chosen league had no fixtures in the
+  // current state bucket. Empty set = pass-through.
+  const leagueScopedFixtureGroups = useMemo(() => {
+    if (scopedLeagueIds.size === 0) return filteredFixtureGroups;
+    return filteredFixtureGroups.filter((g) => {
+      const fx = fixtureLookup.get(g.fixtureId)?.fixture;
+      if (!fx || fx.league_id == null) return false;
+      return scopedLeagueIds.has(fx.league_id);
+    });
+  }, [filteredFixtureGroups, fixtureLookup, scopedLeagueIds]);
+
+  // State filter — narrows the scoped set into one of all/live/upcoming/
+  // finished. Counts therefore reflect what's reachable given the
+  // current scope: with Süper Lig+PL chosen, Live count = live matches
+  // in those leagues only.
+  const stateFilteredFixtureGroups = useMemo(() => {
+    if (stateFilter === 'all') return leagueScopedFixtureGroups;
+    return leagueScopedFixtureGroups.filter((g) => {
+      const fx = fixtureLookup.get(g.fixtureId)?.fixture;
+      if (!fx) return false;
+      return getStateBucket(fx.state_id) === stateFilter;
+    });
+  }, [leagueScopedFixtureGroups, fixtureLookup, stateFilter]);
+
+  const stateCounts = useMemo<Record<FixtureFilter, number>>(() => {
+    const acc: Record<FixtureFilter, number> = {
+      all: 0,
+      live: 0,
+      upcoming: 0,
+      finished: 0,
+    };
+    for (const g of leagueScopedFixtureGroups) {
+      acc.all++;
+      const fx = fixtureLookup.get(g.fixtureId)?.fixture;
+      if (!fx) continue;
+      const bucket = getStateBucket(fx.state_id);
+      if (bucket === 'live') acc.live++;
+      else if (bucket === 'upcoming') acc.upcoming++;
+      else if (bucket === 'finished') acc.finished++;
+    }
+    return acc;
+  }, [leagueScopedFixtureGroups, fixtureLookup]);
+
+  // Picker rows are derived from `filteredFixtureGroups` (search-only,
+  // pre-scope, pre-state) — the user always sees every league available
+  // for the date, with the per-league match count showing the day's
+  // total. State filter doesn't shrink the picker; scope and state are
+  // orthogonal dimensions.
+  const scopePickerRows = useMemo<LeagueScopeRow[]>(() => {
+    const counts = new Map<number, number>();
+    for (const fg of filteredFixtureGroups) {
+      const fx = fixtureLookup.get(fg.fixtureId)?.fixture;
+      if (!fx || fx.league_id == null) continue;
+      counts.set(fx.league_id, (counts.get(fx.league_id) ?? 0) + 1);
+    }
+    return Array.from(counts.entries())
+      .map(([leagueId, matchCount]) => {
+        const league = leagueLookup.get(leagueId);
+        const country =
+          league?.country_id != null
+            ? countryLookup.get(league.country_id)
+            : undefined;
+        return { leagueId, league, country, matchCount };
+      })
+      .sort((a, b) => {
+        // Same primary sort as the on-screen list: home league first,
+        // then category, then name. Keeps the picker order intuitive.
+        const homeA = userCountryId != null && a.country?.id === userCountryId ? 0 : 1;
+        const homeB = userCountryId != null && b.country?.id === userCountryId ? 0 : 1;
+        if (homeA !== homeB) return homeA - homeB;
+        const ca = a.league?.category ?? Number.MAX_SAFE_INTEGER;
+        const cb = b.league?.category ?? Number.MAX_SAFE_INTEGER;
+        if (ca !== cb) return ca - cb;
+        return (a.league?.name ?? `Z${a.leagueId}`).localeCompare(
+          b.league?.name ?? `Z${b.leagueId}`,
+        );
+      });
+  }, [filteredFixtureGroups, fixtureLookup, leagueLookup, countryLookup, userCountryId]);
+
+  // Drop selections whose league no longer appears in the current set —
+  // e.g. user picked Süper Lig on Tuesday, changed date to Wednesday
+  // where Süper Lig has no fixtures. Keeping it selected would leave a
+  // misleading "3 lig" count that filters down to 0 matches. Empty
+  // selection = implicit "all" and is the natural fallback.
+  useEffect(() => {
+    if (scopedLeagueIds.size === 0) return;
+    const availableIds = new Set(scopePickerRows.map((r) => r.leagueId));
+    const stillValid = new Set<number>();
+    for (const id of scopedLeagueIds) {
+      if (availableIds.has(id)) stillValid.add(id);
+    }
+    if (stillValid.size !== scopedLeagueIds.size) {
+      setScopedLeagueIds(stillValid);
+    }
+  }, [scopePickerRows, scopedLeagueIds]);
+
+  const scopeActive = scopedLeagueIds.size > 0;
+
   // Group fixtures by league, ordered like the home list (by league
   // category first, then name).
   const leagueGroups = useMemo<LeagueGroup[]>(() => {
     const map = new Map<number, FixtureGroup[]>();
     const orphans: FixtureGroup[] = [];
-    for (const fg of filteredFixtureGroups) {
+    for (const fg of stateFilteredFixtureGroups) {
       const fixture = fixtureLookup.get(fg.fixtureId)?.fixture;
       const lid = fixture?.league_id;
       if (lid == null) {
@@ -257,7 +373,7 @@ export function AnalysisScreen() {
       sorted.push({ leagueId: -1, fixtures: orphans });
     }
     return sorted;
-  }, [filteredFixtureGroups, fixtureLookup, leagueLookup, userCountryId]);
+  }, [stateFilteredFixtureGroups, fixtureLookup, leagueLookup, userCountryId]);
 
   // Per-league collapsed set + bulk toggle, mirroring the home list.
   const [collapsed, setCollapsed] = useState<Set<number>>(() => new Set());
@@ -422,15 +538,63 @@ export function AnalysisScreen() {
         <MarketLegendButton />
       </View>
 
-      {leagueGroups.length > 0 ? (
+      <StateFilterBar
+        selected={stateFilter}
+        onSelect={setStateFilter}
+        counts={stateCounts}
+      />
+
+      {leagueGroups.length > 0 || scopeActive ? (
         <View style={styles.metaRow}>
-          <ThemedText style={[styles.metaText, { color: c.textMuted }]}>
-            {t('home.meta.summary', {
-              leagues: leagueGroups.length,
-              matches: visibleFixtureCount,
-            })}
-          </ThemedText>
-          {allCollapsed ? null : (
+          <Pressable
+            onPress={() => setScopeSheetOpen(true)}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={t('leagueScope.openA11y')}
+            style={({ pressed }) => [
+              styles.summaryBtn,
+              {
+                backgroundColor: scopeActive
+                  ? c.brandSoft
+                  : pressed
+                    ? c.surface
+                    : 'transparent',
+                borderColor: scopeActive ? c.brand : c.borderSoft,
+              },
+            ]}>
+            <MaterialCommunityIcons
+              name="filter-variant"
+              size={12}
+              color={scopeActive ? c.brand : c.textMuted}
+            />
+            <ThemedText
+              style={[
+                styles.metaText,
+                { color: scopeActive ? c.brand : c.textMuted },
+              ]}>
+              {t('home.meta.summary', {
+                leagues: leagueGroups.length,
+                matches: visibleFixtureCount,
+              })}
+            </ThemedText>
+            {scopeActive ? (
+              <Pressable
+                onPress={(e) => {
+                  e.stopPropagation();
+                  setScopedLeagueIds(new Set());
+                }}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel={t('leagueScope.clearA11y')}>
+                <MaterialCommunityIcons
+                  name="close-circle"
+                  size={14}
+                  color={c.brand}
+                />
+              </Pressable>
+            ) : null}
+          </Pressable>
+          {allCollapsed || leagueGroups.length === 0 ? null : (
             <Pressable
               onPress={collapseAll}
               hitSlop={6}
@@ -560,6 +724,42 @@ export function AnalysisScreen() {
                     {t('home.empty.searchBody')}
                   </ThemedText>
                 </>
+              ) : scopeActive ? (
+                <>
+                  <View
+                    style={[
+                      styles.emptyIconCircle,
+                      { backgroundColor: c.brandSoft },
+                    ]}>
+                    <MaterialCommunityIcons
+                      name="filter-variant"
+                      size={28}
+                      color={c.brand}
+                    />
+                  </View>
+                  <ThemedText style={[styles.errorTitle, { color: c.text }]}>
+                    {t('leagueScope.emptyTitle')}
+                  </ThemedText>
+                  <ThemedText style={[styles.errorMessage, { color: c.textMuted }]}>
+                    {t('leagueScope.emptyBody')}
+                  </ThemedText>
+                  <View style={styles.emptyCtaRow}>
+                    <Pressable
+                      onPress={() => setScopeSheetOpen(true)}
+                      style={[styles.emptyCtaPrimary, { backgroundColor: c.brand }]}>
+                      <ThemedText style={[styles.emptyCtaText, { color: c.textInverse }]}>
+                        {t('leagueScope.emptyEdit')}
+                      </ThemedText>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => setScopedLeagueIds(new Set())}
+                      style={[styles.emptyCtaSecondary, { borderColor: c.border }]}>
+                      <ThemedText style={[styles.emptyCtaText, { color: c.text }]}>
+                        {t('leagueScope.emptyClear')}
+                      </ThemedText>
+                    </Pressable>
+                  </View>
+                </>
               ) : activeCount > 0 ? (
                 // Rule E: instead of a flat "no results" message, point at
                 // the most likely cause given the current filter shape and
@@ -628,6 +828,14 @@ export function AnalysisScreen() {
         onClose={() => setQuickPicksOpen(false)}
         selectedDate={selectedDate}
         bookmakerId={BOOKMAKER_ID}
+      />
+
+      <LeagueScopeSheet
+        visible={scopeSheetOpen}
+        onClose={() => setScopeSheetOpen(false)}
+        rows={scopePickerRows}
+        selectedLeagueIds={scopedLeagueIds}
+        onChange={setScopedLeagueIds}
       />
     </SafeAreaView>
   );
@@ -746,6 +954,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 6,
+  },
+  // Tappable wrapper around the "N lig · M maç" summary so the user can
+  // open the league-scope sheet from the text itself. When a scope is
+  // active the pill picks up brand-soft fill so it doubles as the "filter
+  // is on" indicator, with an inline X to clear in one tap.
+  summaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   metaText: {
     fontSize: 11,

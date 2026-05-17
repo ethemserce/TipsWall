@@ -529,6 +529,20 @@
       "empty": "No highlighted data matches your filters today."
     }
   },
+  "leagueScope": {
+    "title": "Select leagues",
+    "summary": "{{selected}} / {{total}} leagues selected",
+    "selectAll": "All",
+    "clear": "None",
+    "done": "Done",
+    "empty": "No leagues for this date.",
+    "openA11y": "Open league filter",
+    "clearA11y": "Clear league filter",
+    "emptyTitle": "No matches for selected leagues",
+    "emptyBody": "The leagues you picked have no matches on this date. Change the date or edit your selection.",
+    "emptyEdit": "Edit Selection",
+    "emptyClear": "Clear"
+  },
   "markets": {
     "tbd": "TBD",
     "fallback": "Prediction #{{id}}",
