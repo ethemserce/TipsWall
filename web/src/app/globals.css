@@ -1,0 +1,18 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Vercel-dashboard inspired baseline. Light scheme by default; users
+   can flip to dark via OS preference once we ship the toggle. */
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    @apply bg-bg text-fg font-sans antialiased;
+  }
+  ::selection {
+    @apply bg-accent/20;
+  }
+}
