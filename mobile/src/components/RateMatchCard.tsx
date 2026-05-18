@@ -649,10 +649,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   cellLabel: {
-    // Was 2.4 — the pick column was stealing too much width vs. the
-    // numeric metric columns. 1.6 still fits "1.5+ Goals" without
-    // wrapping but leaves room for ROI/HIT/IMP/KZ/KY to breathe.
-    flex: 1.6,
+    // 1.6 was too tight in EN — "O/U Under 2.5" (the longest commonly-
+    // emitted label) wrapped to two lines, which grew the row and made
+    // the value/ROI/HIT cells look vertically misaligned with the header.
+    // 2.0 fits every short label in both locales on a 1080px-class
+    // device. Gauge cells stay at flex:1 each (still wide enough for
+    // the 32px ring + 4-char value), so the layout breathes the same.
+    flex: 2,
     paddingLeft: 6,
   },
   // Tip cell doubles as the coupon add/remove tap target now (was the odd
