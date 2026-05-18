@@ -662,10 +662,20 @@ namespace SportMonks.Football.FixtureWorker.Services
                     finalizeLookbackHours, cancellationToken);
                 var snapshotRows = await _analyticsEngine.RunOddAnalysisSnapshotsAsync(
                     cancellationToken);
+                // Housekeeping — delete old api_requests log rows + VACUUM
+                // ANALYZE the churn tables. Runs after the snapshot rebuild
+                // so the freshly-written analytics rows benefit from the
+                // VACUUM pass too. Doesn't throw on partial failure; the
+                // engine logs each table and we keep the snapshot result
+                // as the source-of-truth for "did the nightly run".
+                var apiRequestRetentionDays = GetInteger(
+                    "NightlySnapshot:ApiRequestRetentionDays", 60);
+                var prunedApiRequests = await _analyticsEngine.RunMaintenanceCleanupAsync(
+                    apiRequestRetentionDays, cancellationToken);
 
                 _logger.LogInformation(
-                    "NightlySnapshot success on attempt {Attempt}: outcomes_finalized={Finalized} snapshot_rows={Rows} (lookback={LookbackHours}h)",
-                    attempt, finalized, snapshotRows, finalizeLookbackHours);
+                    "NightlySnapshot success on attempt {Attempt}: outcomes_finalized={Finalized} snapshot_rows={Rows} pruned_api_requests={Pruned} (lookback={LookbackHours}h)",
+                    attempt, finalized, snapshotRows, prunedApiRequests, finalizeLookbackHours);
                 _scheduler.RecordRun(ScheduleKey.NightlySnapshot);
                 _nightlySnapshotLastRunDate = todayUtc;
                 _nightlySnapshotNextRetryAt = null;

@@ -585,6 +585,66 @@ namespace PreOddsApi.ExternalApis.Analytics
             return rows;
         }
 
+        public async Task<int> RunMaintenanceCleanupAsync(
+            int apiRequestRetentionDays = 60,
+            CancellationToken cancellationToken = default)
+        {
+            // 1. Prune the SportMonks API call log. Useful for rate-limit
+            //    debugging but the operational pipeline never reads
+            //    historical rows. 60 days is plenty for any incident
+            //    post-mortem; older rows just inflate the table.
+            int deleted;
+            await using (var connection = await OpenAsync(cancellationToken))
+            await using (var cmd = new NpgsqlCommand(
+                "delete from sync.api_requests where created_at < now() - make_interval(days => @days);",
+                connection))
+            {
+                cmd.Parameters.Add(new NpgsqlParameter("days", apiRequestRetentionDays));
+                cmd.CommandTimeout = 300;
+                deleted = await cmd.ExecuteNonQueryAsync(cancellationToken);
+            }
+            _logger.LogInformation(
+                "Maintenance: deleted {Rows} sync.api_requests rows older than {Days} days.",
+                deleted, apiRequestRetentionDays);
+
+            // 2. VACUUM ANALYZE on tables that churn the most. Reclaims
+            //    dead-row space (autovacuum often falls behind on busy
+            //    tables) and refreshes planner stats so the next day's
+            //    query plans don't degrade. Best-effort — each table is
+            //    its own statement so one failure doesn't block the rest.
+            //
+            //    VACUUM cannot run inside a transaction and rejects
+            //    parameter binding for the table name. The list is a
+            //    fixed compile-time array of trusted strings, not user
+            //    input, so the string interpolation is safe.
+            var heavyTables = new[]
+            {
+                "analytics.odd_analysis_snapshots",
+                "odds.prematch_odds_current",
+                "odds.prematch_odds_history",
+                "football.fixture_statistics",
+                "sync.api_requests",
+            };
+            foreach (var table in heavyTables)
+            {
+                try
+                {
+                    await using var connection = await OpenAsync(cancellationToken);
+                    await using var cmd = new NpgsqlCommand($"vacuum (analyze) {table};", connection);
+                    cmd.CommandTimeout = 600;
+                    await cmd.ExecuteNonQueryAsync(cancellationToken);
+                    _logger.LogInformation("Maintenance: vacuumed {Table}.", table);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex,
+                        "Maintenance: VACUUM ANALYZE {Table} failed (non-fatal, will retry tomorrow).", table);
+                }
+            }
+
+            return deleted;
+        }
+
         private async Task<NpgsqlConnection> OpenAsync(CancellationToken cancellationToken)
         {
             if (string.IsNullOrWhiteSpace(_connectionString))

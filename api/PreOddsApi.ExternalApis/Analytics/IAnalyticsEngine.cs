@@ -32,5 +32,17 @@ namespace PreOddsApi.ExternalApis.Analytics
         /// re-scan the full historical archive on every worker tick.
         /// </summary>
         Task<int> RunOddOutcomeFinalizerAsync(int lookbackHours = 36, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Nightly housekeeping: prune `sync.api_requests` rows older than
+        /// <paramref name="apiRequestRetentionDays"/>, then VACUUM ANALYZE
+        /// the heavy churn tables so dead row space is reclaimed and the
+        /// planner's stats stay current. Returns the count of api_requests
+        /// rows deleted; VACUUM is best-effort and logs failures rather
+        /// than throwing.
+        /// </summary>
+        Task<int> RunMaintenanceCleanupAsync(
+            int apiRequestRetentionDays = 60,
+            CancellationToken cancellationToken = default);
     }
 }
