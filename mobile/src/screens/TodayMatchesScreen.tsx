@@ -16,6 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
+import { AdBanner } from '@/src/components/AdBanner';
 import { AppBrand } from '@/src/components/AppBrand';
 import { DateBar } from '@/src/components/DateBar';
 import { FixtureCard } from '@/src/components/FixtureCard';
@@ -501,6 +502,7 @@ export function TodayMatchesScreen() {
               tintColor={c.brand}
             />
           }
+          ListFooterComponent={<AdBanner />}
           ListEmptyComponent={
             <View style={styles.center}>
               <View

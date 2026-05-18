@@ -31,6 +31,26 @@ import {
 // Initialise Sentry once at module load — before any screen mounts. Cheap
 // no-op when SENTRY_DSN isn't set or the package isn't installed.
 initMonitoring();
+// Initialise Google Mobile Ads SDK once. Sets the strictest content
+// filter (maxAdContentRating='G') so the inventory excludes gambling,
+// alcohol, dating and other adult categories — important for TipsWall's
+// "no betting framing" posture in TR. UMP consent flow is requested
+// lazily on first launch so EU/TR users see the proper choice screen
+// before any personalised ad is served.
+void import('react-native-google-mobile-ads')
+  .then(async ({ default: mobileAds, MaxAdContentRating }) => {
+    await mobileAds().setRequestConfiguration({
+      maxAdContentRating: MaxAdContentRating.G,
+      tagForChildDirectedTreatment: false,
+      tagForUnderAgeOfConsent: false,
+    });
+    await mobileAds().initialize();
+  })
+  .catch(() => {
+    // Initialisation failure is silent — the BannerAd component
+    // surfaces its own load errors and the rest of the app keeps
+    // working without ads.
+  });
 
 export const unstable_settings = {
   anchor: '(tabs)',
