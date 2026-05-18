@@ -224,6 +224,14 @@
     "signupBtn": "ÜCRETSİZ ÜYE OL",
     "dismiss": "Yarın tekrar dene"
   },
+  "ageGate": {
+    "title": "18 yaş onayı",
+    "body": "Bu uygulama 18 yaşından küçükler için uygun değildir. Devam etmek için 18 yaşından büyük olduğunu onayla.",
+    "confirm": "18 yaşından büyüğüm, devam et",
+    "decline": "Çıkış",
+    "signupCheckbox": "18 yaşından büyük olduğumu, Kullanım Koşulları'nı ve Gizlilik Politikası'nı okuyup kabul ettiğimi onaylıyorum.",
+    "signupError": "Devam etmek için 18+ onayı ve koşulları kabul etmen gerekir."
+  },
   "auth": {
     "fields": {
       "username": "Kullanıcı adı",
@@ -337,14 +345,6 @@
       "terms": "Kullanım Koşulları",
       "privacy": "Gizlilik Politikası",
       "kvkk": "KVKK Aydınlatma Metni"
-    },
-    "ageGate": {
-      "title": "18 yaş onayı",
-      "body": "Bu uygulama 18 yaşından küçükler için uygun değildir. Devam etmek için 18 yaşından büyük olduğunu onayla.",
-      "confirm": "18 yaşından büyüğüm, devam et",
-      "decline": "Çıkış",
-      "signupCheckbox": "18 yaşından büyük olduğumu, Kullanım Koşulları'nı ve Gizlilik Politikası'nı okuyup kabul ettiğimi onaylıyorum.",
-      "signupError": "Devam etmek için 18+ onayı ve koşulları kabul etmen gerekir."
     },
     "marketPrefs": {
       "label": "Favori Tahmin Tipleri",
