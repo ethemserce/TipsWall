@@ -167,27 +167,32 @@ namespace PreOddsApi.WebApi.V3.Data
 
             var sql = $"""
                 with relevant_fixtures as (
-                    -- Only seed score_state / team_state with FINISHED
-                    -- fixtures. evaluate_outcome can decide an outcome
-                    -- only when ft_h/ft_a exist (state 5/7/8); the outer
-                    -- case expression already returns null for any other
-                    -- state, so building the per-fixture score + team
-                    -- aggregate over upcoming / live rows is dead weight.
-                    -- Without this filter the CTE materialised every row
-                    -- in the filter window, then current_odds called
-                    -- evaluate_outcome per outcome × bookmaker, and ten
-                    -- concurrent /signals requests pegged postgres at
-                    -- 180% CPU for ~50 minutes each.
+                    -- Anything past kickoff is fair game for the per-
+                    -- fixture score + team aggregates below. Pre-match
+                    -- states (NS / TBA / DELAYED / PENDING) skipped
+                    -- because the scores table has no rows for them
+                    -- and evaluate_outcome would just return null.
+                    -- The previous "only state in (5,7,8)" filter was
+                    -- too tight: a 1st half that already concluded
+                    -- (HT 1-2) means HT-decidable markets like İY X
+                    -- are fully settled even while the 2nd half is
+                    -- still in progress — gating on finished states
+                    -- alone hid that verdict and the UI stayed neutral.
                     select distinct poc.fixture_id
                     from odds.prematch_odds_current poc
                     inner join football.fixtures f on f.id = poc.fixture_id
                     {baseWhere}
-                      and f.state_id in (5, 7, 8)
+                      and f.state_id not in (1, 13, 16, 26)
                 ),
                 score_state as (
+                    -- cur_h / cur_a is the live or final score per the
+                    -- CURRENT row in football.fixture_scores. Whether
+                    -- it counts as a "full-time" verdict is decided in
+                    -- current_odds below, not here — the column itself
+                    -- is just the latest goal count we have on file.
                     select s.fixture_id,
-                        max(case when s.description='CURRENT'  and s.participant_location='home' then s.goals end)::int as ft_h,
-                        max(case when s.description='CURRENT'  and s.participant_location='away' then s.goals end)::int as ft_a,
+                        max(case when s.description='CURRENT'  and s.participant_location='home' then s.goals end)::int as cur_h,
+                        max(case when s.description='CURRENT'  and s.participant_location='away' then s.goals end)::int as cur_a,
                         max(case when s.description='1ST_HALF' and s.participant_location='home' then s.goals end)::int as ht_h,
                         max(case when s.description='1ST_HALF' and s.participant_location='away' then s.goals end)::int as ht_a
                     from football.fixture_scores s
@@ -214,32 +219,31 @@ namespace PreOddsApi.WebApi.V3.Data
                         nullif(poc.handicap, '') as handicap,
                         poc.value::numeric(12,4) as odd_value,
                         coalesce(poc.feed_type, 'standard') as feed_type,
-                        -- Read-time re-grade. prematch_odds_current.winning is
-                        -- stamped by the (currently disabled) finalizer; without
-                        -- it, mid-match stamps from an earlier run never get
-                        -- updated to the FT-correct value. For markets we can
-                        -- decide from the score, recompute on read so /signals
-                        -- always reflects the actual outcome. Markets with
-                        -- has_winning_calculations=true are graded by SportMonks
-                        -- itself and trusted as-is.
-                        --
-                        -- Outer gate on state_id: only stamp a non-null verdict
-                        -- once the host fixture is actually finished (5=FT,
-                        -- 7=AET, 8=FT pen.). Without this guard a stale
-                        -- mid-match stamp on an upcoming fixture would leak
-                        -- through as `false` and the analysis-page hit-rate
-                        -- badge would count those as losses (e.g. 0/15 in red
-                        -- on a slate of not-yet-kicked-off matches).
+                        -- Read-time re-grade. We let evaluate_outcome be
+                        -- the gate: pass ht_h/ht_a always (they're stable
+                        -- after HT) and pass the current score AS ft_h/ft_a
+                        -- only when the match is actually finished. The
+                        -- function returns:
+                        --   * a verdict for HT markets once HT is on file
+                        --     (so "İY X" flips to lost during the 2nd half
+                        --     when HT ended 1-2);
+                        --   * null for FT markets until state is in
+                        --     5/7/8 (so a 2-2 at minute 52 doesn't look
+                        --     like a settled draw);
+                        --   * null for markets it can't decide from the
+                        --     score alone (corners, cards, player props).
+                        -- No coalesce-fallback to poc.winning: stale mid-
+                        -- match stamps from the disabled finalizer have
+                        -- bled into the UI before, so we trust evaluate_outcome
+                        -- or render neutral.
                         case
-                            when f.state_id not in (5, 7, 8) then null
                             when coalesce(m.has_winning_calculations, false) = true then poc.winning
-                            else coalesce(
-                                odds.evaluate_outcome(
-                                    m.developer_name, poc.label, poc.total, poc.handicap,
-                                    ss.ft_h, ss.ft_a, ss.ht_h, ss.ht_a,
-                                    ts.home_name, ts.away_name
-                                ),
-                                poc.winning
+                            else odds.evaluate_outcome(
+                                m.developer_name, poc.label, poc.total, poc.handicap,
+                                case when f.state_id in (5, 7, 8) then ss.cur_h end,
+                                case when f.state_id in (5, 7, 8) then ss.cur_a end,
+                                ss.ht_h, ss.ht_a,
+                                ts.home_name, ts.away_name
                             )
                         end as bet_winning,
                         f.state_id               as match_state,
