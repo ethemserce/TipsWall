@@ -151,7 +151,12 @@ export function marketLongName(
  *
  * Market id coverage matches the canonical 33-entry MARKET_CATALOG.
  */
-export function shortenOutcome(label: string, marketId: number): string {
+export function shortenOutcome(
+  label: string,
+  marketId: number,
+  homeName?: string | null,
+  awayName?: string | null,
+): string {
   if (marketId === 18 || marketId === 19) {
     const dash = label.lastIndexOf(' - ');
     const tail = dash >= 0 ? label.slice(dash + 3) : label;
@@ -180,18 +185,48 @@ export function shortenOutcome(label: string, marketId: number): string {
     if (lower === 'odd') return en ? 'Odd' : 'Tek';
     if (lower === 'even') return en ? 'Even' : 'Çift';
   }
-  // Goals Over/Under — locale-aware. 80 and 81 (Alternative Total
-  // Goals) share the same Over/Under outcome shape.
-  if (marketId === 80 || marketId === 81) {
+  // Goals Over/Under — locale-aware. Covers every market that ships
+  // bare "Over"/"Under" labels: full-match totals (80, 81), per-half
+  // totals (28 1st half, 53 2nd half), exact-total and number-of-
+  // goals families (83, 93), and the three-way (17). Adding a new
+  // O/U market id here keeps the locale logic in one place.
+  if (marketId === 80 || marketId === 81 || marketId === 28
+      || marketId === 53 || marketId === 83 || marketId === 93
+      || marketId === 17) {
     if (lower === 'over') return en ? 'Over' : 'Üst';
     if (lower === 'under') return en ? 'Under' : 'Alt';
   }
   // Double Chance + Team Double Chance — universal compact codes used on
-  // Turkish bet slips and most European bookmakers.
+  // Turkish bet slips and most European bookmakers. SportMonks ships
+  // labels in two shapes — generic ("Home/Draw", "Home or Draw") and
+  // team-specific ("Arka Gdynia or Draw", "Draw or Termalica BB
+  // Nieciecza"). The team-specific shape requires home/away names to
+  // disambiguate which side is "1" and which is "2".
   if (marketId === 2 || marketId === 52) {
+    // Generic forms — no team names needed.
     if (lower === 'home/draw' || lower === 'home or draw') return '1X';
     if (lower === 'home/away' || lower === 'home or away') return '12';
     if (lower === 'draw/away' || lower === 'draw or away') return 'X2';
+    // Team-specific form: "<X> or <Y>" with one of X / Y being a
+    // team name and the other being either "Draw" or the other team.
+    const orMatch = lower.split(/\s+or\s+/);
+    if (orMatch.length === 2 && homeName && awayName) {
+      const h = homeName.toLowerCase();
+      const a = awayName.toLowerCase();
+      const [left, right] = [orMatch[0].trim(), orMatch[1].trim()];
+      // <Home> or Draw / Draw or <Home> → 1X
+      if ((left === h && right === 'draw') || (right === h && left === 'draw')) {
+        return '1X';
+      }
+      // <Away> or Draw / Draw or <Away> → X2
+      if ((left === a && right === 'draw') || (right === a && left === 'draw')) {
+        return 'X2';
+      }
+      // <Home> or <Away> / <Away> or <Home> → 12
+      if ((left === h && right === a) || (left === a && right === h)) {
+        return '12';
+      }
+    }
   }
   return label;
 }

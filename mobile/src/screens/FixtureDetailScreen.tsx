@@ -476,6 +476,8 @@ export function FixtureDetailScreen({ fixtureId }: FixtureDetailScreenProps) {
             }
             startingAt={data.fixture.starting_at ?? null}
             bookmakerId={ODDS_BOOKMAKER_ID}
+            homeName={data.fixture.home_team_name ?? null}
+            awayName={data.fixture.away_team_name ?? null}
             liveScore={
               (getStateBucket(data.fixture.state_id) === 'live' ||
                 getStateBucket(data.fixture.state_id) === 'finished') &&
@@ -591,6 +593,8 @@ function OddsTabContent({
   fixtureName,
   startingAt,
   bookmakerId,
+  homeName,
+  awayName,
   liveScore,
 }: {
   loading: boolean;
@@ -600,6 +604,8 @@ function OddsTabContent({
   fixtureName: string;
   startingAt: string | null;
   bookmakerId: number;
+  homeName: string | null;
+  awayName: string | null;
   liveScore: { home: number; away: number } | null;
 }) {
   const { t } = useTranslation();
@@ -620,6 +626,8 @@ function OddsTabContent({
             fixtureName={fixtureName}
             startingAt={startingAt}
             bookmakerId={bookmakerId}
+            homeName={homeName}
+            awayName={awayName}
             liveScore={liveScore}
             initiallyCollapsed={idx > 0}
           />

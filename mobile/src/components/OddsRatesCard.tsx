@@ -26,6 +26,12 @@ interface OddsRatesCardProps {
   fixtureName: string;
   startingAt: string | null;
   bookmakerId: number;
+  // Team names — needed so shortenOutcome can collapse SportMonks's
+  // team-specific Double Chance labels ("Arka Gdynia or Draw") into
+  // the canonical 1X / 12 / X2 codes. Optional; if missing the helper
+  // falls back to the raw label.
+  homeName?: string | null;
+  awayName?: string | null;
   // Once the fixture has any score (live or final), each outcome is
   // coloured based on whether it would currently settle as a winner.
   // Null while the match hasn't kicked off.
@@ -51,6 +57,8 @@ export function OddsRatesCard({
   fixtureName,
   startingAt,
   bookmakerId,
+  homeName,
+  awayName,
   liveScore,
   initiallyCollapsed = false,
 }: OddsRatesCardProps) {
@@ -247,10 +255,10 @@ export function OddsRatesCard({
               accessibilityRole="button"
               accessibilityLabel={
                 inCoupon
-                  ? `${formatLabel(outcome)} kaldır`
+                  ? `${formatLabel(outcome, market.market_id, homeName, awayName)} kaldır`
                   : tapDisabled
-                    ? `${formatLabel(outcome)} eklenemez`
-                    : `${formatLabel(outcome)} ekle`
+                    ? `${formatLabel(outcome, market.market_id, homeName, awayName)} eklenemez`
+                    : `${formatLabel(outcome, market.market_id, homeName, awayName)} ekle`
               }
               accessibilityState={{ selected: inCoupon, disabled: tapDisabled && !inCoupon }}
               style={[
@@ -275,7 +283,7 @@ export function OddsRatesCard({
                 ]}
                 numberOfLines={2}>
                 {inCoupon ? '✓ ' : isValueBet ? '★ ' : ''}
-                {formatLabel(outcome)}
+                {formatLabel(outcome, market.market_id, homeName, awayName)}
               </ThemedText>
             </Pressable>
             {showOdd ? (
@@ -321,9 +329,19 @@ export function OddsRatesCard({
   );
 }
 
-function formatLabel(o: FixtureOddOutcome): string {
+function formatLabel(
+  o: FixtureOddOutcome,
+  marketId: number,
+  homeName?: string | null,
+  awayName?: string | null,
+): string {
+  // Run the raw SportMonks label through shortenOutcome so EN-only
+  // strings ("Over", "Under", "Draw or Termalica BB Nieciecza") render
+  // with the locale-aware short codes (Üst / Alt / X2). Falls back to
+  // the raw label for markets shortenOutcome doesn't translate.
+  const short = shortenOutcome(o.label, marketId, homeName, awayName);
   const suffix = o.total ?? o.handicap ?? null;
-  return suffix ? `${o.label} ${suffix}` : o.label;
+  return suffix ? `${short} ${suffix}` : short;
 }
 
 
