@@ -203,12 +203,20 @@ function QuickPickRow({
   // 5/7/8 only), but a stale cached response or a future query that
   // forgets the gate would leak `false` for an upcoming match and paint
   // the row red. Belt-and-braces gate keeps the UI honest regardless.
-  const finished = getStateBucket(signal.match_state ?? null) === 'finished';
+  const bucket = getStateBucket(signal.match_state ?? null);
+  const finished = bucket === 'finished';
+  const upcoming = bucket === 'upcoming';
   const settled =
     finished && (signal.bet_winning === true || signal.bet_winning === false);
   const won = finished && signal.bet_winning === true;
+  // Coupon picks are only meaningful for matches that haven't kicked
+  // off. Live + finished + interrupted rows stay visible (the user
+  // wants to see the stats) but the add-to-coupon affordance is
+  // disabled — same rule RateMatchCard + FixtureTopPicksCard enforce.
+  const canAdd = upcoming && !inDraft;
 
   const handle = async () => {
+    if (!canAdd) return;
     const res = await tryAdd({
       fixtureId: signal.fixture_id,
       fixtureName: teams,
@@ -242,10 +250,16 @@ function QuickPickRow({
   return (
     <Pressable
       onPress={handle}
+      disabled={!canAdd}
       style={({ pressed }) => [
         styles.row,
         { backgroundColor: rowTint },
-        pressed && { backgroundColor: c.brandSoft },
+        pressed && canAdd && { backgroundColor: c.brandSoft },
+        // Dim non-addable rows (live / finished / already-in-draft)
+        // so the row stays readable for stats but the user sees it
+        // isn't tap-to-add. inDraft on an upcoming row stays at full
+        // opacity because the user might want to re-tap to confirm.
+        !upcoming && { opacity: 0.55 },
       ]}>
       <View style={styles.rowInfo}>
         <ThemedText
