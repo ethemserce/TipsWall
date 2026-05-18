@@ -100,6 +100,28 @@ var pgConnectionString = Environment.GetEnvironmentVariable("PREODDS_POSTGRES_CO
     // Multiplexing: concurrent commands share a single physical connection
     // when possible. Safe for read-heavy workloads; writers also benefit.
     dataSourceBuilder.ConnectionStringBuilder.Multiplexing = true;
+    // .NET-side timeout — Npgsql throws after 60s and signals cancel to
+    // Postgres. Belt half of the timeout pair.
+    dataSourceBuilder.ConnectionStringBuilder.CommandTimeout = 60;
+    // Server-side timeout — Postgres kills any query running longer than
+    // 60s, regardless of whether the .NET cancel arrived. Braces half of
+    // the pair: this is what would have prevented the 26-minute outcome
+    // finalizer lockup and the ten 45-50 minute /signals queries pinning
+    // postgres at 180% CPU. Applied via the libpq Options parameter so
+    // every physical connection in the pool starts with the GUC set.
+    //
+    // Worker hosts (NightlySnapshot, season backfill, etc.) open their
+    // own NpgsqlConnections directly from the connection string and
+    // bypass this data source entirely — their legitimately long batch
+    // operations are unaffected. The admin manual-rebuild endpoint also
+    // routes through PostgresAnalyticsEngine which has its own connection
+    // path, so a one-off full rebuild still works.
+    var existingOptions = dataSourceBuilder.ConnectionStringBuilder.Options ?? string.Empty;
+    var timeoutOption = "-c statement_timeout=60000";
+    dataSourceBuilder.ConnectionStringBuilder.Options =
+        string.IsNullOrWhiteSpace(existingOptions)
+            ? timeoutOption
+            : existingOptions + " " + timeoutOption;
     builder.Services.AddSingleton(dataSourceBuilder.Build());
 }
 
