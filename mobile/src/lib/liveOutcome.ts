@@ -20,6 +20,7 @@ export interface OutcomeShape {
 // or because they're known but skipped. Listing them keeps the dev-warn
 // below from spamming when these legitimately can't be settled.
 const KNOWN_UNRESOLVABLE_MARKETS = new Set<number>([
+  31, // Half Time Result — needs HT score, not FT
   33, // First Half Exact Goals
   38, // Second Half Exact Goals
 ]);
@@ -53,7 +54,6 @@ export function outcomeLiveStatus(
   const total = score.home + score.away;
   switch (outcome.market_id) {
     case 1: // Fulltime Result
-    case 31: // Half Time Result
       if (label === 'home') return score.home > score.away ? 'win' : 'loss';
       if (label === 'draw') return score.home === score.away ? 'win' : 'loss';
       if (label === 'away') return score.away > score.home ? 'win' : 'loss';
