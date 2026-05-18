@@ -60,7 +60,8 @@
           }
         }
       ],
-      "./plugins/with-gradle-jvm-memory"
+      "./plugins/with-gradle-jvm-memory",
+      "@react-native-google-signin/google-signin"
     ],
     "experiments": {
       "typedRoutes": true,

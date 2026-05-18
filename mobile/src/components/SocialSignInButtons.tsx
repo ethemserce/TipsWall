@@ -1,6 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import * as AppleAuthentication from 'expo-apple-authentication';
-import * as Google from 'expo-auth-session/providers/google';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -13,6 +13,23 @@ import { getCouponCounts } from '@/src/lib/coupons/store';
 import { env } from '@/src/lib/env';
 import { notify } from '@/src/lib/toasts';
 import { useTheme } from '@/src/lib/useTheme';
+
+// Configure once per process. `configure` is synchronous + idempotent so
+// stamping it at module load is safe; the platform-specific client ids
+// come from google-services.json (Android) and GoogleService-Info.plist
+// (iOS) which the @react-native-firebase/app plugin already wires in.
+// `webClientId` is the audience for the id_token — backend
+// /auth/social-signin verifies against this client id via Google's JWKS.
+if (env.googleClientIdWeb.length > 0) {
+  GoogleSignin.configure({
+    webClientId: env.googleClientIdWeb,
+    scopes: ['email', 'profile'],
+    // Forces account picker even when only one Google account is on the
+    // device — the user explicitly tapped "sign in", they shouldn't be
+    // surprised by a silent sign-in to the last-used account.
+    forceCodeForRefreshToken: false,
+  });
+}
 
 /**
  * Apple Sign-In + Google Sign-In buttons, shared by login and signup
@@ -30,23 +47,14 @@ import { useTheme } from '@/src/lib/useTheme';
  * password without seeing a scary error if Apple/Google pops a
  * cancel sheet.
  */
-// Google's hook validates the per-platform client id at call time — calling
-// it on Android without `androidClientId` throws before we ever get to the
-// `showGoogle` gate. Resolving the requirement per Platform.OS up-front
-// also matches the library's intent: a Web-only id is useless on a native
-// device. When the platform id is missing we skip the entire Google child
-// so the hook never fires.
+// Native flow only needs the Web client id (used as the id_token audience).
+// Per-platform client ids ship inside google-services.json / GoogleService-
+// Info.plist that the Firebase config plugin already installs, so we no
+// longer require the EXPO_PUBLIC_GOOGLE_CLIENT_ID_{IOS,ANDROID} env vars
+// to be set. The button stays hidden if even the Web id is missing — at
+// that point the backend wouldn't be able to verify the id_token anyway.
 function hasGoogleOnThisPlatform(): boolean {
-  // All three client ids are required by useIdTokenAuthRequest on
-  // production builds (see the comment above the hook call below).
-  // The Web id alone is not enough because Expo defaults to the
-  // app's custom scheme on native, which the WEB client rejects.
-  // Show the button only when every id is set so we don't fire the
-  // hook with missing config.
-  if (env.googleClientIdWeb.length === 0) return false;
-  if (Platform.OS === 'ios') return env.googleClientIdIos.length > 0;
-  if (Platform.OS === 'android') return env.googleClientIdAndroid.length > 0;
-  return true;
+  return env.googleClientIdWeb.length > 0;
 }
 
 export function SocialSignInButtons() {
@@ -60,7 +68,7 @@ export function SocialSignInButtons() {
     AppleAuthentication.isAvailableAsync().then(setAppleAvailable).catch(() => {});
   }, []);
 
-  const handleSignedIn = (provider: 'apple' | 'google') => {
+  const handleSignedIn = () => {
     // Same "your guest picks moved" toast as the email-password
     // signup path — same value prop applies.
     const counts = getCouponCounts();
@@ -96,7 +104,7 @@ export function SocialSignInButtons() {
         throw new Error('Apple returned no identityToken.');
       }
       await socialSignIn('apple', credential.identityToken);
-      handleSignedIn('apple');
+      handleSignedIn();
     } catch (err: unknown) {
       if (
         err &&
@@ -161,7 +169,7 @@ export function SocialSignInButtons() {
           disabled={busy != null}
           onStart={() => setBusy('google')}
           onSettle={() => setBusy(null)}
-          onSuccess={() => handleSignedIn('google')}
+          onSuccess={() => handleSignedIn()}
         />
       ) : null}
     </View>
@@ -176,9 +184,14 @@ interface GoogleSignInButtonProps {
   onSuccess: () => void;
 }
 
-// Mounted only when the device's platform-specific Google client id is
-// present (see `hasGoogleOnThisPlatform`). That way the `useIdTokenAuthRequest`
-// hook never fires with missing required props.
+// Uses the native Google Sign-In SDK (Credentials Manager on Android,
+// GIDSignIn on iOS). No browser, no redirect URI, no intent filter —
+// the OS shows Google's account chooser directly and hands an id_token
+// back to the app via callback. This sidesteps the Expo Auth Session
+// redirect dance that depended on a custom URI scheme + matching SHA-1
+// being registered in the Google Cloud Console. Same audience model
+// (webClientId) so the backend's /auth/social-signin endpoint still
+// verifies the id_token against the same project.
 function GoogleSignInButton({
   busy,
   disabled,
@@ -188,72 +201,27 @@ function GoogleSignInButton({
 }: GoogleSignInButtonProps) {
   const c = useTheme();
   const { t } = useTranslation();
-  // All three client IDs are required for production builds on Expo
-  // SDK 54+:
-  //
-  //   * iosClientId + androidClientId let useIdTokenAuthRequest pick the
-  //     reverse-domain redirect URI (com.googleusercontent.apps.NNN:/
-  //     oauthredirect) that Google's native client types accept.
-  //   * clientId (Web) is still required so Expo can fill the standard
-  //     PKCE/OAuth params (audience etc.) for token exchange.
-  //
-  // Two earlier attempts failed:
-  //   * Removing ios/android client ids and shipping only the web id
-  //     produced "Custom scheme URIs are not allowed for 'WEB' client
-  //     type" — Expo defaulted to the app's preoddsmobile:// custom
-  //     scheme which the WEB OAuth client rejects. Expo's old
-  //     auth.expo.io HTTPS proxy was removed in SDK 49 so we can't
-  //     route the web client through a hosted https redirect.
-  //   * Keeping all three ids but with the Android client's "Enable
-  //     Custom URI scheme" toggle OFF produced "Custom URI scheme is
-  //     not enabled for your Android client".
-  //
-  // Working configuration:
-  //   * All three client ids passed below.
-  //   * Google Cloud Console → Android client → enable "Custom URI
-  //     scheme" (a one-time toggle on the Android client page).
-  const [, , promptGoogle] = Google.useIdTokenAuthRequest({
-    iosClientId: env.googleClientIdIos || undefined,
-    androidClientId: env.googleClientIdAndroid || undefined,
-    clientId: env.googleClientIdWeb || undefined,
-  });
 
   const handlePress = async () => {
     if (disabled) return;
     onStart();
     try {
-      const result = await promptGoogle();
-      // Silent cancellation — user backed out of the Google sheet on
-      // purpose. Don't toast on these.
-      if (
-        !result ||
-        result.type === 'dismiss' ||
-        result.type === 'cancel' ||
-        result.type === 'opened' ||
-        result.type === 'locked'
-      ) {
-        return;
-      }
-      // Loud failure. Previously this branch (result.type === 'error' or
-      // a non-success result with no id_token) was silently dropped, so
-      // the user saw the app "do nothing" after granting consent on the
-      // Google page — exactly the symptom of a SHA-1 / custom-URI-scheme
-      // misconfig where Google ships the redirect but the device can't
-      // open it. Now we surface the provider error verbatim so the
-      // mistake is obvious from the device itself.
-      if (result.type !== 'success' || !result.params.id_token) {
-        const detail =
-          result.type === 'error'
-            ? result.error?.message ?? result.params?.error_description ?? null
-            : null;
+      // Surfaces the "update Google Play services" dialog when the
+      // device's Play services are stale instead of silently failing.
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      const response = await GoogleSignin.signIn();
+      // User dismissed the picker — silent.
+      if (response.type === 'cancelled') return;
+      const idToken = response.data.idToken;
+      if (!idToken) {
         notify({
           kind: 'loss',
           title: t('auth.social.errorTitle'),
-          body: detail ?? t('auth.social.errorGoogle'),
+          body: t('auth.social.errorGoogle'),
         });
         return;
       }
-      await socialSignIn('google', result.params.id_token);
+      await socialSignIn('google', idToken);
       onSuccess();
     } catch (err) {
       notify({
@@ -262,7 +230,9 @@ function GoogleSignInButton({
         body:
           err instanceof ApiClientError
             ? err.message
-            : t('auth.social.errorGoogle'),
+            : err instanceof Error && err.message
+              ? err.message
+              : t('auth.social.errorGoogle'),
       });
     } finally {
       onSettle();
