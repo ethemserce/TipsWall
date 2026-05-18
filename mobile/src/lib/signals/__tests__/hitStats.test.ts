@@ -25,6 +25,10 @@ function signal(overrides: Partial<RateResult> = {}): RateResult {
     value: null,
     bet_winning: null,
     avg_winning_percent: null,
+    // Default to a finished host fixture (state 5 = FT) so the
+    // getSignalWinning gate doesn't filter every test row out.
+    // Specific test cases override match_state to assert the gate.
+    match_state: 5,
     ...overrides,
   } as RateResult;
 }
@@ -105,6 +109,37 @@ describe('computeHitStats (signal accessor)', () => {
   test('undefined bet_winning treated like null (pending)', () => {
     const result = computeHitStats(
       [signal({ bet_winning: undefined as unknown as null }), signal({ bet_winning: true })],
+      getSignalWinning,
+    );
+    expect(result.finished).toBe(1);
+    expect(result.won).toBe(1);
+  });
+
+  test('live host fixture excluded from badge even when bet_winning is non-null', () => {
+    // Backend now returns running verdicts mid-match (so 1X2 / CS / DC
+    // colour the row by the current scoreboard). The badge gate has to
+    // exclude those so it never inflates with mid-match flips.
+    const result = computeHitStats(
+      [
+        signal({ bet_winning: true,  match_state: 22 }),  // INPLAY_2ND_HALF
+        signal({ bet_winning: false, match_state: 2 }),   // INPLAY_1ST_HALF
+        signal({ bet_winning: true,  match_state: 5 }),   // FT — counts
+        signal({ bet_winning: false, match_state: 5 }),   // FT — counts
+      ],
+      getSignalWinning,
+    );
+    expect(result.finished).toBe(2);
+    expect(result.won).toBe(1);
+    expect(result.lost).toBe(1);
+    expect(result.hitRate).toBe(50);
+  });
+
+  test('upcoming host fixture excluded from badge', () => {
+    const result = computeHitStats(
+      [
+        signal({ bet_winning: true, match_state: 1 }),    // NS
+        signal({ bet_winning: true, match_state: 5 }),    // FT
+      ],
       getSignalWinning,
     );
     expect(result.finished).toBe(1);

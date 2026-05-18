@@ -1,3 +1,4 @@
+import { getStateBucket } from '@/src/lib/fixtureState';
 import type { RateResult } from '@/src/types/rateResult';
 import type { FixtureOddOutcome } from '@/src/types/fixtureOdds';
 
@@ -53,8 +54,18 @@ export function computeHitStats<T>(
   };
 }
 
-/** Convenience for /signals rows. */
-export const getSignalWinning = (s: RateResult) => s.bet_winning;
+/**
+ * Convenience for /signals rows. Backend now returns a running
+ * verdict for live matches (so the row UI can paint 1X2 / CS / DC
+ * based on the current scoreboard) — but the analysis-page hit-rate
+ * badge should only count fully settled outcomes. Gate on the
+ * host fixture's bucket here so the badge never inflates with
+ * mid-match flips.
+ */
+export const getSignalWinning = (s: RateResult): boolean | null | undefined => {
+  if (getStateBucket(s.match_state ?? null) !== 'finished') return null;
+  return s.bet_winning;
+};
 
 /** Convenience for per-fixture odds outcomes. */
 export const getOutcomeWinning = (o: FixtureOddOutcome) => o.winning;
