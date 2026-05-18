@@ -210,7 +210,16 @@ namespace PreOddsApi.WebApi.V3.Data
                         -- always reflects the actual outcome. Markets with
                         -- has_winning_calculations=true are graded by SportMonks
                         -- itself and trusted as-is.
+                        --
+                        -- Outer gate on state_id: only stamp a non-null verdict
+                        -- once the host fixture is actually finished (5=FT,
+                        -- 7=AET, 8=FT pen.). Without this guard a stale
+                        -- mid-match stamp on an upcoming fixture would leak
+                        -- through as `false` and the analysis-page hit-rate
+                        -- badge would count those as losses (e.g. 0/15 in red
+                        -- on a slate of not-yet-kicked-off matches).
                         case
+                            when f.state_id not in (5, 7, 8) then null
                             when coalesce(m.has_winning_calculations, false) = true then poc.winning
                             else coalesce(
                                 odds.evaluate_outcome(
