@@ -256,6 +256,8 @@ namespace PreOddsApi.WebApi.V3.Data
                     from odds.prematch_odds_current poc
                     inner join football.fixtures f on f.id = poc.fixture_id
                     inner join odds.markets m on m.id = poc.market_id
+                        and coalesce(m.available_in_standard, true) = true
+                        and coalesce(m.active, true) = true
                     left join score_state ss on ss.fixture_id = poc.fixture_id
                     left join team_state ts on ts.fixture_id = poc.fixture_id
                     {baseWhere}
