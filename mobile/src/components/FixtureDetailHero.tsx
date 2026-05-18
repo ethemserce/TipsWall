@@ -121,9 +121,21 @@ export function FixtureDetailHero({
       findHalfScore(scores, 'PENALTIES')
     : null;
 
-  const goals = (events ?? []).filter((e) =>
-    GOAL_TYPE_CODES.has((e.type_code ?? '').toUpperCase()),
-  );
+  // Goal rows on the hero header. We exclude:
+  //   * cancelled=true → goal overturned by VAR (the timeline still
+  //     shows it with a strikethrough + İPTAL badge, but it's
+  //     misleading on the summary line where the score reflects the
+  //     post-VAR truth).
+  //   * player_name "<TBD>" → SportMonks placeholder while the
+  //     scorer is unconfirmed. Skip until a real name lands; if the
+  //     goal is later cancelled this row never re-appears, and if
+  //     it's confirmed the next tick fills in the scorer.
+  const goals = (events ?? []).filter((e) => {
+    if (!GOAL_TYPE_CODES.has((e.type_code ?? '').toUpperCase())) return false;
+    if (e.cancelled) return false;
+    if ((e.player_name ?? '').trim() === '<TBD>') return false;
+    return true;
+  });
   const homeGoals = goals.filter((g) => g.participant_location === 'home');
   const awayGoals = goals.filter((g) => g.participant_location === 'away');
 
@@ -290,7 +302,12 @@ function GoalLine({
       : code === 'OWNGOAL'
         ? '(OG)'
         : null;
-  const text = `${goal.player_name ?? '—'} ${minuteStr}${tag ? ` ${tag}` : ''}`;
+  // Defensive: collapse SportMonks's "<TBD>" scorer placeholder to a
+  // dash even if it slipped past the hero's goal filter — better a
+  // blank-ish line than the literal angle-bracket string.
+  const rawName = (goal.player_name ?? '').trim();
+  const displayName = rawName && rawName !== '<TBD>' ? rawName : '—';
+  const text = `${displayName} ${minuteStr}${tag ? ` ${tag}` : ''}`;
 
   return (
     <View

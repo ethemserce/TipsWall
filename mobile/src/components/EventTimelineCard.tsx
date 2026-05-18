@@ -222,7 +222,13 @@ function SubstitutionRow({
 
 function abbreviateName(name: string | null | undefined): string {
   if (!name) return '—';
-  const parts = name.trim().split(/\s+/);
+  const trimmed = name.trim();
+  // SportMonks ships "<TBD>" as a placeholder string while a goal is
+  // under VAR review or the scorer hasn't been confirmed yet. We
+  // never want to render that literal — fall back to em-dash so the
+  // row stays clean and the user reads minute + score line instead.
+  if (!trimmed || trimmed === '<TBD>') return '—';
+  const parts = trimmed.split(/\s+/);
   if (parts.length === 1) return parts[0];
   // "Andreas Cornelius" → "A. Cornelius"
   const first = parts[0];
