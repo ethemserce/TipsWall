@@ -18,6 +18,7 @@ import { useMarketPreferences } from '@/src/hooks/useMarketPreferences';
 import { useSignals } from '@/src/hooks/useSignals';
 import { useTryAddSelection } from '@/src/hooks/useTryAddSelection';
 import { isInDraft } from '@/src/lib/coupons/store';
+import { getStateBucket } from '@/src/lib/fixtureState';
 import { MARKET_SHORT } from '@/src/lib/marketShort';
 import { useTheme } from '@/src/lib/useTheme';
 import type { RateResult } from '@/src/types/rateResult';
@@ -197,11 +198,15 @@ function QuickPickRow({
   const label = `${marketShort} · ${signal.label}`;
   const hit = signal.winning_percent != null ? Math.round(signal.winning_percent) : null;
   const imp = signal.iko != null ? Math.round(signal.iko) : null;
-  // Retro outcome colouring. `bet_winning` is stamped by the outcome
-  // finalizer only after the fixture has settled, so a non-null value
-  // is safe to trust — anything mid-match stays at the neutral default.
-  const settled = signal.bet_winning === true || signal.bet_winning === false;
-  const won = signal.bet_winning === true;
+  // Retro outcome colouring — only colour rows whose host fixture is
+  // actually finished. The backend gates bet_winning the same way (state
+  // 5/7/8 only), but a stale cached response or a future query that
+  // forgets the gate would leak `false` for an upcoming match and paint
+  // the row red. Belt-and-braces gate keeps the UI honest regardless.
+  const finished = getStateBucket(signal.match_state ?? null) === 'finished';
+  const settled =
+    finished && (signal.bet_winning === true || signal.bet_winning === false);
+  const won = finished && signal.bet_winning === true;
 
   const handle = async () => {
     const res = await tryAdd({

@@ -22,6 +22,11 @@ interface Props {
   // for context but the add buttons are disabled (no point picking a started
   // match into a coupon).
   upcoming: boolean;
+  // True only once the host fixture reached FT / AET / FT pen. Picks stay
+  // colour-neutral for upcoming AND live matches — a winning flag mid-game
+  // isn't trustworthy (score can still flip), so we wait for the final
+  // verdict before painting the row.
+  finished: boolean;
 }
 
 interface Pick {
@@ -55,6 +60,7 @@ export function FixtureTopPicksCard({
   startingAt,
   bookmakerId,
   upcoming,
+  finished,
 }: Props) {
   const c = useTheme();
   const { t } = useTranslation();
@@ -133,6 +139,7 @@ export function FixtureTopPicksCard({
           startingAt={startingAt}
           bookmakerId={bookmakerId}
           upcoming={upcoming}
+          finished={finished}
           fixtureAlreadyPicked={fixtureAlreadyPicked}
         />
       ))}
@@ -147,6 +154,7 @@ function PickRow({
   startingAt,
   bookmakerId,
   upcoming,
+  finished,
   fixtureAlreadyPicked,
 }: {
   pick: Pick;
@@ -155,6 +163,7 @@ function PickRow({
   startingAt: string | null;
   bookmakerId: number;
   upcoming: boolean;
+  finished: boolean;
   fixtureAlreadyPicked: boolean;
 }) {
   const c = useTheme();
@@ -216,10 +225,12 @@ function PickRow({
   // full-opacity so the tip text + stats remain readable; the button
   // itself still reflects the disabled state.
   const dim = (fixtureAlreadyPicked && !inCoupon) || (!marketAllowed && !inCoupon);
-  // Retro outcome — only true / false count; mid-game or pre-game stay
-  // neutral. Coloured tip + soft row tint mirror the QuickPicks sheet.
-  const settled = pick.winning === true || pick.winning === false;
-  const won = pick.winning === true;
+  // Retro outcome — only colour once the host fixture is finished. Mid-game
+  // and pre-game stay neutral even if backend stamps a transient winning
+  // flag from the running score (it can flip when the match progresses).
+  const settled =
+    finished && (pick.winning === true || pick.winning === false);
+  const won = finished && pick.winning === true;
   const tipColor = settled ? (won ? c.success : c.danger) : c.brand;
   const rowTint = settled
     ? won

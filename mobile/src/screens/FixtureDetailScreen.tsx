@@ -433,6 +433,7 @@ export function FixtureDetailScreen({ fixtureId }: FixtureDetailScreenProps) {
               startingAt={data.fixture.starting_at ?? null}
               bookmakerId={ODDS_BOOKMAKER_ID}
               upcoming={getStateBucket(data.fixture.state_id) === 'upcoming'}
+              finished={getStateBucket(data.fixture.state_id) === 'finished'}
             />
             <AiPicksCard
               bets={valueBets.data}
