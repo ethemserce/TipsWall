@@ -31,8 +31,13 @@ export type StateBucket = 'upcoming' | 'live' | 'finished' | 'other';
 // and 25 (PEN-BREAK) states still count as "live" for UX purposes —
 // the match is ongoing, just paused. 19 (AWAITING_UPDATES) is rare;
 // SportMonks uses it when the feed is gapped mid-match, so we treat
-// it as live too to avoid the row falling off the live bucket.
-const LIVE_STATES = new Set<number>([2, 3, 4, 6, 9, 19, 21, 22, 23, 25]);
+// it as live too to avoid the row falling off the live bucket. 11
+// (SUSPENDED) and 18 (INTERRUPTED) are added for the same reason:
+// the match might resume, the score/events on file are real, and
+// hiding them behind the kickoff time confuses users — Ethem saw
+// an INT match render as if it hadn't started, even though three
+// goals had already been scored.
+const LIVE_STATES = new Set<number>([2, 3, 4, 6, 9, 11, 18, 19, 21, 22, 23, 25]);
 
 // Final results. FT_PEN (8) is final after the shootout; AET (7) is
 // final after extra time; WO (14) and AWARDED (17) are admin finishes
@@ -150,14 +155,14 @@ export function getStateLabel(stateId: number | null | undefined): string {
     case 8:  return 'FT pen.';
     case 9:  return 'PEN';
     case 10: return 'POSTP';
-    case 11: return 'SUSP';
+    case 11: return 'ASKIDA';   // Suspended — match paused, expected to resume
     case 12: return 'CANC';
     case 13: return 'TBA';
     case 14: return 'WO';
     case 15: return 'ABAN';
     case 16: return 'DELAY';
     case 17: return 'AWAR';
-    case 18: return 'INT';
+    case 18: return 'YARIDA';   // Interrupted — visible paused state with a real score on file
     case 19: return 'AU';
     case 20: return 'DEL';
     case 21: return 'ETB';
