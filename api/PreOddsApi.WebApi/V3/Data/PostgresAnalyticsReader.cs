@@ -219,32 +219,39 @@ namespace PreOddsApi.WebApi.V3.Data
                         nullif(poc.handicap, '') as handicap,
                         poc.value::numeric(12,4) as odd_value,
                         coalesce(poc.feed_type, 'standard') as feed_type,
-                        -- Read-time re-grade. We let evaluate_outcome be
-                        -- the gate: pass ht_h/ht_a always (they're stable
-                        -- after HT) and pass the current score AS ft_h/ft_a
-                        -- only when the match is actually finished. The
-                        -- function returns:
-                        --   * a verdict for HT markets once HT is on file
-                        --     (so "İY X" flips to lost during the 2nd half
-                        --     when HT ended 1-2);
-                        --   * null for FT markets until state is in
-                        --     5/7/8 (so a 2-2 at minute 52 doesn't look
-                        --     like a settled draw);
-                        --   * null for markets it can't decide from the
-                        --     score alone (corners, cards, player props).
+                        -- Read-time re-grade with phase-aware dispatch:
+                        --   * Match finished (5/7/8): full evaluate_outcome
+                        --     with FT scores — definitive verdict for
+                        --     every supported market.
+                        --   * Match in progress: evaluate_outcome_locked
+                        --     returns a verdict only when it's monotonically
+                        --     locked from running play. Over 2.5 with
+                        --     current total 4 flips green immediately;
+                        --     BTTS Yes flips green the moment both teams
+                        --     score; 1X2 stays neutral because it can
+                        --     still flip. HT-decidable markets defer to
+                        --     evaluate_outcome with HT scores so İY X
+                        --     settles the moment HT is recorded.
+                        -- Markets with has_winning_calculations=true are
+                        -- graded by SportMonks directly and trusted as-is.
                         -- No coalesce-fallback to poc.winning: stale mid-
                         -- match stamps from the disabled finalizer have
-                        -- bled into the UI before, so we trust evaluate_outcome
-                        -- or render neutral.
+                        -- bled through before, so we trust the score-
+                        -- derived verdict or render neutral.
                         case
                             when coalesce(m.has_winning_calculations, false) = true then poc.winning
-                            else odds.evaluate_outcome(
-                                m.developer_name, poc.label, poc.total, poc.handicap,
-                                case when f.state_id in (5, 7, 8) then ss.cur_h end,
-                                case when f.state_id in (5, 7, 8) then ss.cur_a end,
-                                ss.ht_h, ss.ht_a,
-                                ts.home_name, ts.away_name
-                            )
+                            when f.state_id in (5, 7, 8) then
+                                odds.evaluate_outcome(
+                                    m.developer_name, poc.label, poc.total, poc.handicap,
+                                    ss.cur_h, ss.cur_a, ss.ht_h, ss.ht_a,
+                                    ts.home_name, ts.away_name
+                                )
+                            else
+                                odds.evaluate_outcome_locked(
+                                    m.developer_name, poc.label, poc.total, poc.handicap,
+                                    ss.cur_h, ss.cur_a, ss.ht_h, ss.ht_a,
+                                    ts.home_name, ts.away_name
+                                )
                         end as bet_winning,
                         f.state_id               as match_state,
                         f.starting_at            as fixture_starting_at,
