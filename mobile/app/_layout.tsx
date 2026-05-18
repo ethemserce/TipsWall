@@ -147,6 +147,10 @@ function RootShell({ statusBarStyle }: { statusBarStyle: 'light' | 'dark' }) {
           options={{ headerShown: false }}
         />
         <Stack.Screen name="market-preferences" options={{ headerShown: false }} />
+        {/* Legal docs (terms / privacy / kvkk) — own SafeAreaView header
+            inside the route, so suppress the stack header to avoid the
+            default "legal/[topic]" route-name label. */}
+        <Stack.Screen name="legal/[topic]" options={{ headerShown: false }} />
       </Stack>
       <CouponBadge />
       <ToastHost />
