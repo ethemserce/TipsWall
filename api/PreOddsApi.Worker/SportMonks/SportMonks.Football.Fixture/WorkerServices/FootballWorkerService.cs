@@ -599,7 +599,16 @@ namespace SportMonks.Football.FixtureWorker.Services
             var targetHourUtc = GetInteger("NightlySnapshot:TargetHourUtc", 3);
             var nowUtc = DateTime.UtcNow;
             var todayUtc = DateOnly.FromDateTime(nowUtc);
-            if (nowUtc.Hour < targetHourUtc) return;
+            // Narrow [target, target+1) window. The earlier "hour >= target"
+            // check would happily fire on a worker restart any time of day
+            // after 03:00 UTC (e.g. a 23:30 restart with no scheduler record
+            // triggered the full rebuild at the wrong end of the night).
+            // Pinning to a single hour keeps the run cost predictable + off
+            // the daytime traffic curve. Trade-off: if the worker is down
+            // for the entire [3,4) window we miss the day — admin endpoint
+            // POST /api/v3/admin/analytics/snapshot/rebuild covers that hole
+            // on demand.
+            if (nowUtc.Hour < targetHourUtc || nowUtc.Hour >= targetHourUtc + 1) return;
 
             // Seed the local cache from the scheduler on first tick so
             // a worker restart doesn't re-fire today's run. If
