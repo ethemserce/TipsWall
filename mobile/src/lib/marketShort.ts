@@ -196,6 +196,18 @@ export function shortenOutcome(
     if (lower === 'over') return en ? 'Over' : 'Üst';
     if (lower === 'under') return en ? 'Under' : 'Alt';
   }
+  // Handicap markets — replace the generic team identifier ("1" /
+  // "2" / "Home" / "Away") with EV / DEP (or Home / Away in EN) so
+  // the row reads "H DEP +1" instead of "H 2 +1". Without this swap
+  // users have to remember which side of the handicap the number
+  // refers to, which empirically flips in 50% of mental models.
+  // Covers ASIAN_HANDICAP (6), 3_WAY_HANDICAP (9), HANDICAP_RESULT
+  // (56) and their 1st/2nd half variants.
+  if (marketId === 6 || marketId === 9 || marketId === 56) {
+    if (lower === '1' || lower === 'home') return en ? 'Home' : 'EV';
+    if (lower === '2' || lower === 'away') return en ? 'Away' : 'DEP';
+    if (lower === 'x' || lower === 'draw') return en ? 'Draw' : 'Beraberlik';
+  }
   // Double Chance + Team Double Chance — universal compact codes used on
   // Turkish bet slips and most European bookmakers. SportMonks ships
   // labels in two shapes — generic ("Home/Draw", "Home or Draw") and
