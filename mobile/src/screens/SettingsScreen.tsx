@@ -523,6 +523,39 @@ export function SettingsScreen() {
             </ThemedText>
           </View>
         </View>
+
+        {/* Legal — three navigable rows: Terms of Use, Privacy Policy,
+            KVKK notice. Each routes to /legal/<topic> which renders the
+            doc body from src/lib/legal/content.ts. */}
+        <SectionHeader label={t('settings.legal.header')} />
+        <View
+          style={[
+            styles.card,
+            { backgroundColor: c.surfaceElevated, borderColor: c.borderSoft, padding: 0, gap: 0 },
+          ]}>
+          {(['terms', 'privacy', 'kvkk'] as const).map((topic, idx) => (
+            <Pressable
+              key={topic}
+              onPress={() => router.push(`/legal/${topic}` as never)}
+              style={({ pressed }) => [
+                {
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  paddingHorizontal: 14,
+                  paddingVertical: 14,
+                  borderTopWidth: idx > 0 ? StyleSheet.hairlineWidth : 0,
+                  borderTopColor: c.borderSoft,
+                  backgroundColor: pressed ? c.brandSoft : 'transparent',
+                },
+              ]}>
+              <ThemedText style={[styles.rowTitle, { color: c.text }]}>
+                {t(`settings.legal.${topic}`)}
+              </ThemedText>
+              <MaterialCommunityIcons name="chevron-right" size={20} color={c.textMuted} />
+            </Pressable>
+          ))}
+        </View>
       </ScrollView>
 
       <Modal

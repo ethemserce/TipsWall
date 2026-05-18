@@ -332,6 +332,20 @@
       "title": "Personal prediction tracker",
       "disclaimer": "This app does not make predictions and does not place bets. It does not accept deposits, build coupons or link out to bookmakers. It surfaces historical statistics through user-configurable filters; every choice belongs to the user."
     },
+    "legal": {
+      "header": "Legal",
+      "terms": "Terms of Use",
+      "privacy": "Privacy Policy",
+      "kvkk": "KVKK Personal Data Notice"
+    },
+    "ageGate": {
+      "title": "Age confirmation (18+)",
+      "body": "This app is not intended for users under 18. To continue, confirm you are over 18.",
+      "confirm": "I am over 18, continue",
+      "decline": "Exit",
+      "signupCheckbox": "I confirm I am over 18 and I have read and agree to the Terms of Use and Privacy Policy.",
+      "signupError": "You must confirm 18+ and accept the terms to continue."
+    },
     "marketPrefs": {
       "label": "Favourite prediction types",
       "hintSelected": "{{count}}/{{cap}} selected",

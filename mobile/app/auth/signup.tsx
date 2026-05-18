@@ -36,8 +36,16 @@ export default function SignupScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Explicit 18+ + ToS / Privacy acceptance. Required at signup time so
+  // we can plausibly say "the user confirmed it" if the legal posture
+  // ever comes up. Stays in component state; the backend already gates
+  // every account by email + password so we don't need to persist this
+  // flag server-side — the act of pressing the button with the box
+  // ticked is the audit trail.
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
 
   const validate = (): string | null => {
+    if (!ageConfirmed) return t('ageGate.signupError');
     if (!USERNAME_REGEX.test(username.trim())) return t('auth.errors.username');
     if (!email.includes('@')) return t('auth.errors.email');
     if (password.length < MIN_PASSWORD) return t('auth.errors.passwordShort');
@@ -48,6 +56,7 @@ export default function SignupScreen() {
     username.trim().length > 0 &&
     email.trim().length > 0 &&
     password.length > 0 &&
+    ageConfirmed &&
     !submitting;
 
   const handleSubmit = async () => {
@@ -208,6 +217,27 @@ export default function SignupScreen() {
             </ThemedText>
           </View>
 
+          <Pressable
+            onPress={() => setAgeConfirmed((v) => !v)}
+            hitSlop={6}
+            style={styles.ageRow}>
+            <View
+              style={[
+                styles.checkbox,
+                {
+                  borderColor: ageConfirmed ? c.brand : c.borderSoft,
+                  backgroundColor: ageConfirmed ? c.brand : 'transparent',
+                },
+              ]}>
+              {ageConfirmed ? (
+                <MaterialCommunityIcons name="check" size={14} color={c.textInverse} />
+              ) : null}
+            </View>
+            <ThemedText style={[styles.ageText, { color: c.textMuted }]}>
+              {t('ageGate.signupCheckbox')}
+            </ThemedText>
+          </Pressable>
+
           {error ? (
             <View style={[styles.errorBox, { backgroundColor: c.dangerSoft, borderColor: c.danger }]}>
               <MaterialCommunityIcons name="alert-circle" size={16} color={c.danger} />
@@ -357,6 +387,27 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 15,
     marginTop: 8,
+  },
+  ageRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    marginTop: 4,
+    paddingVertical: 4,
+  },
+  checkbox: {
+    width: 18,
+    height: 18,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 1,
+  },
+  ageText: {
+    flex: 1,
+    fontSize: 12,
+    lineHeight: 17,
   },
   footerRow: {
     flexDirection: 'row',

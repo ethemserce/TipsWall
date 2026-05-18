@@ -332,6 +332,20 @@
       "title": "Kişisel tahmin takip uygulaması",
       "disclaimer": "Bu uygulama tahmin yapmaz, bahis oynatmaz. Para yatırma, kupon oluşturma veya bahis sitesine yönlendirme içermez. Geçmiş istatistikleri filtrelenebilir biçimde sunar; her tercih kullanıcıya aittir."
     },
+    "legal": {
+      "header": "Hukuki",
+      "terms": "Kullanım Koşulları",
+      "privacy": "Gizlilik Politikası",
+      "kvkk": "KVKK Aydınlatma Metni"
+    },
+    "ageGate": {
+      "title": "18 yaş onayı",
+      "body": "Bu uygulama 18 yaşından küçükler için uygun değildir. Devam etmek için 18 yaşından büyük olduğunu onayla.",
+      "confirm": "18 yaşından büyüğüm, devam et",
+      "decline": "Çıkış",
+      "signupCheckbox": "18 yaşından büyük olduğumu, Kullanım Koşulları'nı ve Gizlilik Politikası'nı okuyup kabul ettiğimi onaylıyorum.",
+      "signupError": "Devam etmek için 18+ onayı ve koşulları kabul etmen gerekir."
+    },
     "marketPrefs": {
       "label": "Favori Tahmin Tipleri",
       "hintSelected": "{{count}}/{{cap}} tahmin tipi seçili",

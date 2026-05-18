@@ -8,6 +8,7 @@ import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { AgeGateModal } from '@/src/components/AgeGateModal';
 import { AnalyticsConsentBanner } from '@/src/components/AnalyticsConsentBanner';
 import { CouponBadge } from '@/src/components/CouponBadge';
 import { LiveStatusBanner } from '@/src/components/LiveStatusBanner';
@@ -131,6 +132,9 @@ function RootShell({ statusBarStyle }: { statusBarStyle: 'light' | 'dark' }) {
       <ToastHost />
       <QuotaLimitModal />
       <AnalyticsConsentBanner />
+      {/* Age gate is rendered last so its Modal layers above all other
+          overlays — first-launch block until the user confirms 18+. */}
+      <AgeGateModal />
       <StatusBar style={statusBarStyle} />
     </View>
   );
