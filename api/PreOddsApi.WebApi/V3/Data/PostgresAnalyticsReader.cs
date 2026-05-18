@@ -166,7 +166,32 @@ namespace PreOddsApi.WebApi.V3.Data
             }
 
             var sql = $"""
-                with current_odds as (
+                with relevant_fixtures as (
+                    select distinct poc.fixture_id
+                    from odds.prematch_odds_current poc
+                    inner join football.fixtures f on f.id = poc.fixture_id
+                    {baseWhere}
+                ),
+                score_state as (
+                    select s.fixture_id,
+                        max(case when s.description='CURRENT'  and s.participant_location='home' then s.goals end)::int as ft_h,
+                        max(case when s.description='CURRENT'  and s.participant_location='away' then s.goals end)::int as ft_a,
+                        max(case when s.description='1ST_HALF' and s.participant_location='home' then s.goals end)::int as ht_h,
+                        max(case when s.description='1ST_HALF' and s.participant_location='away' then s.goals end)::int as ht_a
+                    from football.fixture_scores s
+                    where s.fixture_id in (select fixture_id from relevant_fixtures)
+                    group by s.fixture_id
+                ),
+                team_state as (
+                    select fp.fixture_id,
+                        max(case when fp.location='home' then t.name end) as home_name,
+                        max(case when fp.location='away' then t.name end) as away_name
+                    from football.fixture_participants fp
+                    join football.teams t on t.id = fp.team_id
+                    where fp.fixture_id in (select fixture_id from relevant_fixtures)
+                    group by fp.fixture_id
+                ),
+                current_odds as (
                     select
                         poc.id            as odds_current_id,
                         poc.fixture_id,
@@ -177,7 +202,25 @@ namespace PreOddsApi.WebApi.V3.Data
                         nullif(poc.handicap, '') as handicap,
                         poc.value::numeric(12,4) as odd_value,
                         coalesce(poc.feed_type, 'standard') as feed_type,
-                        poc.winning              as bet_winning,
+                        -- Read-time re-grade. prematch_odds_current.winning is
+                        -- stamped by the (currently disabled) finalizer; without
+                        -- it, mid-match stamps from an earlier run never get
+                        -- updated to the FT-correct value. For markets we can
+                        -- decide from the score, recompute on read so /signals
+                        -- always reflects the actual outcome. Markets with
+                        -- has_winning_calculations=true are graded by SportMonks
+                        -- itself and trusted as-is.
+                        case
+                            when coalesce(m.has_winning_calculations, false) = true then poc.winning
+                            else coalesce(
+                                odds.evaluate_outcome(
+                                    m.developer_name, poc.label, poc.total, poc.handicap,
+                                    ss.ft_h, ss.ft_a, ss.ht_h, ss.ht_a,
+                                    ts.home_name, ts.away_name
+                                ),
+                                poc.winning
+                            )
+                        end as bet_winning,
                         f.state_id               as match_state,
                         f.starting_at            as fixture_starting_at,
                         f.league_id,
@@ -188,6 +231,9 @@ namespace PreOddsApi.WebApi.V3.Data
                             as outcome_key
                     from odds.prematch_odds_current poc
                     inner join football.fixtures f on f.id = poc.fixture_id
+                    inner join odds.markets m on m.id = poc.market_id
+                    left join score_state ss on ss.fixture_id = poc.fixture_id
+                    left join team_state ts on ts.fixture_id = poc.fixture_id
                     {baseWhere}
                 ),
                 joined as (
