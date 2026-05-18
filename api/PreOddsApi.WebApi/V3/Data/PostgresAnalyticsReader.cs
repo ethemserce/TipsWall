@@ -167,10 +167,22 @@ namespace PreOddsApi.WebApi.V3.Data
 
             var sql = $"""
                 with relevant_fixtures as (
+                    -- Only seed score_state / team_state with FINISHED
+                    -- fixtures. evaluate_outcome can decide an outcome
+                    -- only when ft_h/ft_a exist (state 5/7/8); the outer
+                    -- case expression already returns null for any other
+                    -- state, so building the per-fixture score + team
+                    -- aggregate over upcoming / live rows is dead weight.
+                    -- Without this filter the CTE materialised every row
+                    -- in the filter window, then current_odds called
+                    -- evaluate_outcome per outcome × bookmaker, and ten
+                    -- concurrent /signals requests pegged postgres at
+                    -- 180% CPU for ~50 minutes each.
                     select distinct poc.fixture_id
                     from odds.prematch_odds_current poc
                     inner join football.fixtures f on f.id = poc.fixture_id
                     {baseWhere}
+                      and f.state_id in (5, 7, 8)
                 ),
                 score_state as (
                     select s.fixture_id,
