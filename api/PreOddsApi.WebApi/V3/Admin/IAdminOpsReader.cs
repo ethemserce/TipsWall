@@ -44,5 +44,25 @@ namespace PreOddsApi.WebApi.V3.Admin
         public bool InRecovery { get; init; }
         /// <summary>Database size in bytes. </summary>
         public long DatabaseBytes { get; init; }
+        /// <summary>Free disk bytes on the postgres data mount (host root in our Docker setup). </summary>
+        public long DiskFreeBytes { get; init; }
+        /// <summary>Total disk bytes on the postgres data mount. </summary>
+        public long DiskTotalBytes { get; init; }
+        /// <summary>Percent of disk currently used (0-100). </summary>
+        public double DiskUsedPercent { get; init; }
+        /// <summary>Active queries running longer than the slow-query threshold (default 60s). </summary>
+        public IReadOnlyList<SlowQueryDto> SlowQueries { get; init; } = Array.Empty<SlowQueryDto>();
+    }
+
+    public sealed class SlowQueryDto
+    {
+        /// <summary>Postgres backend pid for kill operations. </summary>
+        public int Pid { get; init; }
+        /// <summary>Seconds the query has been running. </summary>
+        public double DurationSeconds { get; init; }
+        /// <summary>First 200 chars of the query text. </summary>
+        public string Query { get; init; } = string.Empty;
+        /// <summary>e.g. 'active' / 'idle in transaction' — only 'active' is in the result set by default. </summary>
+        public string State { get; init; } = string.Empty;
     }
 }

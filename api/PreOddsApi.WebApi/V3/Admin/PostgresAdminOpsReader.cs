@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
@@ -57,11 +58,11 @@ namespace PreOddsApi.WebApi.V3.Admin
 
         public async Task<PostgresHealthDto> GetPostgresHealthAsync(CancellationToken ct)
         {
-            // Single query pulls four diagnostics — active + total
-            // connections, longest active runtime + truncated query
-            // text, pg_is_in_recovery, and the current db size. Self-
-            // excludes via pg_backend_pid().
-            const string sql = """
+            // Two-pass against pg_stat_activity: the first scalar query
+            // pulls the headline metrics, the second returns the slow-
+            // query list. Sharing one connection keeps the round-trip
+            // count down.
+            const string headlineSql = """
                 with active_backends as (
                     select pid, query, now() - query_start as runtime
                     from pg_stat_activity
@@ -82,24 +83,95 @@ namespace PreOddsApi.WebApi.V3.Admin
                     pg_is_in_recovery() as in_recovery,
                     pg_database_size(current_database()) as database_bytes;
                 """;
+            // Slow-query list — anything that has been running for more
+            // than @threshold_seconds. Bounded to 10 rows so a flood
+            // doesn't bloat the response.
+            const string slowSql = """
+                select pid,
+                       extract(epoch from now() - query_start)::float as duration_seconds,
+                       left(query, 200) as query_text,
+                       state
+                from pg_stat_activity
+                where state = 'active'
+                  and pid != pg_backend_pid()
+                  and now() - query_start > make_interval(secs => @threshold_seconds)
+                order by query_start
+                limit 10;
+                """;
 
             await using var connection = await OpenAsync(ct);
-            await using var command = new NpgsqlCommand(sql, connection);
 
-            await using var reader = await command.ExecuteReaderAsync(ct);
-            if (!await reader.ReadAsync(ct))
+            int activeQueries;
+            int totalConnections;
+            double? longestQuerySeconds;
+            string? longestQueryText;
+            bool inRecovery;
+            long databaseBytes;
+            await using (var command = new NpgsqlCommand(headlineSql, connection))
+            await using (var reader = await command.ExecuteReaderAsync(ct))
             {
-                return new PostgresHealthDto();
+                if (!await reader.ReadAsync(ct))
+                {
+                    return new PostgresHealthDto { DiskFreeBytes = 0, DiskTotalBytes = 0 };
+                }
+                activeQueries = reader.GetInt32(reader.GetOrdinal("active_queries"));
+                totalConnections = reader.GetInt32(reader.GetOrdinal("total_connections"));
+                longestQuerySeconds = ReadNullableDouble(reader, "longest_query_seconds");
+                longestQueryText = ReadNullableString(reader, "longest_query_text");
+                inRecovery = reader.GetBoolean(reader.GetOrdinal("in_recovery"));
+                databaseBytes = reader.GetInt64(reader.GetOrdinal("database_bytes"));
             }
+
+            var slowQueries = new List<SlowQueryDto>();
+            await using (var command = new NpgsqlCommand(slowSql, connection))
+            {
+                command.Parameters.AddWithValue("threshold_seconds", 60);
+                await using var reader = await command.ExecuteReaderAsync(ct);
+                while (await reader.ReadAsync(ct))
+                {
+                    slowQueries.Add(new SlowQueryDto
+                    {
+                        Pid = reader.GetInt32(reader.GetOrdinal("pid")),
+                        DurationSeconds = reader.GetDouble(reader.GetOrdinal("duration_seconds")),
+                        Query = ReadNullableString(reader, "query_text") ?? string.Empty,
+                        State = ReadNullableString(reader, "state") ?? string.Empty,
+                    });
+                }
+            }
+
+            // Disk metric for the postgres data mount. On our Docker
+            // setup postgres runs in the same container hierarchy as the
+            // WebAPI host filesystem (overlay2 over the host root), so
+            // DriveInfo('/') reflects the same fill level the user sees
+            // in `df -h /` on the host. Falls back to zero on Windows /
+            // platforms where '/' isn't a valid path.
+            long diskFree = 0;
+            long diskTotal = 0;
+            try
+            {
+                var drive = new DriveInfo("/");
+                if (drive.IsReady)
+                {
+                    diskFree = drive.AvailableFreeSpace;
+                    diskTotal = drive.TotalSize;
+                }
+            }
+            catch { /* non-Linux host — leave zeros */ }
 
             return new PostgresHealthDto
             {
-                ActiveQueries = reader.GetInt32(reader.GetOrdinal("active_queries")),
-                TotalConnections = reader.GetInt32(reader.GetOrdinal("total_connections")),
-                LongestQuerySeconds = ReadNullableDouble(reader, "longest_query_seconds"),
-                LongestQueryText = ReadNullableString(reader, "longest_query_text"),
-                InRecovery = reader.GetBoolean(reader.GetOrdinal("in_recovery")),
-                DatabaseBytes = reader.GetInt64(reader.GetOrdinal("database_bytes"))
+                ActiveQueries = activeQueries,
+                TotalConnections = totalConnections,
+                LongestQuerySeconds = longestQuerySeconds,
+                LongestQueryText = longestQueryText,
+                InRecovery = inRecovery,
+                DatabaseBytes = databaseBytes,
+                DiskFreeBytes = diskFree,
+                DiskTotalBytes = diskTotal,
+                DiskUsedPercent = diskTotal > 0
+                    ? Math.Round((double)(diskTotal - diskFree) / diskTotal * 100.0, 2)
+                    : 0,
+                SlowQueries = slowQueries,
             };
         }
 

@@ -583,6 +583,11 @@ namespace SportMonks.Football.FixtureWorker.Services
             // via env; processes a couple of days per live tick so it
             // doesn't starve the rest of the live pipeline.
             await MaybeRunSeasonBackfillAsync(cancellationToken);
+            // Disk + long-query health monitor — emails admin when the
+            // disk fills past the threshold or a query has been pinning
+            // postgres for longer than the alert window. Self-throttles
+            // via _lastHealthAlertAt so we don't spam during an outage.
+            await MaybeRunHealthMonitorAsync(cancellationToken);
         }
 
         private async Task MaybeRunNightlySnapshotAsync(CancellationToken cancellationToken)
@@ -817,6 +822,136 @@ namespace SportMonks.Football.FixtureWorker.Services
                 _logger.LogError(ex,
                     "SeasonBackfill post-process failed; trigger the admin rebuild endpoint manually.");
             }
+        }
+
+        // Throttle bookkeeping for the disk / slow-query alerter so an
+        // ongoing outage doesn't generate an email every 30s.
+        private DateTimeOffset _lastHealthAlertAt = DateTimeOffset.MinValue;
+
+        private async Task MaybeRunHealthMonitorAsync(CancellationToken cancellationToken)
+        {
+            // Single-shot per tick; the live tier runs every 30s so the
+            // throttle below stretches an active alert to one email per
+            // hour. Adjust HealthMonitor:AlertCooldownMinutes if the
+            // signal-to-noise tradeoff changes.
+            if (!GetBoolean("HealthMonitor:Enabled", true))
+                return;
+
+            var diskThreshold = GetInteger("HealthMonitor:DiskUsedPercentThreshold", 85);
+            var slowQueryThresholdSeconds = GetInteger("HealthMonitor:SlowQuerySeconds", 300);
+            var cooldownMinutes = GetInteger("HealthMonitor:AlertCooldownMinutes", 60);
+
+            if (DateTimeOffset.UtcNow - _lastHealthAlertAt < TimeSpan.FromMinutes(cooldownMinutes))
+                return;
+
+            try
+            {
+                // Disk check — DriveInfo("/") reflects the host root on
+                // Linux Docker overlay2.
+                double diskUsedPercent = 0;
+                long diskFreeBytes = 0;
+                long diskTotalBytes = 0;
+                try
+                {
+                    var drive = new System.IO.DriveInfo("/");
+                    if (drive.IsReady)
+                    {
+                        diskFreeBytes = drive.AvailableFreeSpace;
+                        diskTotalBytes = drive.TotalSize;
+                        diskUsedPercent = diskTotalBytes > 0
+                            ? Math.Round((double)(diskTotalBytes - diskFreeBytes) / diskTotalBytes * 100.0, 2)
+                            : 0;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "HealthMonitor disk probe failed (non-fatal).");
+                }
+
+                // Slow-query check — single SELECT against pg_stat_activity.
+                var (longestSeconds, longestQuery) = await FetchLongestActiveQueryAsync(cancellationToken);
+
+                var diskAlert = diskUsedPercent >= diskThreshold && diskTotalBytes > 0;
+                var queryAlert = longestSeconds >= slowQueryThresholdSeconds;
+                if (!diskAlert && !queryAlert)
+                    return;
+
+                var subject = "[TipsWall] Health alert — "
+                    + (diskAlert ? "disk " : string.Empty)
+                    + (diskAlert && queryAlert ? "+ " : string.Empty)
+                    + (queryAlert ? "slow query " : string.Empty)
+                    + DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm 'UTC'");
+
+                var body = new System.Text.StringBuilder();
+                if (diskAlert)
+                {
+                    body.AppendLine($"DISK: {diskUsedPercent}% used "
+                        + $"({FormatBytes(diskTotalBytes - diskFreeBytes)} / {FormatBytes(diskTotalBytes)})");
+                    body.AppendLine($"Free: {FormatBytes(diskFreeBytes)}");
+                    body.AppendLine($"Threshold: {diskThreshold}%");
+                    body.AppendLine();
+                }
+                if (queryAlert)
+                {
+                    body.AppendLine($"SLOW QUERY: {longestSeconds:F0}s running");
+                    body.AppendLine($"Threshold: {slowQueryThresholdSeconds}s");
+                    body.AppendLine();
+                    body.AppendLine("Query (first 500 chars):");
+                    body.AppendLine(longestQuery is { Length: > 500 } ? longestQuery[..500] : longestQuery);
+                    body.AppendLine();
+                    body.AppendLine("To terminate from admin panel or psql:");
+                    body.AppendLine("  select pg_terminate_backend(pid) from pg_stat_activity");
+                    body.AppendLine("  where state='active' and now()-query_start > interval '5 min';");
+                }
+
+                var adminEmail = Environment.GetEnvironmentVariable("NIGHTLY_SNAPSHOT_ADMIN_EMAIL")
+                    ?? _configuration["NightlySnapshot:AdminEmail"]
+                    ?? "ethemserce@gmail.com";
+
+                await _emailService.SendAsync(adminEmail, subject, body.ToString(), cancellationToken);
+                _lastHealthAlertAt = DateTimeOffset.UtcNow;
+                _logger.LogWarning(
+                    "HealthMonitor alert sent: disk={DiskPercent}% query={LongestSeconds:F0}s",
+                    diskUsedPercent, longestSeconds);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "HealthMonitor check failed (will retry next tick).");
+            }
+        }
+
+        private async Task<(double seconds, string query)> FetchLongestActiveQueryAsync(
+            CancellationToken cancellationToken)
+        {
+            var connectionString = Environment.GetEnvironmentVariable("PREODDS_POSTGRES_CONNECTION")
+                ?? _configuration.GetConnectionString("PreOddsApiPostgresDb");
+            if (string.IsNullOrWhiteSpace(connectionString)) return (0, string.Empty);
+
+            const string sql = """
+                select extract(epoch from now() - query_start)::float as seconds,
+                       coalesce(left(query, 1000), '') as query_text
+                from pg_stat_activity
+                where state = 'active' and pid != pg_backend_pid()
+                order by query_start
+                limit 1;
+                """;
+            await using var conn = new Npgsql.NpgsqlConnection(connectionString);
+            await conn.OpenAsync(cancellationToken);
+            await using var cmd = new Npgsql.NpgsqlCommand(sql, conn);
+            cmd.CommandTimeout = 10;
+            await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+            if (!await reader.ReadAsync(cancellationToken)) return (0, string.Empty);
+            return (reader.GetDouble(0), reader.IsDBNull(1) ? string.Empty : reader.GetString(1));
+        }
+
+        private static string FormatBytes(long bytes)
+        {
+            if (bytes < 1024) return $"{bytes} B";
+            double v = bytes;
+            string[] units = { "KB", "MB", "GB", "TB" };
+            int i = -1;
+            do { v /= 1024; i++; } while (v >= 1024 && i < units.Length - 1);
+            return $"{v:F2} {units[i]}";
         }
 
         private async Task TrySendNightlySnapshotFailureEmailAsync(
