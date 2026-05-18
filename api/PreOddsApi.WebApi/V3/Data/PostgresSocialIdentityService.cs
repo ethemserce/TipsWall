@@ -58,8 +58,47 @@ namespace PreOddsApi.WebApi.V3.Data
             }
             else
             {
-                userId = await CreateUserAndIdentityAsync(
-                    connection, tx, provider, providerSubject, email, displayName, ct);
+                // Identity row miss. Before creating a brand-new user check
+                // whether one already exists with this email — if so we
+                // attach the new (provider, subject) identity to that
+                // existing user (account linking). Without this branch the
+                // INSERT in CreateUserAndIdentityAsync trips the
+                // ux_users_email_normalized unique constraint and the
+                // whole sign-in returns 500.
+                //
+                // Email matching is safe here because Apple and Google
+                // both certify the email's ownership in the id_token
+                // (verified before the JWKS-signed token is issued), so
+                // a hijack scenario (attacker signs in with a Google
+                // account they don't own) doesn't apply.
+                Guid? linkUserId = null;
+                if (!string.IsNullOrWhiteSpace(email))
+                {
+                    const string findByEmailSql = """
+                        select id from app.users
+                        where lower(email) = lower(@email)
+                          and status = 'active'
+                        limit 1;
+                        """;
+                    await using var lookup = new NpgsqlCommand(findByEmailSql, connection, tx);
+                    lookup.Parameters.AddWithValue("email", email);
+                    var raw = await lookup.ExecuteScalarAsync(ct);
+                    if (raw is Guid id) linkUserId = id;
+                }
+
+                if (linkUserId.HasValue)
+                {
+                    userId = linkUserId.Value;
+                    await InsertIdentityAsync(connection, tx, userId, provider, providerSubject, email, ct);
+                    _logger.LogInformation(
+                        "Linked {Provider} identity to existing user {UserId} via email match.",
+                        provider, userId);
+                }
+                else
+                {
+                    userId = await CreateUserAndIdentityAsync(
+                        connection, tx, provider, providerSubject, email, displayName, ct);
+                }
             }
 
             // 2) Re-read the user record so we return tier + role
@@ -155,24 +194,33 @@ namespace PreOddsApi.WebApi.V3.Data
                 newUserId = (Guid)raw!;
             }
 
-            const string insertIdentity = """
-                insert into app.user_auth_identities
-                    (user_id, provider, provider_subject, provider_email, last_login_at)
-                values (@user, @provider, @subject, @email, now());
-                """;
-            await using (var ins = new NpgsqlCommand(insertIdentity, connection, tx))
-            {
-                ins.Parameters.AddWithValue("user", newUserId);
-                ins.Parameters.AddWithValue("provider", provider);
-                ins.Parameters.AddWithValue("subject", subject);
-                ins.Parameters.AddWithValue("email", (object?)email ?? DBNull.Value);
-                await ins.ExecuteNonQueryAsync(ct);
-            }
+            await InsertIdentityAsync(connection, tx, newUserId, provider, subject, email, ct);
 
             _logger.LogInformation(
                 "Created new user {UserId} via {Provider} sign-in (subject prefix {Prefix}).",
                 newUserId, provider, subject.Length > 8 ? subject[..8] : subject);
             return newUserId;
+        }
+
+        // Shared by both the create-new-user path and the link-to-existing
+        // path — same row shape, same parameters. Kept private so callers
+        // don't have to remember the column list.
+        private static async Task InsertIdentityAsync(
+            NpgsqlConnection connection, NpgsqlTransaction tx,
+            Guid userId, string provider, string subject, string? email,
+            CancellationToken ct)
+        {
+            const string sql = """
+                insert into app.user_auth_identities
+                    (user_id, provider, provider_subject, provider_email, last_login_at)
+                values (@user, @provider, @subject, @email, now());
+                """;
+            await using var cmd = new NpgsqlCommand(sql, connection, tx);
+            cmd.Parameters.AddWithValue("user", userId);
+            cmd.Parameters.AddWithValue("provider", provider);
+            cmd.Parameters.AddWithValue("subject", subject);
+            cmd.Parameters.AddWithValue("email", (object?)email ?? DBNull.Value);
+            await cmd.ExecuteNonQueryAsync(ct);
         }
 
         private static string SynthesizeUsername(string provider, string subject)
