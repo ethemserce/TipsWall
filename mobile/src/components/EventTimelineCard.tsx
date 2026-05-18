@@ -291,6 +291,15 @@ function primaryLabel(e: FixtureEvent): string {
   if (code === 'SUBSTITUTION') {
     return e.player_name ?? e.related_player_name ?? '—';
   }
+  // VAR rows: the icon column already prints the literal "VAR" badge,
+  // and SportMonks ships type_name = "VAR" too. Without a special-case
+  // the row reads "VAR VAR / Red card" because primaryLabel returns
+  // the type_name and the info ("Red card", "Penalty") lands on the
+  // secondary line. Promote the info to the primary slot so the row
+  // reads "VAR Red card" without the duplicate.
+  if (code === 'VAR' || code === 'VAR_CARD') {
+    return e.info ?? e.type_name ?? 'VAR';
+  }
   // Goals: keep the running score on the same line as the scorer so we
   // don't burn a second row just to show "0-1".
   const name = e.player_name ?? e.type_name ?? '—';
@@ -312,6 +321,9 @@ function secondaryLabel(e: FixtureEvent): string | null {
     return `🅰 ${e.related_player_name}`;
   }
   if (code === 'OWNGOAL' || code === 'PENALTY') return null;
+  // VAR events already promote the info ("Red card" / "Penalty") to
+  // the primary line — no second line needed.
+  if (code === 'VAR' || code === 'VAR_CARD') return null;
   return e.info ?? null;
 }
 
