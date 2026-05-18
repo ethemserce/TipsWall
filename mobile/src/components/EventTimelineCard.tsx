@@ -238,6 +238,21 @@ function abbreviateName(name: string | null | undefined): string {
 
 function isUserFacing(e: FixtureEvent): boolean {
   const code = (e.type_code ?? '').toUpperCase();
+  // VAR / VAR_CARD: only show when the review actually changed the
+  // on-field call. SportMonks ships result=null (or a "not given" /
+  // "upheld" / "stands" string) when the referee's original decision
+  // is kept — these rows are procedural noise and SofaScore + FotMob
+  // hide them by default. Show only when result names a concrete
+  // outcome ("Penalty given", "Goal awarded", "Card upgraded", etc.).
+  // Cancelled goals are already surfaced via the goal row's strike-
+  // through + İPTAL badge, so we don't lose information by hiding
+  // the standalone VAR.
+  if (code === 'VAR' || code === 'VAR_CARD') {
+    const result = (e.result ?? '').trim().toLowerCase();
+    if (!result) return false;
+    if (/\b(not|no|upheld|stand|stood|confirm)\b/.test(result)) return false;
+    return true;
+  }
   // Skip noisy event types like shot indicators.
   return [
     'GOAL',
@@ -250,8 +265,6 @@ function isUserFacing(e: FixtureEvent): boolean {
     'YELLOWREDCARD',
     'CARD_ADJUSTED',
     'SUBSTITUTION',
-    'VAR',
-    'VAR_CARD',
     'PENALTY_MISSED',
   ].includes(code);
 }
