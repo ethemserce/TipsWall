@@ -29,7 +29,6 @@ import { DetailTabBar, type DetailTab } from '@/src/components/DetailTabBar';
 import { EventTimelineCard } from '@/src/components/EventTimelineCard';
 import { MarketLegendButton } from '@/src/components/MarketLegendButton';
 import { FixtureDetailHero } from '@/src/components/FixtureDetailHero';
-import { FixtureHitStatsCard } from '@/src/components/FixtureHitStatsCard';
 import { FixtureTopPicksCard } from '@/src/components/FixtureTopPicksCard';
 import { H2HTab } from '@/src/components/H2HTab';
 import { LineupsTab } from '@/src/components/LineupsTab';
@@ -412,10 +411,6 @@ export function FixtureDetailScreen({ fixtureId }: FixtureDetailScreenProps) {
         </View>
         {tab === 'details' ? (
           <>
-            <FixtureHitStatsCard
-              markets={oddsRates.data ?? []}
-              finished={getStateBucket(data.fixture.state_id) === 'finished'}
-            />
             <AttackMomentumCard
               trends={trends.data}
               expectedGoals={expectedGoals.data ?? null}

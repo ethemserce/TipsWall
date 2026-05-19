@@ -715,10 +715,6 @@
       "secondHalf": "2nd Half",
       "cancelledBadge": "CANCELLED"
     },
-    "hitStats": {
-      "title": "Full time: your picks",
-      "subtitle": "{{won}} of {{finished}} hit ({{rate}}%)"
-    },
     "info": {
       "title": "Match Info",
       "tournament": "Tournament",

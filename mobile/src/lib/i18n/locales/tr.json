@@ -709,10 +709,6 @@
       "secondHalf": "2. Yarı",
       "cancelledBadge": "İPTAL"
     },
-    "hitStats": {
-      "title": "Maç sonu: tahminlerin",
-      "subtitle": "{{won}} / {{finished}} tahmin tuttu (%{{rate}})"
-    },
     "hero": {
       "halfTimeShort": "İY {{home}}-{{away}}",
       "fullTimeShort": "MS {{home}}-{{away}}",

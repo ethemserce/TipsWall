@@ -1,6 +1,5 @@
 import { getStateBucket } from '@/src/lib/fixtureState';
 import type { RateResult } from '@/src/types/rateResult';
-import type { FixtureOddOutcome } from '@/src/types/fixtureOdds';
 
 export interface HitStats {
   /** Items whose host fixture has finished (FT/AET/FT pen.) — i.e. winning flag is true OR false, not null. */
@@ -66,6 +65,3 @@ export const getSignalWinning = (s: RateResult): boolean | null | undefined => {
   if (getStateBucket(s.match_state ?? null) !== 'finished') return null;
   return s.bet_winning;
 };
-
-/** Convenience for per-fixture odds outcomes. */
-export const getOutcomeWinning = (o: FixtureOddOutcome) => o.winning;

@@ -1,10 +1,8 @@
 import {
   computeHitStats,
-  getOutcomeWinning,
   getSignalWinning,
 } from '@/src/lib/signals/hitStats';
 import type { RateResult } from '@/src/types/rateResult';
-import type { FixtureOddOutcome } from '@/src/types/fixtureOdds';
 
 function signal(overrides: Partial<RateResult> = {}): RateResult {
   return {
@@ -31,25 +29,6 @@ function signal(overrides: Partial<RateResult> = {}): RateResult {
     match_state: 5,
     ...overrides,
   } as RateResult;
-}
-
-function outcome(overrides: Partial<FixtureOddOutcome> = {}): FixtureOddOutcome {
-  return {
-    label: 'Home',
-    total: null,
-    handicap: null,
-    participants: null,
-    sort_order: null,
-    win_count: 0,
-    lost_count: 0,
-    sample_count: 0,
-    winning_percent: null,
-    earning_percent: null,
-    iko: null,
-    value: null,
-    winning: null,
-    ...overrides,
-  } as FixtureOddOutcome;
 }
 
 describe('computeHitStats (signal accessor)', () => {
@@ -147,19 +126,3 @@ describe('computeHitStats (signal accessor)', () => {
   });
 });
 
-describe('computeHitStats (outcome accessor)', () => {
-  test('FixtureOddOutcome shape works with getOutcomeWinning', () => {
-    const result = computeHitStats(
-      [
-        outcome({ winning: true }),
-        outcome({ winning: true }),
-        outcome({ winning: false }),
-        outcome({ winning: null }),
-      ],
-      getOutcomeWinning,
-    );
-    expect(result.finished).toBe(3);
-    expect(result.won).toBe(2);
-    expect(result.hitRate).toBeCloseTo(66.667, 2);
-  });
-});
