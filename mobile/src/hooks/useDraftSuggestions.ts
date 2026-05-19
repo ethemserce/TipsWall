@@ -3,9 +3,15 @@ import { useMemo } from 'react';
 
 import { useFixtureLookup } from '@/src/hooks/useFixtureLookup';
 import { useSignals } from '@/src/hooks/useSignals';
-import { marketShort, shortenOutcome } from '@/src/lib/marketShort';
+import { MARKET_CATALOG, marketShort, shortenOutcome } from '@/src/lib/marketShort';
 import type { CouponSelection } from '@/src/lib/coupons/types';
 import type { RateResult } from '@/src/types/rateResult';
+
+// Markets we have a curated short/long label for. Used to filter
+// suggestions whose market_id isn't in MARKET_CATALOG — those would
+// render as "M94 1" (raw fallback) and look broken. Adding a market
+// to MARKET_CATALOG automatically unblocks it here.
+const KNOWN_MARKET_IDS = new Set(MARKET_CATALOG.map((m) => m.id));
 
 const BOOKMAKER_ID = 2;
 const SUGGESTION_LIMIT = 5;
@@ -61,6 +67,10 @@ export function useDraftSuggestions(
     for (const s of data.data.items) {
       if (seen.has(s.fixture_id)) continue;
       if (draftFixtureIds.has(s.fixture_id)) continue;
+      // Skip markets we don't have a short label for — they'd render
+      // as "M{id} {label}" which looks like a bug to the user. Add
+      // the missing market to MARKET_CATALOG to re-enable.
+      if (!KNOWN_MARKET_IDS.has(s.market_id)) continue;
       seen.add(s.fixture_id);
       out.push(s);
       if (out.length >= SUGGESTION_LIMIT) break;

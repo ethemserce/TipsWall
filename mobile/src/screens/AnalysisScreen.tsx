@@ -28,6 +28,7 @@ import { DateBar } from '@/src/components/DateBar';
 import { LeagueHeader } from '@/src/components/LeagueHeader';
 import { LeagueScopeSheet, type LeagueScopeRow } from '@/src/components/LeagueScopeSheet';
 import { MarketLegendButton } from '@/src/components/MarketLegendButton';
+import { AdBanner } from '@/src/components/AdBanner';
 import { RateMatchCard } from '@/src/components/RateMatchCard';
 import { LeagueSectionSkeleton } from '@/src/components/Skeleton';
 import { StateFilterBar, type FixtureFilter } from '@/src/components/StateFilterBar';
@@ -689,7 +690,7 @@ export function AnalysisScreen() {
               </View>
             ) : null
           }
-          renderItem={({ item }) => {
+          renderItem={({ item, index }) => {
             const league = leagueLookup.get(item.leagueId);
             const country =
               league?.country_id != null
@@ -699,48 +700,55 @@ export function AnalysisScreen() {
             // visible without first tapping the league header.
             const isCollapsed =
               !searchActive && collapsed.has(item.leagueId);
+            // Banner after every 2nd league section (index 1, 3, 5, ...).
+            // Premium users see no banner — the AdBanner component
+            // tier-gates itself, so this just renders an empty view.
+            const showBannerBelow = (index + 1) % 2 === 0;
             return (
-              <View
-                style={[
-                  styles.sectionCard,
-                  c.shadowCard,
-                  {
-                    backgroundColor: c.surfaceElevated,
-                    borderColor: c.borderSoft,
-                  },
-                ]}>
-                <LeagueHeader
-                  leagueId={item.leagueId}
-                  league={league}
-                  country={country}
-                  fixtureCount={item.fixtures.length}
-                  collapsed={isCollapsed}
-                  hasLive={sectionLiveSet.has(item.leagueId)}
-                  onToggle={() => toggleLeague(item.leagueId)}
-                />
-                {!isCollapsed
-                  ? item.fixtures.map((fg, idx) => (
-                      <View key={fg.fixtureId}>
-                        {idx > 0 ? (
-                          <View
-                            style={[
-                              styles.fixtureSeparator,
-                              { backgroundColor: c.borderSoft },
-                            ]}
+              <>
+                <View
+                  style={[
+                    styles.sectionCard,
+                    c.shadowCard,
+                    {
+                      backgroundColor: c.surfaceElevated,
+                      borderColor: c.borderSoft,
+                    },
+                  ]}>
+                  <LeagueHeader
+                    leagueId={item.leagueId}
+                    league={league}
+                    country={country}
+                    fixtureCount={item.fixtures.length}
+                    collapsed={isCollapsed}
+                    hasLive={sectionLiveSet.has(item.leagueId)}
+                    onToggle={() => toggleLeague(item.leagueId)}
+                  />
+                  {!isCollapsed
+                    ? item.fixtures.map((fg, idx) => (
+                        <View key={fg.fixtureId}>
+                          {idx > 0 ? (
+                            <View
+                              style={[
+                                styles.fixtureSeparator,
+                                { backgroundColor: c.borderSoft },
+                              ]}
+                            />
+                          ) : null}
+                          <RateMatchCard
+                            fixtureId={fg.fixtureId}
+                            fixture={fixtureLookup.get(fg.fixtureId)}
+                            signals={fg.signals}
+                            marketLookup={marketLookup}
+                            primaryMetric="winning_percent"
+                            gaugeColor={DSO_COLOR}
                           />
-                        ) : null}
-                        <RateMatchCard
-                          fixtureId={fg.fixtureId}
-                          fixture={fixtureLookup.get(fg.fixtureId)}
-                          signals={fg.signals}
-                          marketLookup={marketLookup}
-                          primaryMetric="winning_percent"
-                          gaugeColor={DSO_COLOR}
-                        />
-                      </View>
-                    ))
-                  : null}
-              </View>
+                        </View>
+                      ))
+                    : null}
+                </View>
+                {showBannerBelow ? <AdBanner /> : null}
+              </>
             );
           }}
           contentContainerStyle={styles.list}

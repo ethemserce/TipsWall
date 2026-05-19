@@ -13,6 +13,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
+import { AdBanner } from '@/src/components/AdBanner';
 import { useFixtureLookup } from '@/src/hooks/useFixtureLookup';
 import { useMarketPreferences } from '@/src/hooks/useMarketPreferences';
 import { useSignals } from '@/src/hooks/useSignals';
@@ -157,6 +158,7 @@ export function AnalysisQuickPicksSheet({
                   />
                 );
               }}
+              ListFooterComponent={<AdBanner />}
               contentContainerStyle={styles.listContent}
             />
           )}
