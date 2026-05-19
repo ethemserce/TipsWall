@@ -2,24 +2,36 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { getLegalDoc, type LegalTopic } from '@/src/lib/legal/content';
 import { useTheme } from '@/src/lib/useTheme';
 
-// Single dynamic route serves all three legal docs (terms / privacy /
-// kvkk). Long-form text lives in `src/lib/legal/content.ts` keyed by
-// topic so this file stays presentational. Headings (lines starting
-// with `#`) are emphasised; everything else is body paragraph.
+// Single dynamic route serves every legal doc (terms / privacy / kvkk /
+// disclaimer / imprint / contact / advertising). Long-form text lives
+// in `src/lib/legal/content.ts` keyed by topic so this file stays
+// presentational. Headings (lines starting with `#`) are emphasised;
+// everything else is body paragraph.
+const VALID_TOPICS: ReadonlySet<LegalTopic> = new Set([
+  'terms',
+  'privacy',
+  'kvkk',
+  'disclaimer',
+  'imprint',
+  'contact',
+  'advertising',
+]);
+
 export default function LegalPage() {
   const { topic } = useLocalSearchParams<{ topic: string }>();
   const { i18n } = useTranslation();
   const c = useTheme();
+  const insets = useSafeAreaInsets();
 
-  const normalisedTopic = (topic === 'terms' || topic === 'privacy' || topic === 'kvkk'
-    ? topic
-    : 'terms') as LegalTopic;
+  const normalisedTopic: LegalTopic = VALID_TOPICS.has(topic as LegalTopic)
+    ? (topic as LegalTopic)
+    : 'terms';
   const doc = getLegalDoc(normalisedTopic, i18n.language);
 
   return (
@@ -39,7 +51,16 @@ export default function LegalPage() {
         </ThemedText>
         <View style={styles.backBtn} />
       </View>
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.scroll,
+          // insets.bottom covers the gesture bar / home indicator height;
+          // adding 24px buffer on top of it keeps the last paragraph
+          // visible above the navigation surface on every device. The
+          // SafeAreaView only consumes the top edge so the rest of the
+          // screen still scrolls behind any translucent nav bar.
+          { paddingBottom: insets.bottom + 24 },
+        ]}>
         <ThemedText style={[styles.updated, { color: c.textMuted }]}>
           {doc.lastUpdated}
         </ThemedText>
@@ -92,7 +113,6 @@ const styles = StyleSheet.create({
   scroll: {
     paddingHorizontal: 20,
     paddingTop: 12,
-    paddingBottom: 40,
     gap: 6,
   },
   updated: {
