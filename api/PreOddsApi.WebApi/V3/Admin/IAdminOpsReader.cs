@@ -14,6 +14,22 @@ namespace PreOddsApi.WebApi.V3.Admin
     {
         Task<IReadOnlyList<WorkerTierStatusDto>> GetWorkerTierStatusAsync(CancellationToken ct);
         Task<PostgresHealthDto> GetPostgresHealthAsync(CancellationToken ct);
+        Task<IReadOnlyList<NightlySnapshotRunDto>> GetNightlySnapshotHistoryAsync(int days, CancellationToken ct);
+    }
+
+    public sealed class NightlySnapshotRunDto
+    {
+        /// <summary>UTC day the run started (date portion of started_at). </summary>
+        public DateOnly Date { get; init; }
+        public DateTimeOffset StartedAt { get; init; }
+        public DateTimeOffset? CompletedAt { get; init; }
+        /// <summary>Seconds between started_at and completed_at; null while running. </summary>
+        public double? DurationSeconds { get; init; }
+        /// <summary>'success' | 'failure'. The current scheduler always writes 'success' even on retries-exhausted-failure path; we still expose the column so a future writer that distinguishes can light up the grid without an API change. </summary>
+        public string Status { get; init; } = string.Empty;
+        /// <summary>Optional row count or units processed — null when the scheduler didn't pass one. </summary>
+        public int? ItemsCount { get; init; }
+        public string? ErrorMessage { get; init; }
     }
 
     public sealed class WorkerTierStatusDto

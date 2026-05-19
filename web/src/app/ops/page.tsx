@@ -22,24 +22,38 @@ interface PostgresHealth {
   database_bytes: number;
 }
 
+interface NightlySnapshotRun {
+  date: string;
+  started_at: string;
+  completed_at: string | null;
+  duration_seconds: number | null;
+  status: string;
+  items_count: number | null;
+  error_message: string | null;
+}
+
 async function loadOps(): Promise<{
   workers: WorkerStatus[] | { error: string };
   postgres: PostgresHealth | { error: string };
+  nightly: NightlySnapshotRun[] | { error: string };
   fetchedAt: string;
 }> {
-  const [workers, postgres] = await Promise.all([
+  const [workers, postgres, nightly] = await Promise.all([
     apiGet<WorkerStatus[]>('/api/v3/admin/ops/workers').catch((e) =>
       e instanceof ApiError ? { error: e.detail } : { error: 'Bilinmeyen hata' },
     ),
     apiGet<PostgresHealth>('/api/v3/admin/ops/postgres').catch((e) =>
       e instanceof ApiError ? { error: e.detail } : { error: 'Bilinmeyen hata' },
     ),
+    apiGet<NightlySnapshotRun[]>('/api/v3/admin/ops/nightly-snapshot/history?days=10').catch((e) =>
+      e instanceof ApiError ? { error: e.detail } : { error: 'Bilinmeyen hata' },
+    ),
   ]);
-  return { workers, postgres, fetchedAt: new Date().toISOString() };
+  return { workers, postgres, nightly, fetchedAt: new Date().toISOString() };
 }
 
 export default async function OpsPage() {
-  const { workers, postgres, fetchedAt } = await loadOps();
+  const { workers, postgres, nightly, fetchedAt } = await loadOps();
   return (
     <div className="space-y-8">
       <header className="flex items-end justify-between">
@@ -61,6 +75,13 @@ export default async function OpsPage() {
         <div className="bg-bg border border-border rounded-md px-4 py-3">
           <RebuildButton />
         </div>
+      </section>
+
+      <section>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-fg-muted mb-3">
+          NightlySnapshot — son 10 gün
+        </h2>
+        <NightlySnapshotGrid runs={nightly} />
       </section>
 
       <section>
@@ -179,6 +200,107 @@ function WorkersTable({ workers }: { workers: WorkerStatus[] | { error: string }
       </table>
     </div>
   );
+}
+
+function NightlySnapshotGrid({
+  runs,
+}: {
+  runs: NightlySnapshotRun[] | { error: string };
+}) {
+  if ('error' in runs) {
+    return <ErrorBanner message={runs.error} />;
+  }
+  // Build a 10-day calendar window (today → 9 days back, UTC date)
+  // and overlay any runs that landed in each slot. Slots with no
+  // matching run get a red "yok" pill so missed nights are visible
+  // at a glance — that was the whole point of the grid.
+  const today = new Date();
+  const slots: { date: string; run: NightlySnapshotRun | null }[] = [];
+  for (let i = 0; i < 10; i++) {
+    const d = new Date(Date.UTC(
+      today.getUTCFullYear(),
+      today.getUTCMonth(),
+      today.getUTCDate() - i,
+    ));
+    const dateStr = d.toISOString().slice(0, 10);
+    const run = runs.find((r) => r.date === dateStr) ?? null;
+    slots.push({ date: dateStr, run });
+  }
+  return (
+    <div className="bg-bg border border-border rounded-md overflow-hidden">
+      <table className="w-full text-sm">
+        <thead className="bg-bg-subtle border-b border-border text-left">
+          <tr>
+            <th className="px-4 py-2.5 font-medium text-fg-muted">UTC tarih</th>
+            <th className="px-4 py-2.5 font-medium text-fg-muted">Başlangıç (UTC)</th>
+            <th className="px-4 py-2.5 font-medium text-fg-muted">Süre</th>
+            <th className="px-4 py-2.5 font-medium text-fg-muted">Durum</th>
+            <th className="px-4 py-2.5 font-medium text-fg-muted">Satır</th>
+            <th className="px-4 py-2.5 font-medium text-fg-muted">Hata</th>
+          </tr>
+        </thead>
+        <tbody>
+          {slots.map((slot) => {
+            const r = slot.run;
+            const isFailure = r != null && r.status !== 'success';
+            const missed = r == null;
+            return (
+              <tr key={slot.date} className="border-b border-border-subtle last:border-0">
+                <td className="px-4 py-2.5 font-mono text-xs">{slot.date}</td>
+                <td className="px-4 py-2.5 text-fg-muted text-xs">
+                  {r?.started_at ? new Date(r.started_at).toISOString().slice(11, 19) : '—'}
+                </td>
+                <td className="px-4 py-2.5 text-fg-muted text-xs tabular-nums">
+                  {r?.duration_seconds != null
+                    ? formatDuration(r.duration_seconds)
+                    : '—'}
+                </td>
+                <td className="px-4 py-2.5">
+                  {missed ? (
+                    <Pill tone="danger" label="yok" />
+                  ) : isFailure ? (
+                    <Pill tone="danger" label={r!.status} />
+                  ) : (
+                    <Pill tone="success" label="ok" />
+                  )}
+                </td>
+                <td className="px-4 py-2.5 text-xs tabular-nums text-fg-muted">
+                  {r?.items_count?.toLocaleString('tr-TR') ?? '—'}
+                </td>
+                <td className="px-4 py-2.5 text-xs">
+                  {r?.error_message ? (
+                    <span className="text-danger">{r.error_message}</span>
+                  ) : (
+                    <span className="text-fg-subtle">—</span>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function Pill({ tone, label }: { tone: 'success' | 'danger' | 'neutral'; label: string }) {
+  const cls = tone === 'success'
+    ? 'bg-success/15 text-success'
+    : tone === 'danger'
+      ? 'bg-danger/15 text-danger'
+      : 'bg-bg-subtle text-fg-muted';
+  return (
+    <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${cls}`}>
+      {label}
+    </span>
+  );
+}
+
+function formatDuration(seconds: number): string {
+  if (seconds < 60) return `${seconds.toFixed(0)}s`;
+  const m = Math.floor(seconds / 60);
+  const s = Math.round(seconds - m * 60);
+  return `${m}m ${s}s`;
 }
 
 function Stat({

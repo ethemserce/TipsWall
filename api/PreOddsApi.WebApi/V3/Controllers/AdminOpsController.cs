@@ -60,6 +60,21 @@ namespace PreOddsApi.WebApi.V3.Controllers
         }
 
         /// <summary>
+        /// Nightly snapshot run history — one row per recorded run for
+        /// the last `days` calendar days (default 10, max 30). Used by
+        /// the ops dashboard to surface missed nights at a glance.
+        /// </summary>
+        [HttpGet("nightly-snapshot/history")]
+        public async Task<IActionResult> GetNightlySnapshotHistoryAsync(
+            [FromQuery] int days = 10,
+            CancellationToken ct = default)
+        {
+            var clamped = days <= 0 ? 10 : (days > 30 ? 30 : days);
+            var items = await _reader.GetNightlySnapshotHistoryAsync(clamped, ct);
+            return OkResponse(items);
+        }
+
+        /// <summary>
         /// Kicks off the full analytics rebuild chain (season stats,
         /// outcome finalizer with wide lookback, snapshot regenerate)
         /// as a fire-and-forget background task and returns 202 Accepted

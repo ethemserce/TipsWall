@@ -180,6 +180,57 @@ namespace PreOddsApi.WebApi.V3.Admin
             };
         }
 
+        public async Task<IReadOnlyList<NightlySnapshotRunDto>> GetNightlySnapshotHistoryAsync(
+            int days, CancellationToken ct)
+        {
+            // Each successful nightly call records one row in sync.job_runs
+            // under the NightlySnapshot schedule key. The history table lets
+            // the admin spot missed nights (no row for a date) + failed
+            // nights (status <> 'success'). days param caps the lookback so
+            // the dashboard render stays bounded.
+            const string sql = """
+                select started_at,
+                       completed_at,
+                       status,
+                       items_count,
+                       error_message,
+                       extract(epoch from (completed_at - started_at))::float as duration_seconds
+                from sync.job_runs
+                where job_key = 'worker.football.nightly-snapshot'
+                  and started_at > now() - make_interval(days => @days)
+                order by started_at desc
+                limit 50;
+                """;
+
+            await using var connection = await OpenAsync(ct);
+            await using var command = new NpgsqlCommand(sql, connection);
+            command.Parameters.Add(new NpgsqlParameter("days", days));
+
+            var results = new List<NightlySnapshotRunDto>();
+            await using var reader = await command.ExecuteReaderAsync(ct);
+            while (await reader.ReadAsync(ct))
+            {
+                var startedAt = ReadNullableDateTimeOffset(reader, "started_at") ?? default;
+                results.Add(new NightlySnapshotRunDto
+                {
+                    Date = DateOnly.FromDateTime(startedAt.UtcDateTime),
+                    StartedAt = startedAt,
+                    CompletedAt = ReadNullableDateTimeOffset(reader, "completed_at"),
+                    DurationSeconds = ReadNullableDouble(reader, "duration_seconds"),
+                    Status = ReadNullableString(reader, "status") ?? string.Empty,
+                    ItemsCount = ReadNullableInt(reader, "items_count"),
+                    ErrorMessage = ReadNullableString(reader, "error_message"),
+                });
+            }
+            return results;
+        }
+
+        private static int? ReadNullableInt(NpgsqlDataReader reader, string column)
+        {
+            var i = reader.GetOrdinal(column);
+            return reader.IsDBNull(i) ? null : reader.GetInt32(i);
+        }
+
         private async Task<NpgsqlConnection> OpenAsync(CancellationToken ct)
         {
             var conn = new NpgsqlConnection(_connectionString);
