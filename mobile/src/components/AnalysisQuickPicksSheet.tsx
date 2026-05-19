@@ -20,7 +20,8 @@ import { useSignals } from '@/src/hooks/useSignals';
 import { useTryAddSelection } from '@/src/hooks/useTryAddSelection';
 import { isInDraft } from '@/src/lib/coupons/store';
 import { getStateBucket } from '@/src/lib/fixtureState';
-import { MARKET_SHORT } from '@/src/lib/marketShort';
+import { outcomeLiveStatus } from '@/src/lib/liveOutcome';
+import { marketShort, shortenOutcome } from '@/src/lib/marketShort';
 import { useTheme } from '@/src/lib/useTheme';
 import type { RateResult } from '@/src/types/rateResult';
 
@@ -153,7 +154,8 @@ export function AnalysisQuickPicksSheet({
                     signal={item}
                     homeName={fx?.home_team_name ?? null}
                     awayName={fx?.away_team_name ?? null}
-                    marketShort={MARKET_SHORT[item.market_id] ?? `M${item.market_id}`}
+                    homeScore={fx?.home_score ?? null}
+                    awayScore={fx?.away_score ?? null}
                     onAfterAdd={onClose}
                   />
                 );
@@ -172,13 +174,15 @@ function QuickPickRow({
   signal,
   homeName,
   awayName,
-  marketShort,
+  homeScore,
+  awayScore,
   onAfterAdd,
 }: {
   signal: RateResult;
   homeName: string | null;
   awayName: string | null;
-  marketShort: string;
+  homeScore: number | null;
+  awayScore: number | null;
   onAfterAdd: () => void;
 }) {
   const c = useTheme();
@@ -197,20 +201,52 @@ function QuickPickRow({
   const teams = homeName && awayName
     ? `${homeName} - ${awayName}`
     : `Maç #${signal.fixture_id}`;
-  const label = `${marketShort} · ${signal.label}`;
+  // marketShort() + shortenOutcome() are locale-aware (read i18n's active
+  // language). The previous "MARKET_SHORT[id]" + raw signal.label combo
+  // rendered "KG · Yes" for TR users and didn't translate Yes/No, Over/
+  // Under, Home/Draw/Away into the user's language.
+  const marketLabel = marketShort(signal.market_id);
+  const outcomeLabel = shortenOutcome(
+    signal.label,
+    signal.market_id,
+    homeName,
+    awayName,
+  );
+  const label = `${marketLabel} · ${outcomeLabel}`;
   const hit = signal.winning_percent != null ? Math.round(signal.winning_percent) : null;
   const imp = signal.iko != null ? Math.round(signal.iko) : null;
   // Retro outcome colouring — only colour rows whose host fixture is
-  // actually finished. The backend gates bet_winning the same way (state
-  // 5/7/8 only), but a stale cached response or a future query that
-  // forgets the gate would leak `false` for an upcoming match and paint
-  // the row red. Belt-and-braces gate keeps the UI honest regardless.
+  // actually finished. Uses the same dual resolver as RateMatchCard +
+  // hitStats: try outcomeLiveStatus against the fixture score first, then
+  // fall back to bet_winning. This way handicap / BTTS / O-U markets
+  // surface the verdict client-side even when backend's value is stale
+  // or null for transient reasons.
   const bucket = getStateBucket(signal.match_state ?? null);
   const finished = bucket === 'finished';
   const upcoming = bucket === 'upcoming';
+  const liveStatus =
+    finished && homeScore != null && awayScore != null
+      ? outcomeLiveStatus(
+          {
+            market_id: signal.market_id,
+            label: signal.label,
+            total: signal.total,
+            handicap: signal.handicap,
+          },
+          { home: homeScore, away: awayScore },
+        )
+      : null;
+  const resolvedWinning =
+    liveStatus === 'win'
+      ? true
+      : liveStatus === 'loss'
+        ? false
+        : finished
+          ? signal.bet_winning
+          : null;
   const settled =
-    finished && (signal.bet_winning === true || signal.bet_winning === false);
-  const won = finished && signal.bet_winning === true;
+    finished && (resolvedWinning === true || resolvedWinning === false);
+  const won = finished && resolvedWinning === true;
   // Coupon picks are only meaningful for matches that haven't kicked
   // off. Live + finished + interrupted rows stay visible (the user
   // wants to see the stats) but the add-to-coupon affordance is
@@ -225,9 +261,9 @@ function QuickPickRow({
       startingAt: null,
       bookmakerId: 2,
       marketId: signal.market_id,
-      marketShort,
+      marketShort: marketLabel,
       outcomeLabel: signal.label,
-      outcomeDisplay: signal.label,
+      outcomeDisplay: outcomeLabel,
       total: signal.total ?? null,
       handicap: signal.handicap ?? null,
       oddValue: 0,

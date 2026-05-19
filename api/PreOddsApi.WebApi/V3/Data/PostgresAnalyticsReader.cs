@@ -232,19 +232,37 @@ namespace PreOddsApi.WebApi.V3.Data
                         -- null and evaluate_outcome returns null — no
                         -- stamps leak onto upcoming rows.
                         --
+                        -- Source-of-truth order (changed 2026-05-19):
+                        -- 1) odds.evaluate_outcome — our own SQL function
+                        --    that mirrors mobile's outcomeLiveStatus.
+                        --    Trustworthy for every market in its switch
+                        --    (FT/HT result, BTTS, O-U, handicap, ...).
+                        -- 2) poc.winning — SportMonks-provided value.
+                        --    Used ONLY when evaluate_outcome returns null
+                        --    (markets we don't know how to compute:
+                        --    corners, cards, player props, ...).
+                        -- Previous order trusted SportMonks first for
+                        -- has_winning_calculations=true markets, which
+                        -- exposed BTTS / O-U / 1X2 rows to a stale-
+                        -- winning bug when the SportMonks feed lagged
+                        -- the score we already had locally. coalesce()
+                        -- skips the SportMonks fallback when our function
+                        -- decided, so divergence drops to zero for any
+                        -- score-decidable market.
+                        --
                         -- Caller responsibility: the analysis-page hit-
                         -- rate badge filters on match_state ∈ finished
                         -- states (see AnalysisScreen + AnalysisQuickPicksSheet)
                         -- so running verdicts from live matches don't
                         -- count toward "X / Y settled correctly".
-                        case
-                            when coalesce(m.has_winning_calculations, false) = true then poc.winning
-                            else odds.evaluate_outcome(
+                        coalesce(
+                            odds.evaluate_outcome(
                                 m.developer_name, poc.label, poc.total, poc.handicap,
                                 ss.cur_h, ss.cur_a, ss.ht_h, ss.ht_a,
                                 ts.home_name, ts.away_name
-                            )
-                        end as bet_winning,
+                            ),
+                            case when coalesce(m.has_winning_calculations, false) = true then poc.winning end
+                        ) as bet_winning,
                         f.state_id               as match_state,
                         f.starting_at            as fixture_starting_at,
                         f.league_id,
