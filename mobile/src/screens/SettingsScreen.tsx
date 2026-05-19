@@ -10,7 +10,7 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { deleteAccount, fetchMe, logout, requestEmailVerification } from '@/src/api/auth';
@@ -44,6 +44,7 @@ const LANGUAGE_MODES: { mode: LanguageMode }[] = [
 export function SettingsScreen() {
   const c = useTheme();
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const { themeMode, languageMode, oddsHidden } = useSettings();
   const tier = useTier();
   const jwtEmailVerified = useEmailVerified();
@@ -140,7 +141,11 @@ export function SettingsScreen() {
         <AppBrand />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.scroll,
+          { paddingBottom: insets.bottom + 32 },
+        ]}>
         {/* Hesap — guest sees Giriş/Üye Ol; registered sees Çıkış + Sil */}
         <SectionHeader label={t('settings.account.header')} />
         <View
@@ -641,7 +646,6 @@ const styles = StyleSheet.create({
   scroll: {
     paddingHorizontal: 16,
     paddingTop: 8,
-    paddingBottom: 32,
     gap: 8,
   },
   sectionHeader: {
