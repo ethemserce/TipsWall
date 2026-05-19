@@ -1,9 +1,18 @@
+import Link from 'next/link';
+
 import { ApiError, apiGet } from '@/lib/api';
 
 import { RebuildButton } from './RebuildButton';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
+
+type Tab = 'postgres' | 'workers' | 'snapshot';
+const TABS: { id: Tab; label: string }[] = [
+  { id: 'postgres', label: 'Postgres' },
+  { id: 'workers', label: 'Workers' },
+  { id: 'snapshot', label: 'Snapshot' },
+];
 
 interface WorkerStatus {
   job_key: string;
@@ -52,10 +61,18 @@ async function loadOps(): Promise<{
   return { workers, postgres, nightly, fetchedAt: new Date().toISOString() };
 }
 
-export default async function OpsPage() {
+export default async function OpsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string }>;
+}) {
   const { workers, postgres, nightly, fetchedAt } = await loadOps();
+  const params = await searchParams;
+  const active: Tab =
+    params.tab === 'workers' || params.tab === 'snapshot' ? params.tab : 'postgres';
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <header className="flex items-end justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Ops</h1>
@@ -68,35 +85,53 @@ export default async function OpsPage() {
         </p>
       </header>
 
-      <section>
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-fg-muted mb-3">
-          Aksiyonlar
-        </h2>
-        <div className="bg-bg border border-border rounded-md px-4 py-3">
-          <RebuildButton />
-        </div>
-      </section>
+      {/* Tab nav — URL-based so browser back / share-link works. The
+          server component re-renders the active tab's content; all
+          three datasets were already fetched in parallel above so
+          tab switches stay snappy. */}
+      <nav
+        className="flex gap-1 border-b border-border"
+        aria-label="Ops sekmesi">
+        {TABS.map((tab) => {
+          const isActive = tab.id === active;
+          return (
+            <Link
+              key={tab.id}
+              href={`/ops?tab=${tab.id}`}
+              prefetch={false}
+              className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
+                isActive
+                  ? 'border-fg text-fg'
+                  : 'border-transparent text-fg-muted hover:text-fg hover:border-border'
+              }`}>
+              {tab.label}
+            </Link>
+          );
+        })}
+      </nav>
 
-      <section>
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-fg-muted mb-3">
-          NightlySnapshot — son 10 gün
-        </h2>
-        <NightlySnapshotGrid runs={nightly} />
-      </section>
-
-      <section>
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-fg-muted mb-3">
-          Postgres
-        </h2>
-        <PostgresCard postgres={postgres} />
-      </section>
-
-      <section>
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-fg-muted mb-3">
-          Worker tier'leri (son 24 saat)
-        </h2>
-        <WorkersTable workers={workers} />
-      </section>
+      <div>
+        {active === 'postgres' ? <PostgresCard postgres={postgres} /> : null}
+        {active === 'workers' ? <WorkersTable workers={workers} /> : null}
+        {active === 'snapshot' ? (
+          <div className="space-y-6">
+            <section>
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-fg-muted mb-3">
+                Aksiyonlar
+              </h2>
+              <div className="bg-bg border border-border rounded-md px-4 py-3">
+                <RebuildButton />
+              </div>
+            </section>
+            <section>
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-fg-muted mb-3">
+                Son 10 gün
+              </h2>
+              <NightlySnapshotGrid runs={nightly} />
+            </section>
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }
