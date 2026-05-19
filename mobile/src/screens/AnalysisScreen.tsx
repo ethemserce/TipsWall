@@ -38,7 +38,7 @@ import { useFixtureLookup } from '@/src/hooks/useFixtureLookup';
 import { useLeagueLookup } from '@/src/hooks/useLeagueLookup';
 import { useLiveTicker } from '@/src/hooks/useLiveTicker';
 import { useManualRefresh } from '@/src/hooks/useManualRefresh';
-import { computeHitStats, getSignalWinning } from '@/src/lib/signals/hitStats';
+import { computeHitStats, makeSignalWinningWithScore } from '@/src/lib/signals/hitStats';
 import { useMarketPreferences } from '@/src/hooks/useMarketPreferences';
 import { useMarkets } from '@/src/hooks/useMarkets';
 import { useInfiniteSignals } from '@/src/hooks/useSignals';
@@ -157,11 +157,6 @@ export function AnalysisScreen() {
     () => data?.pages.flatMap((p) => p.data.items) ?? [],
     [data?.pages],
   );
-  // Retro-accuracy across the currently-displayed (filtered) signal set.
-  // Filter changes propagate here naturally — the meta badge always
-  // reflects "how my current filter scored today".
-  const hitStats = useMemo(() => computeHitStats(items, getSignalWinning), [items]);
-
   const handleEndReached = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) {
       void fetchNextPage();
@@ -186,6 +181,17 @@ export function AnalysisScreen() {
     [fixtureGroups],
   );
   const { lookup: fixtureLookup } = useFixtureLookup(fixtureIds);
+
+  // Retro-accuracy across the currently-displayed (filtered) signal set.
+  // Uses the same resolver chain as the row colour (outcomeLiveStatus
+  // first, bet_winning fallback) so the pill can't undercount wins the
+  // user can literally see in green. Filter changes propagate here
+  // naturally — the meta badge always reflects "how my current filter
+  // scored today".
+  const hitStats = useMemo(
+    () => computeHitStats(items, makeSignalWinningWithScore(fixtureLookup)),
+    [items, fixtureLookup],
+  );
 
   // Pull in league + country info so we can group, label, and filter by
   // them. Both lookups dedup by id internally.
