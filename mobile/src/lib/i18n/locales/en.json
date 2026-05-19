@@ -78,8 +78,8 @@
       "save": "SAVE LIST"
     },
     "topPicks": {
-      "headerOne": "DATA HIGHLIGHT",
-      "headerMany": "DATA HIGHLIGHTS",
+      "headerOne": "MATCH HIGHLIGHTS",
+      "headerMany": "MATCH HIGHLIGHTS",
       "valueBadge": "VALUE",
       "stats": "HIT {{dso}}% · IMP {{iko}}% · sample {{sample}}",
       "actionInBasket": "PICKED",

@@ -78,8 +78,8 @@
       "save": "TAHMİNİ KAYDET"
     },
     "topPicks": {
-      "headerOne": "VERİ ÖNE ÇIKARIYOR",
-      "headerMany": "VERİ ÖNE ÇIKARANLAR",
+      "headerOne": "MAÇTA ÖNE ÇIKANLAR",
+      "headerMany": "MAÇTA ÖNE ÇIKANLAR",
       "valueBadge": "DEĞER",
       "stats": "HIT {{dso}}% · IMP {{iko}}% · örnek {{sample}}",
       "actionInBasket": "SEÇİLDİ",
