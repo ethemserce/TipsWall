@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { signup } from '@/src/api/auth';
 import { ApiClientError } from '@/src/api/client';
+import { ConsentDocumentModal } from '@/src/components/ConsentDocumentModal';
 import { SocialSignInButtons } from '@/src/components/SocialSignInButtons';
 import { getCouponCounts } from '@/src/lib/coupons/store';
 import { notify } from '@/src/lib/toasts';
@@ -38,14 +39,24 @@ export default function SignupScreen() {
   const [error, setError] = useState<string | null>(null);
   // Explicit 18+ + ToS / Privacy acceptance. Required at signup time so
   // we can plausibly say "the user confirmed it" if the legal posture
-  // ever comes up. Stays in component state; the backend already gates
-  // every account by email + password so we don't need to persist this
-  // flag server-side — the act of pressing the button with the box
-  // ticked is the audit trail.
+  // ever comes up. The two legal docs are gated behind a scroll-to-end
+  // consent modal — the checkboxes can only be ticked by reading the
+  // doc, not by accident. Stays in component state; the backend already
+  // gates every account by email + password so we don't need to persist
+  // these flags server-side — the act of pressing the button with all
+  // three boxes ticked is the audit trail.
   const [ageConfirmed, setAgeConfirmed] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
+  const [openConsent, setOpenConsent] = useState<'terms' | 'privacy' | null>(
+    null,
+  );
 
   const validate = (): string | null => {
     if (!ageConfirmed) return t('ageGate.signupError');
+    if (!termsAccepted || !privacyAccepted) {
+      return t('auth.signup.consentRequired');
+    }
     if (!USERNAME_REGEX.test(username.trim())) return t('auth.errors.username');
     if (!email.includes('@')) return t('auth.errors.email');
     if (password.length < MIN_PASSWORD) return t('auth.errors.passwordShort');
@@ -57,6 +68,8 @@ export default function SignupScreen() {
     email.trim().length > 0 &&
     password.length > 0 &&
     ageConfirmed &&
+    termsAccepted &&
+    privacyAccepted &&
     !submitting;
 
   const handleSubmit = async () => {
@@ -238,6 +251,64 @@ export default function SignupScreen() {
             </ThemedText>
           </Pressable>
 
+          {/* Terms + Privacy consent rows. The checkbox cannot be ticked
+              by tapping — it can only be lit by opening the document
+              via the inline link, scrolling to the end, and pressing
+              the "Okudum ve Kabul Ediyorum" button at the modal's
+              footer. Once accepted, the box stays ticked for the rest
+              of this signup attempt; tapping again opens the doc but
+              keeps the existing acceptance unless the user closes the
+              modal without re-accepting. */}
+          <View style={styles.consentRow}>
+            <View
+              style={[
+                styles.checkbox,
+                {
+                  borderColor: termsAccepted ? c.brand : c.borderSoft,
+                  backgroundColor: termsAccepted ? c.brand : 'transparent',
+                },
+              ]}>
+              {termsAccepted ? (
+                <MaterialCommunityIcons name="check" size={14} color={c.textInverse} />
+              ) : null}
+            </View>
+            <View style={styles.consentTextWrap}>
+              <ThemedText style={[styles.ageText, { color: c.textMuted }]}>
+                {t('auth.signup.consentTerms')}{' '}
+              </ThemedText>
+              <Pressable onPress={() => setOpenConsent('terms')} hitSlop={6}>
+                <ThemedText style={[styles.consentLink, { color: c.brand }]}>
+                  {t('auth.signup.consentLinkLabel')}
+                </ThemedText>
+              </Pressable>
+            </View>
+          </View>
+
+          <View style={styles.consentRow}>
+            <View
+              style={[
+                styles.checkbox,
+                {
+                  borderColor: privacyAccepted ? c.brand : c.borderSoft,
+                  backgroundColor: privacyAccepted ? c.brand : 'transparent',
+                },
+              ]}>
+              {privacyAccepted ? (
+                <MaterialCommunityIcons name="check" size={14} color={c.textInverse} />
+              ) : null}
+            </View>
+            <View style={styles.consentTextWrap}>
+              <ThemedText style={[styles.ageText, { color: c.textMuted }]}>
+                {t('auth.signup.consentPrivacy')}{' '}
+              </ThemedText>
+              <Pressable onPress={() => setOpenConsent('privacy')} hitSlop={6}>
+                <ThemedText style={[styles.consentLink, { color: c.brand }]}>
+                  {t('auth.signup.consentLinkLabel')}
+                </ThemedText>
+              </Pressable>
+            </View>
+          </View>
+
           {error ? (
             <View style={[styles.errorBox, { backgroundColor: c.dangerSoft, borderColor: c.danger }]}>
               <MaterialCommunityIcons name="alert-circle" size={16} color={c.danger} />
@@ -268,10 +339,6 @@ export default function SignupScreen() {
 
           <SocialSignInButtons />
 
-          <ThemedText style={[styles.legal, { color: c.textMuted }]}>
-            {t('auth.signup.legal')}
-          </ThemedText>
-
           <View style={styles.footerRow}>
             <ThemedText style={[styles.footerText, { color: c.textMuted }]}>
               {t('auth.signup.haveAccount')}{' '}
@@ -286,6 +353,25 @@ export default function SignupScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <ConsentDocumentModal
+        visible={openConsent === 'terms'}
+        topic="terms"
+        onAccept={() => {
+          setTermsAccepted(true);
+          setOpenConsent(null);
+        }}
+        onClose={() => setOpenConsent(null)}
+      />
+      <ConsentDocumentModal
+        visible={openConsent === 'privacy'}
+        topic="privacy"
+        onAccept={() => {
+          setPrivacyAccepted(true);
+          setOpenConsent(null);
+        }}
+        onClose={() => setOpenConsent(null)}
+      />
     </SafeAreaView>
   );
 }
@@ -382,18 +468,30 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 0.5,
   },
-  legal: {
-    fontSize: 11,
-    textAlign: 'center',
-    lineHeight: 15,
-    marginTop: 8,
-  },
   ageRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 10,
     marginTop: 4,
     paddingVertical: 4,
+  },
+  consentRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    paddingVertical: 4,
+  },
+  consentTextWrap: {
+    flex: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+  },
+  consentLink: {
+    fontSize: 12,
+    fontWeight: '700',
+    textDecorationLine: 'underline',
+    letterSpacing: 0.2,
   },
   checkbox: {
     width: 18,

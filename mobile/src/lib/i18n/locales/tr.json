@@ -254,12 +254,20 @@
       "usernameHint": "3-32 karakter — harf, rakam ve _",
       "passwordHint": "En az {{min}} karakter",
       "legal": "Üye olarak Kullanım Koşulları ve Gizlilik Politikası'nı kabul etmiş olursun.",
+      "consentTerms": "Kullanım Koşulları'nı okudum ve kabul ediyorum.",
+      "consentPrivacy": "Gizlilik Politikası'nı okudum ve kabul ediyorum.",
+      "consentLinkLabel": "Oku",
+      "consentRequired": "Üye olmadan önce Kullanım Koşulları ve Gizlilik Politikası'nı okuyup kabul etmelisin.",
       "haveAccount": "Zaten üye misin?",
       "loginLink": "Giriş yap",
       "migrationToastTitle": "Hoş geldin 🎉",
       "migrationToastBody": "{{count}} seçimin hesabına bağlandı.",
       "welcomeToastTitle": "Hoş geldin 🎉",
       "welcomeToastBody": "Hesabın hazır. Seçimlerini eklemeye başlayabilirsin."
+    },
+    "consent": {
+      "scrollHint": "Kabul etmek için metnin sonuna kadar kaydır.",
+      "acceptBtn": "Okudum ve Kabul Ediyorum"
     },
     "forgot": {
       "title": "Şifremi Unuttum",

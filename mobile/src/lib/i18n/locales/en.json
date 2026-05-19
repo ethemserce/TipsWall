@@ -249,17 +249,25 @@
     },
     "signup": {
       "title": "Sign up",
-      "subtitle": "Save your picks, pick favourite teams, see your history.",
+      "subtitle": "Save your picks and see your history.",
       "submit": "SIGN UP",
       "usernameHint": "3–32 chars — letters, digits and _",
       "passwordHint": "At least {{min}} characters",
       "legal": "By signing up you agree to the Terms of Service and Privacy Policy.",
+      "consentTerms": "I have read and accept the Terms of Use.",
+      "consentPrivacy": "I have read and accept the Privacy Policy.",
+      "consentLinkLabel": "Read",
+      "consentRequired": "You must read and accept the Terms of Use and Privacy Policy before signing up.",
       "haveAccount": "Already a member?",
       "loginLink": "Log in",
       "migrationToastTitle": "Welcome 🎉",
       "migrationToastBody": "{{count}} picks moved into your account.",
       "welcomeToastTitle": "Welcome 🎉",
       "welcomeToastBody": "Your account is ready. Start picking."
+    },
+    "consent": {
+      "scrollHint": "Scroll to the end to accept.",
+      "acceptBtn": "I have read and accept"
     },
     "forgot": {
       "title": "Forgot password",
