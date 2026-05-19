@@ -4,13 +4,30 @@ import { useEffect, useRef, useState } from 'react';
 import { selectionKey, type Coupon, type CouponSelection } from '@/src/lib/coupons/types';
 import { marketShort } from '@/src/lib/marketShort';
 
-const DRAFT_KEY = 'preodds.coupons.draft.v1';
-const SAVED_KEY = 'preodds.coupons.saved.v1';
+// Per-user storage namespaces. Each logged-in user keeps their picks
+// under their own key prefix so a logout / re-login round-trip on the
+// same device doesn't drop the draft. Guest users (no JWT) share the
+// 'guest' bucket. Legacy unsuffixed keys are migrated into whichever
+// namespace activates first — users updating from <2026-05-19 keep
+// their data without a manual flush.
+const GUEST_NS = 'guest';
+const LEGACY_DRAFT_KEY = 'preodds.coupons.draft.v1';
+const LEGACY_SAVED_KEY = 'preodds.coupons.saved.v1';
+
+function draftKey(ns: string): string {
+  return `preodds.coupons.draft.v1.${ns}`;
+}
+
+function savedKey(ns: string): string {
+  return `preodds.coupons.saved.v1.${ns}`;
+}
 
 interface State {
   draft: Coupon;
   saved: Coupon[];
   hydrated: boolean;
+  /** Active storage namespace — 'guest' or the JWT uid claim. */
+  namespace: string;
 }
 
 type Listener = () => void;
@@ -36,6 +53,7 @@ let state: State = {
   draft: emptyDraft(),
   saved: [],
   hydrated: false,
+  namespace: GUEST_NS,
 };
 const listeners = new Set<Listener>();
 
@@ -44,9 +62,10 @@ function emit() {
 }
 
 function persist() {
+  const ns = state.namespace;
   // Fire-and-forget — UI doesn't block on storage round-trip.
-  AsyncStorage.setItem(DRAFT_KEY, JSON.stringify(state.draft)).catch(() => {});
-  AsyncStorage.setItem(SAVED_KEY, JSON.stringify(state.saved)).catch(() => {});
+  AsyncStorage.setItem(draftKey(ns), JSON.stringify(state.draft)).catch(() => {});
+  AsyncStorage.setItem(savedKey(ns), JSON.stringify(state.saved)).catch(() => {});
 }
 
 /**
@@ -147,33 +166,90 @@ function tryParseJson<T>(raw: string | null): T | null {
   }
 }
 
-async function hydrate() {
-  if (state.hydrated) return;
+/**
+ * Reads the on-disk draft + saved buckets for a given namespace.
+ * Returns empty coupons on any error so the UI keeps working.
+ *
+ * Also migrates legacy unsuffixed keys (`preodds.coupons.{draft,saved}.v1`)
+ * into the active namespace on first load — users updating from a
+ * pre-2026-05-19 build keep their picks instead of seeing an empty
+ * draft after the namespace refactor. Legacy keys are deleted after
+ * the migration so we don't re-migrate on every load.
+ */
+async function loadNamespace(ns: string): Promise<{ draft: Coupon; saved: Coupon[] }> {
   try {
     const [draftRaw, savedRaw] = await Promise.all([
-      AsyncStorage.getItem(DRAFT_KEY),
-      AsyncStorage.getItem(SAVED_KEY),
+      AsyncStorage.getItem(draftKey(ns)),
+      AsyncStorage.getItem(savedKey(ns)),
     ]);
-    const parsedDraft = tryParseJson<unknown>(draftRaw);
-    const parsedSaved = tryParseJson<unknown[]>(savedRaw);
+    let parsedDraft = tryParseJson<unknown>(draftRaw);
+    let parsedSaved = tryParseJson<unknown[]>(savedRaw);
+    if (parsedDraft == null && parsedSaved == null) {
+      const [legacyDraft, legacySaved] = await Promise.all([
+        AsyncStorage.getItem(LEGACY_DRAFT_KEY),
+        AsyncStorage.getItem(LEGACY_SAVED_KEY),
+      ]);
+      if (legacyDraft != null || legacySaved != null) {
+        parsedDraft = tryParseJson<unknown>(legacyDraft);
+        parsedSaved = tryParseJson<unknown[]>(legacySaved);
+        await Promise.all([
+          AsyncStorage.removeItem(LEGACY_DRAFT_KEY),
+          AsyncStorage.removeItem(LEGACY_SAVED_KEY),
+        ]).catch(() => {});
+      }
+    }
     const draft = parsedDraft ? migrateCoupon(parsedDraft) ?? emptyDraft() : emptyDraft();
     const saved = Array.isArray(parsedSaved)
-      ? parsedSaved
-          .map(migrateCoupon)
-          .filter((c): c is Coupon => c != null)
+      ? parsedSaved.map(migrateCoupon).filter((c): c is Coupon => c != null)
       : [];
-    state = { draft, saved, hydrated: true };
-    // Persist the migrated shape so the Kupon→Liste rename is durable
-    // even before the user touches anything.
-    persist();
+    return { draft, saved };
   } catch {
-    state = { draft: emptyDraft(), saved: [], hydrated: true };
+    return { draft: emptyDraft(), saved: [] };
   }
-  emit();
 }
 
-// Kick off hydration once at module load.
-hydrate();
+// Serialize namespace swaps so concurrent setActiveUser() calls don't
+// race — e.g. the module-load guest activation + auth's user activation
+// arriving at the same time during app launch. Each call awaits the
+// previous one's completion before running.
+let activeUserChain: Promise<void> = Promise.resolve();
+
+/**
+ * Switches the coupon store to the given user's storage namespace.
+ * Pass null for the guest bucket. Flushes the current bucket under
+ * its existing namespace before swapping so picks added right before
+ * a login/logout transition don't get dropped.
+ *
+ * Driven by the auth lifecycle: once at startup after auth hydrates,
+ * once on login (setTokens), once on logout (clearTokens). Safe to
+ * call concurrently — calls are serialized via activeUserChain.
+ */
+export function setActiveUser(uid: string | null): Promise<void> {
+  const newNs = uid ?? GUEST_NS;
+  const work = async () => {
+    if (state.hydrated && state.namespace === newNs) return;
+    if (state.hydrated) {
+      // Flush the previous bucket — don't go through persist() because
+      // it reads state.namespace, which we're about to overwrite.
+      await Promise.all([
+        AsyncStorage.setItem(draftKey(state.namespace), JSON.stringify(state.draft)),
+        AsyncStorage.setItem(savedKey(state.namespace), JSON.stringify(state.saved)),
+      ]).catch(() => {});
+    }
+    const { draft, saved } = await loadNamespace(newNs);
+    state = { draft, saved, hydrated: true, namespace: newNs };
+    // Persist the migrated shape under the new namespace so the
+    // Kupon→Liste rename + legacy-key migration are durable.
+    persist();
+    emit();
+  };
+  activeUserChain = activeUserChain.then(work, work);
+  return activeUserChain;
+}
+
+// Kick off an initial guest hydrate at module load. Auth store
+// upgrades this to a user namespace once it reads tokens off disk.
+void setActiveUser(null);
 
 export function getState(): State {
   return state;
@@ -257,24 +333,17 @@ export function clearDraft() {
 }
 
 /**
- * Wipes every saved + draft pick from the device. Called from the
- * auth lifecycle when tokens are cleared (logout / account deletion /
- * forced sign-out on refresh failure) so the *previous* logged-in
- * user's picks don't leak to whoever opens the app next on the same
- * device. Signup-time migration intentionally does NOT call this —
- * a fresh signup keeps the guest's local picks as the seed of their
- * new account.
- *
- * No-op when the store hasn't hydrated yet: clearing before the disk
- * read settles would race the hydrate completion and overwrite the
- * disk with empty state. The auth lifecycle only calls this from
- * user-driven paths, so by then hydration has long since finished.
+ * Wipes a specific user's bucket from disk. Called from the account-
+ * deletion path so the deleted account's picks don't sit orphaned
+ * across re-installs. Use setActiveUser(null) for the logout path —
+ * that swaps the in-memory state to the guest bucket without touching
+ * the user's data on disk, so re-login restores it.
  */
-export function clearAllCoupons() {
-  if (!state.hydrated) return;
-  state = { draft: emptyDraft(), saved: [], hydrated: true };
-  persist();
-  emit();
+export async function wipeUserCoupons(uid: string): Promise<void> {
+  await Promise.all([
+    AsyncStorage.removeItem(draftKey(uid)),
+    AsyncStorage.removeItem(savedKey(uid)),
+  ]).catch(() => {});
 }
 
 /**

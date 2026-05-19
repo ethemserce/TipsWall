@@ -2,7 +2,13 @@ import type { AxiosError } from 'axios';
 
 import { apiClient, ApiClientError } from '@/src/api/client';
 import { analytics } from '@/src/lib/analytics';
-import { clearTokens, setTokens, getAuthSnapshot } from '@/src/lib/auth/authStore';
+import {
+  clearTokens,
+  getAuthSnapshot,
+  getCurrentUserId,
+  setTokens,
+} from '@/src/lib/auth/authStore';
+import { wipeUserCoupons } from '@/src/lib/coupons/store';
 import type { ApiResponse } from '@/src/types/api';
 
 /**
@@ -122,11 +128,15 @@ export async function requestPasswordReset(
  * app is rejected from the store.
  */
 export async function deleteAccount(reason?: string): Promise<void> {
+  // Grab the uid *before* clearTokens nulls the access token — the
+  // coupon bucket needs the id we're about to forget.
+  const uid = getCurrentUserId();
   try {
     await apiClient.delete('/auth/me', {
       data: { reason: reason ?? null },
     });
   } finally {
+    if (uid) await wipeUserCoupons(uid);
     await clearTokens();
   }
 }

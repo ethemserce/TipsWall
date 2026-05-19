@@ -7,7 +7,7 @@ import {
   writeAccessToken,
   writeRefreshToken,
 } from '@/src/lib/auth/tokenStorage';
-import { clearAllCoupons } from '@/src/lib/coupons/store';
+import { setActiveUser as setCouponUser } from '@/src/lib/coupons/store';
 
 /**
  * Module-level auth state. Mirrors the coupon-store pattern: a single shared
@@ -49,6 +49,10 @@ async function hydrate(): Promise<void> {
     state = { accessToken: null, refreshToken: null, hydrated: true };
   }
   emit();
+  // Tell the coupon store which user's bucket to read. setCouponUser
+  // is idempotent — guest activation already fired at module load,
+  // this either confirms it or swaps to the user's namespace.
+  void setCouponUser(getCurrentUserId());
 }
 
 // Kick off hydration once at module load — same pattern as coupon store.
@@ -76,6 +80,11 @@ export async function setTokens(
     writeAccessToken(accessToken),
     writeRefreshToken(refreshToken),
   ]);
+  // Swap coupons to this user's namespace. Picks made as a guest stay
+  // in the guest bucket on disk; coupons added under this account go
+  // into preodds.coupons.*.v1.{uid}. The flush-before-swap in
+  // setActiveUser preserves picks added in the moments before login.
+  void setCouponUser(getCurrentUserId());
 }
 
 export async function setAccessToken(accessToken: string): Promise<void> {
@@ -87,15 +96,29 @@ export async function setAccessToken(accessToken: string): Promise<void> {
 export async function clearTokens(): Promise<void> {
   state = { ...state, accessToken: null, refreshToken: null };
   emit();
-  // Picks on disk belonged to whoever was logged in (or the guest path
-  // before login). Wipe them at the same time tokens go away so the
-  // next session — whether guest or a different user — starts fresh.
-  clearAllCoupons();
+  // Switch coupons back to the guest bucket. The previous user's picks
+  // remain on disk under their uid namespace, so a re-login restores
+  // them. Account deletion calls wipeUserCoupons() separately before
+  // hitting this path.
+  void setCouponUser(null);
   await clearAllTokens();
 }
 
 export function isLoggedIn(): boolean {
   return state.accessToken != null && state.refreshToken != null;
+}
+
+/**
+ * Stable per-user identifier extracted from the JWT `uid` claim. Used
+ * to namespace device-local data (currently: the coupon store). Returns
+ * null for guests or any token that fails to decode — callers should
+ * fall back to the guest bucket in that case.
+ */
+export function getCurrentUserId(): string | null {
+  if (state.accessToken == null) return null;
+  const payload = decodeJwtPayload(state.accessToken);
+  const uid = payload?.uid;
+  return typeof uid === 'string' ? uid : null;
 }
 
 /**
