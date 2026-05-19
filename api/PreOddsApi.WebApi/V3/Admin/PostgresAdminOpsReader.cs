@@ -24,17 +24,22 @@ namespace PreOddsApi.WebApi.V3.Admin
             // last-failure + total runs come from a single pass with
             // window aggregates. Newest job_key first so the dashboard
             // surfaces actively-ticking tiers at the top.
+            // sync.job_runs (migration 026) columns: job_key, started_at,
+            // completed_at, status ('success' | 'failure'), error_message.
+            // The earlier draft of this query used run_at / succeeded which
+            // belong to an unrelated schema (different project) and the
+            // endpoint returned 42703 "column does not exist".
             const string sql = """
                 select
                     job_key,
-                    max(run_at) as last_run_at,
-                    max(run_at) filter (where succeeded = false) as last_failure_at,
-                    (array_agg(error_message order by run_at desc) filter (where succeeded = false))[1] as last_error,
+                    max(completed_at) as last_run_at,
+                    max(completed_at) filter (where status <> 'success') as last_failure_at,
+                    (array_agg(error_message order by completed_at desc) filter (where status <> 'success'))[1] as last_error,
                     count(*) as run_count
                 from sync.job_runs
-                where run_at > now() - interval '24 hours'
+                where completed_at > now() - interval '24 hours'
                 group by job_key
-                order by max(run_at) desc;
+                order by max(completed_at) desc;
                 """;
 
             await using var connection = await OpenAsync(ct);
