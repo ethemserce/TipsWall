@@ -838,7 +838,16 @@ namespace SportMonks.Football.FixtureWorker.Services
                 return;
 
             var diskThreshold = GetInteger("HealthMonitor:DiskUsedPercentThreshold", 85);
-            var slowQueryThresholdSeconds = GetInteger("HealthMonitor:SlowQuerySeconds", 300);
+            // Threshold for "this query is suspiciously long". Legitimate
+            // batch ops (NightlySnapshot rebuild scans ~4 GB of
+            // prematch_odds_current and aggregates by market × outcome ×
+            // window — 5-10 min on the current host). 300s caught those
+            // and spammed the inbox on a clean nightly run, so the floor
+            // is now 900s — anything past 15 min is genuinely stuck and
+            // worth a pager-style email. Tighten via env to 300 if a
+            // future deploy needs aggressive alerting (e.g. during an
+            // incident response window).
+            var slowQueryThresholdSeconds = GetInteger("HealthMonitor:SlowQuerySeconds", 900);
             var cooldownMinutes = GetInteger("HealthMonitor:AlertCooldownMinutes", 60);
 
             if (DateTimeOffset.UtcNow - _lastHealthAlertAt < TimeSpan.FromMinutes(cooldownMinutes))
