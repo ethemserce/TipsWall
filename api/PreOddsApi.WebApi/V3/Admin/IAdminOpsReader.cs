@@ -15,6 +15,31 @@ namespace PreOddsApi.WebApi.V3.Admin
         Task<IReadOnlyList<WorkerTierStatusDto>> GetWorkerTierStatusAsync(CancellationToken ct);
         Task<PostgresHealthDto> GetPostgresHealthAsync(CancellationToken ct);
         Task<IReadOnlyList<NightlySnapshotRunDto>> GetNightlySnapshotHistoryAsync(int days, CancellationToken ct);
+        Task<SportMonksQuotaDto> GetSportMonksQuotaAsync(CancellationToken ct);
+        Task<IReadOnlyList<SportMonksErrorDto>> GetSportMonksRecentErrorsAsync(int hours, CancellationToken ct);
+    }
+
+    public sealed class SportMonksQuotaDto
+    {
+        /// <summary>Rate-limit remaining for the most recent SportMonks call. Null when no recent call had a header value. </summary>
+        public int? Remaining { get; init; }
+        /// <summary>When the current rate-limit window resets. </summary>
+        public DateTimeOffset? ResetsAt { get; init; }
+        /// <summary>Most recent SportMonks call timestamp — stale if older than a few minutes. </summary>
+        public DateTimeOffset? LastSeenAt { get; init; }
+        /// <summary>Calls in the last 60 minutes (any endpoint). Useful for spotting a sync runaway. </summary>
+        public int CallsLastHour { get; init; }
+        /// <summary>Failure ratio (4xx + 5xx + exceptions) in the last 60 minutes, 0-100. </summary>
+        public double FailureRatePercent { get; init; }
+    }
+
+    public sealed class SportMonksErrorDto
+    {
+        public DateTimeOffset StartedAt { get; init; }
+        public string Endpoint { get; init; } = string.Empty;
+        public int? StatusCode { get; init; }
+        /// <summary>Error message (first 200 chars). Null when only the status code signalled failure. </summary>
+        public string? Error { get; init; }
     }
 
     public sealed class NightlySnapshotRunDto

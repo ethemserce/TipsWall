@@ -225,6 +225,110 @@ namespace PreOddsApi.WebApi.V3.Admin
             return results;
         }
 
+        public async Task<SportMonksQuotaDto> GetSportMonksQuotaAsync(CancellationToken ct)
+        {
+            // Two queries on sync.api_requests:
+            //  1. Latest row with a rate_limit_remaining value (the
+            //     header SportMonks ships on every response) → current
+            //     quota state.
+            //  2. Aggregate over the last 60 minutes → call volume +
+            //     failure rate. Useful for spotting a runaway sync
+            //     before it eats the day's quota.
+            const string quotaSql = """
+                select rate_limit_remaining,
+                       rate_limit_resets_at,
+                       started_at as last_seen_at
+                from sync.api_requests
+                where started_at > now() - interval '15 minutes'
+                  and rate_limit_remaining is not null
+                order by started_at desc
+                limit 1;
+                """;
+            const string volumeSql = """
+                select count(*) as total,
+                       count(*) filter (where coalesce(status_code, 0) >= 400 or error is not null) as failed
+                from sync.api_requests
+                where started_at > now() - interval '60 minutes';
+                """;
+
+            await using var connection = await OpenAsync(ct);
+
+            int? remaining = null;
+            DateTimeOffset? resetsAt = null;
+            DateTimeOffset? lastSeen = null;
+            await using (var cmd = new NpgsqlCommand(quotaSql, connection))
+            await using (var reader = await cmd.ExecuteReaderAsync(ct))
+            {
+                if (await reader.ReadAsync(ct))
+                {
+                    remaining = ReadNullableInt(reader, "rate_limit_remaining");
+                    resetsAt = ReadNullableDateTimeOffset(reader, "rate_limit_resets_at");
+                    lastSeen = ReadNullableDateTimeOffset(reader, "last_seen_at");
+                }
+            }
+
+            int totalCalls = 0;
+            int failedCalls = 0;
+            await using (var cmd = new NpgsqlCommand(volumeSql, connection))
+            await using (var reader = await cmd.ExecuteReaderAsync(ct))
+            {
+                if (await reader.ReadAsync(ct))
+                {
+                    totalCalls = reader.GetInt32(reader.GetOrdinal("total"));
+                    failedCalls = reader.GetInt32(reader.GetOrdinal("failed"));
+                }
+            }
+
+            return new SportMonksQuotaDto
+            {
+                Remaining = remaining,
+                ResetsAt = resetsAt,
+                LastSeenAt = lastSeen,
+                CallsLastHour = totalCalls,
+                FailureRatePercent = totalCalls > 0
+                    ? Math.Round((double)failedCalls / totalCalls * 100.0, 1)
+                    : 0,
+            };
+        }
+
+        public async Task<IReadOnlyList<SportMonksErrorDto>> GetSportMonksRecentErrorsAsync(
+            int hours, CancellationToken ct)
+        {
+            // Recent SportMonks failures — anything that returned a 4xx /
+            // 5xx status code or surfaced an exception in `error`. Bounded
+            // to 50 rows so a chatty failure doesn't blow up the response.
+            const string sql = """
+                select started_at,
+                       coalesce(endpoint, '') as endpoint,
+                       status_code,
+                       left(coalesce(error, ''), 200) as error
+                from sync.api_requests
+                where started_at > now() - make_interval(hours => @hours)
+                  and (coalesce(status_code, 0) >= 400 or error is not null)
+                order by started_at desc
+                limit 50;
+                """;
+
+            await using var connection = await OpenAsync(ct);
+            await using var command = new NpgsqlCommand(sql, connection);
+            command.Parameters.Add(new NpgsqlParameter("hours", hours));
+
+            var results = new List<SportMonksErrorDto>();
+            await using var reader = await command.ExecuteReaderAsync(ct);
+            while (await reader.ReadAsync(ct))
+            {
+                var errText = ReadNullableString(reader, "error") ?? string.Empty;
+                results.Add(new SportMonksErrorDto
+                {
+                    StartedAt = ReadNullableDateTimeOffset(reader, "started_at") ?? default,
+                    Endpoint = reader.GetString(reader.GetOrdinal("endpoint")),
+                    StatusCode = ReadNullableInt(reader, "status_code"),
+                    Error = string.IsNullOrEmpty(errText) ? null : errText,
+                });
+            }
+            return results;
+        }
+
         private static int? ReadNullableInt(NpgsqlDataReader reader, string column)
         {
             var i = reader.GetOrdinal(column);

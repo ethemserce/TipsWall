@@ -7,11 +7,12 @@ import { RebuildButton } from './RebuildButton';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-type Tab = 'postgres' | 'workers' | 'snapshot';
+type Tab = 'postgres' | 'workers' | 'snapshot' | 'sportmonks';
 const TABS: { id: Tab; label: string }[] = [
   { id: 'postgres', label: 'Postgres' },
   { id: 'workers', label: 'Workers' },
   { id: 'snapshot', label: 'Snapshot' },
+  { id: 'sportmonks', label: 'SportMonks' },
 ];
 
 interface WorkerStatus {
@@ -41,13 +42,30 @@ interface NightlySnapshotRun {
   error_message: string | null;
 }
 
+interface SportMonksQuota {
+  remaining: number | null;
+  resets_at: string | null;
+  last_seen_at: string | null;
+  calls_last_hour: number;
+  failure_rate_percent: number;
+}
+
+interface SportMonksError {
+  started_at: string;
+  endpoint: string;
+  status_code: number | null;
+  error: string | null;
+}
+
 async function loadOps(): Promise<{
   workers: WorkerStatus[] | { error: string };
   postgres: PostgresHealth | { error: string };
   nightly: NightlySnapshotRun[] | { error: string };
+  quota: SportMonksQuota | { error: string };
+  errors: SportMonksError[] | { error: string };
   fetchedAt: string;
 }> {
-  const [workers, postgres, nightly] = await Promise.all([
+  const [workers, postgres, nightly, quota, errors] = await Promise.all([
     apiGet<WorkerStatus[]>('/api/v3/admin/ops/workers').catch((e) =>
       e instanceof ApiError ? { error: e.detail } : { error: 'Bilinmeyen hata' },
     ),
@@ -57,8 +75,14 @@ async function loadOps(): Promise<{
     apiGet<NightlySnapshotRun[]>('/api/v3/admin/ops/nightly-snapshot/history?days=10').catch((e) =>
       e instanceof ApiError ? { error: e.detail } : { error: 'Bilinmeyen hata' },
     ),
+    apiGet<SportMonksQuota>('/api/v3/admin/ops/sportmonks/quota').catch((e) =>
+      e instanceof ApiError ? { error: e.detail } : { error: 'Bilinmeyen hata' },
+    ),
+    apiGet<SportMonksError[]>('/api/v3/admin/ops/sportmonks/errors?hours=24').catch((e) =>
+      e instanceof ApiError ? { error: e.detail } : { error: 'Bilinmeyen hata' },
+    ),
   ]);
-  return { workers, postgres, nightly, fetchedAt: new Date().toISOString() };
+  return { workers, postgres, nightly, quota, errors, fetchedAt: new Date().toISOString() };
 }
 
 export default async function OpsPage({
@@ -66,10 +90,12 @@ export default async function OpsPage({
 }: {
   searchParams: Promise<{ tab?: string }>;
 }) {
-  const { workers, postgres, nightly, fetchedAt } = await loadOps();
+  const { workers, postgres, nightly, quota, errors, fetchedAt } = await loadOps();
   const params = await searchParams;
   const active: Tab =
-    params.tab === 'workers' || params.tab === 'snapshot' ? params.tab : 'postgres';
+    params.tab === 'workers' || params.tab === 'snapshot' || params.tab === 'sportmonks'
+      ? params.tab
+      : 'postgres';
 
   return (
     <div className="space-y-6">
@@ -128,6 +154,22 @@ export default async function OpsPage({
                 Son 10 gün
               </h2>
               <NightlySnapshotGrid runs={nightly} />
+            </section>
+          </div>
+        ) : null}
+        {active === 'sportmonks' ? (
+          <div className="space-y-6">
+            <section>
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-fg-muted mb-3">
+                Kota durumu
+              </h2>
+              <SportMonksQuotaCard quota={quota} />
+            </section>
+            <section>
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-fg-muted mb-3">
+                Son 24 saat hataları
+              </h2>
+              <SportMonksErrorsTable errors={errors} />
             </section>
           </div>
         ) : null}
@@ -318,12 +360,123 @@ function NightlySnapshotGrid({
   );
 }
 
-function Pill({ tone, label }: { tone: 'success' | 'danger' | 'neutral'; label: string }) {
+function SportMonksQuotaCard({
+  quota,
+}: {
+  quota: SportMonksQuota | { error: string };
+}) {
+  if ('error' in quota) {
+    return <ErrorBanner message={quota.error} />;
+  }
+  const resetIn = quota.resets_at
+    ? Math.max(0, Math.floor((new Date(quota.resets_at).getTime() - Date.now()) / 1000))
+    : null;
+  // Remaining headers from SportMonks are per-hour budget on the
+  // Starter plan (~3000/hr) — anything under 300 is a warning,
+  // under 100 is danger. Adjust thresholds if the subscription
+  // tier changes.
+  const remainingTone =
+    quota.remaining == null ? 'neutral'
+      : quota.remaining < 100 ? 'danger'
+        : quota.remaining < 300 ? 'warning'
+          : 'neutral';
+  const failureTone =
+    quota.failure_rate_percent >= 25 ? 'danger'
+      : quota.failure_rate_percent >= 5 ? 'warning'
+        : 'neutral';
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <Stat
+        label="Kalan kota"
+        value={quota.remaining != null ? quota.remaining.toLocaleString('tr-TR') : '—'}
+        tone={remainingTone}
+      />
+      <Stat
+        label="Saatlik çağrı"
+        value={quota.calls_last_hour.toLocaleString('tr-TR')}
+        tone="neutral"
+      />
+      <Stat
+        label="Hata oranı"
+        value={`%${quota.failure_rate_percent.toFixed(1)}`}
+        tone={failureTone}
+      />
+      <Stat
+        label="Reset"
+        value={resetIn != null ? formatDuration(resetIn) : '—'}
+        tone="neutral"
+      />
+      {quota.last_seen_at ? (
+        <p className="col-span-2 md:col-span-4 text-xs text-fg-subtle">
+          Son çağrı: {relativeTime(quota.last_seen_at)}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function SportMonksErrorsTable({
+  errors,
+}: {
+  errors: SportMonksError[] | { error: string };
+}) {
+  if ('error' in errors) {
+    return <ErrorBanner message={errors.error} />;
+  }
+  if (errors.length === 0) {
+    return (
+      <p className="text-sm text-success px-4 py-3 bg-success/5 border border-success/20 rounded-md">
+        Son 24 saatte SportMonks hatası kaydedilmedi.
+      </p>
+    );
+  }
+  return (
+    <div className="bg-bg border border-border rounded-md overflow-hidden">
+      <table className="w-full text-sm">
+        <thead className="bg-bg-subtle border-b border-border text-left">
+          <tr>
+            <th className="px-4 py-2.5 font-medium text-fg-muted">Zaman (UTC)</th>
+            <th className="px-4 py-2.5 font-medium text-fg-muted">Endpoint</th>
+            <th className="px-4 py-2.5 font-medium text-fg-muted">Status</th>
+            <th className="px-4 py-2.5 font-medium text-fg-muted">Hata</th>
+          </tr>
+        </thead>
+        <tbody>
+          {errors.map((e, idx) => (
+            <tr key={idx} className="border-b border-border-subtle last:border-0">
+              <td className="px-4 py-2.5 font-mono text-xs text-fg-muted">
+                {e.started_at.slice(0, 19).replace('T', ' ')}
+              </td>
+              <td className="px-4 py-2.5 font-mono text-xs">{e.endpoint}</td>
+              <td className="px-4 py-2.5">
+                {e.status_code != null ? (
+                  <Pill
+                    tone={e.status_code >= 500 ? 'danger' : 'warning'}
+                    label={String(e.status_code)}
+                  />
+                ) : (
+                  <span className="text-fg-subtle text-xs">—</span>
+                )}
+              </td>
+              <td className="px-4 py-2.5 text-xs text-danger">
+                {e.error ?? '—'}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function Pill({ tone, label }: { tone: 'success' | 'danger' | 'neutral' | 'warning'; label: string }) {
   const cls = tone === 'success'
     ? 'bg-success/15 text-success'
     : tone === 'danger'
       ? 'bg-danger/15 text-danger'
-      : 'bg-bg-subtle text-fg-muted';
+      : tone === 'warning'
+        ? 'bg-warning/15 text-warning'
+        : 'bg-bg-subtle text-fg-muted';
   return (
     <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${cls}`}>
       {label}

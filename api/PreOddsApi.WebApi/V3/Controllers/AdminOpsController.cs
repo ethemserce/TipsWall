@@ -75,6 +75,34 @@ namespace PreOddsApi.WebApi.V3.Controllers
         }
 
         /// <summary>
+        /// SportMonks rate-limit + volume snapshot — pulls the most
+        /// recent rate-limit headers stored in sync.api_requests plus
+        /// a 60-min volume / failure aggregate. Catches a runaway
+        /// sync before it burns the daily quota.
+        /// </summary>
+        [HttpGet("sportmonks/quota")]
+        public async Task<IActionResult> GetSportMonksQuotaAsync(CancellationToken ct)
+        {
+            var quota = await _reader.GetSportMonksQuotaAsync(ct);
+            return OkResponse(quota);
+        }
+
+        /// <summary>
+        /// Recent SportMonks API failures — 4xx / 5xx responses or
+        /// exception-text rows from sync.api_requests, last N hours
+        /// (default 24, max 168 = 1 week).
+        /// </summary>
+        [HttpGet("sportmonks/errors")]
+        public async Task<IActionResult> GetSportMonksRecentErrorsAsync(
+            [FromQuery] int hours = 24,
+            CancellationToken ct = default)
+        {
+            var clamped = hours <= 0 ? 24 : (hours > 168 ? 168 : hours);
+            var items = await _reader.GetSportMonksRecentErrorsAsync(clamped, ct);
+            return OkResponse(items);
+        }
+
+        /// <summary>
         /// Kicks off the full analytics rebuild chain (season stats,
         /// outcome finalizer with wide lookback, snapshot regenerate)
         /// as a fire-and-forget background task and returns 202 Accepted
