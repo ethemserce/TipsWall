@@ -2,6 +2,7 @@ import Link from 'next/link';
 
 import { ApiError, apiGet } from '@/lib/api';
 
+import { KillQueryButton } from './KillQueryButton';
 import { RebuildButton } from './RebuildButton';
 
 export const dynamic = 'force-dynamic';
@@ -30,6 +31,10 @@ interface PostgresHealth {
   longest_query_text: string | null;
   in_recovery: boolean;
   database_bytes: number;
+  disk_free_bytes?: number;
+  disk_total_bytes?: number;
+  disk_used_percent?: number;
+  slow_queries?: { pid: number; duration_seconds: number; query: string; state: string }[];
 }
 
 interface NightlySnapshotRun {
@@ -223,6 +228,40 @@ function PostgresCard({ postgres }: { postgres: PostgresHealth | { error: string
             {postgres.longest_query_text}
           </pre>
         </details>
+      ) : null}
+      {postgres.slow_queries && postgres.slow_queries.length > 0 ? (
+        <div className="col-span-2 md:col-span-4 bg-bg border border-border rounded-md overflow-hidden">
+          <div className="bg-bg-subtle border-b border-border px-4 py-2 text-xs font-semibold uppercase tracking-wide text-fg-muted">
+            Yavaş query'ler (&gt; 60s) — {postgres.slow_queries.length}
+          </div>
+          <table className="w-full text-sm">
+            <thead className="bg-bg-subtle/50 border-b border-border-subtle text-left">
+              <tr>
+                <th className="px-3 py-2 font-medium text-fg-muted text-xs">PID</th>
+                <th className="px-3 py-2 font-medium text-fg-muted text-xs">Süre</th>
+                <th className="px-3 py-2 font-medium text-fg-muted text-xs">Query (özet)</th>
+                <th className="px-3 py-2 font-medium text-fg-muted text-xs text-right">Aksiyon</th>
+              </tr>
+            </thead>
+            <tbody>
+              {postgres.slow_queries.map((q) => (
+                <tr key={q.pid} className="border-b border-border-subtle last:border-0 align-top">
+                  <td className="px-3 py-2 font-mono text-xs tabular-nums">{q.pid}</td>
+                  <td className="px-3 py-2 text-xs tabular-nums">
+                    {q.duration_seconds.toFixed(0)}s
+                  </td>
+                  <td className="px-3 py-2 text-xs font-mono break-all">
+                    {q.query.slice(0, 140)}
+                    {q.query.length > 140 ? '…' : ''}
+                  </td>
+                  <td className="px-3 py-2 text-right">
+                    <KillQueryButton pid={q.pid} durationSeconds={q.duration_seconds} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       ) : null}
     </div>
   );

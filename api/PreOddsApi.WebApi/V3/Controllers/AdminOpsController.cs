@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using PreOddsApi.ExternalApis.Analytics;
@@ -100,6 +101,80 @@ namespace PreOddsApi.WebApi.V3.Controllers
             var clamped = hours <= 0 ? 24 : (hours > 168 ? 168 : hours);
             var items = await _reader.GetSportMonksRecentErrorsAsync(clamped, ct);
             return OkResponse(items);
+        }
+
+        /// <summary>
+        /// Terminates a postgres backend by pid. Use to clear a runaway
+        /// query that's pinning CPU — the equivalent of running
+        /// `select pg_terminate_backend(pid)` in psql. Requires the pid
+        /// be currently active (we double-check before issuing terminate)
+        /// to avoid hitting an idle connection by accident.
+        ///
+        /// AdminOnly policy gates the endpoint. The web dashboard
+        /// surfaces a confirm step before posting, but operators with
+        /// curl + bearer token can also call it from the shell.
+        /// </summary>
+        [HttpPost("postgres/kill-query")]
+        public async Task<IActionResult> KillPostgresQueryAsync(
+            [FromQuery] int pid,
+            CancellationToken ct)
+        {
+            if (pid <= 0)
+                return BadRequest(new { success = false, error = new { message = "pid is required and must be positive." } });
+
+            // Look up the target in pg_stat_activity first so we can:
+            //  1. Confirm the pid is still active (not idle, not
+            //     finished — terminating a no-op is harmless but the
+            //     audit log entry then misleads).
+            //  2. Log what we're killing for the audit trail.
+            var connectionString = Environment.GetEnvironmentVariable("PREODDS_POSTGRES_CONNECTION")
+                ?? HttpContext.RequestServices
+                    .GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>()
+                    .GetConnectionString("PreOddsApiPostgresDb");
+            if (string.IsNullOrWhiteSpace(connectionString))
+                return Problem("Postgres connection string not configured.");
+
+            await using var conn = new Npgsql.NpgsqlConnection(connectionString);
+            await conn.OpenAsync(ct);
+
+            string? targetQuery = null;
+            double targetDuration = 0;
+            await using (var probe = new Npgsql.NpgsqlCommand(
+                "select left(query, 200) as query, extract(epoch from now() - query_start)::float as duration_seconds " +
+                "from pg_stat_activity where pid = @pid and state = 'active'",
+                conn))
+            {
+                probe.Parameters.AddWithValue("pid", pid);
+                await using var r = await probe.ExecuteReaderAsync(ct);
+                if (await r.ReadAsync(ct))
+                {
+                    targetQuery = r.IsDBNull(0) ? null : r.GetString(0);
+                    targetDuration = r.IsDBNull(1) ? 0 : r.GetDouble(1);
+                }
+            }
+
+            if (targetQuery == null)
+                return NotFound(new { success = false, error = new { message = $"pid {pid} is not currently active." } });
+
+            await using (var kill = new Npgsql.NpgsqlCommand(
+                "select pg_terminate_backend(@pid)",
+                conn))
+            {
+                kill.Parameters.AddWithValue("pid", pid);
+                await kill.ExecuteScalarAsync(ct);
+            }
+
+            _logger.LogWarning(
+                "Admin-triggered pg_terminate_backend on pid {Pid} (running {Duration:F0}s). Query: {Query}",
+                pid, targetDuration, targetQuery);
+            return Ok(new
+            {
+                success = true,
+                terminated = true,
+                pid,
+                duration_seconds = targetDuration,
+                query = targetQuery,
+            });
         }
 
         /// <summary>
