@@ -208,7 +208,7 @@ namespace PreOddsApi.WebApi.V3.Data
             string? countryIso,
             CancellationToken ct = default)
         {
-            // Three real-world issues we filter for:
+            // Four real-world issues we filter for:
             //  - SportMonks's per-fixture `include=tvStations` ships only ids
             //    without names, so the writer stamps a `tv-station-{id}`
             //    placeholder. We hide those until the standalone
@@ -221,6 +221,17 @@ namespace PreOddsApi.WebApi.V3.Data
             //    the user's country (mobile passes 'TR' for Turkish users,
             //    nothing for everyone else). Stations have a many-to-many
             //    country join, so we EXISTS in via tv_station_countries.
+            //  - Betting-brand broadcasters are filtered out unconditionally.
+            //    SportMonks occasionally ships affiliate-style entries where
+            //    the "broadcaster" is actually a bookmaker streaming page;
+            //    surfacing those in TipsWall's "where to watch" list would
+            //    contradict the app's no-betting-framing posture (7258 SK
+            //    teşvik/reklam risk + Apple/Google store policy). The regex
+            //    uses POSIX word boundaries so legitimate channels whose
+            //    name happens to contain a substring (e.g. "Sportbet TV" is
+            //    NOT filtered, but "Bet365" IS) aren't dropped. Pattern is
+            //    case-insensitive via lower(). Add new bookmaker brands at
+            //    the end of the alternation — keep alphabetised.
             var countryClause = string.Empty;
             if (!string.IsNullOrWhiteSpace(countryIso))
             {
@@ -235,6 +246,14 @@ namespace PreOddsApi.WebApi.V3.Data
                     """;
             }
 
+            const string bookmakerRegex =
+                @"\m(1xbet|22bet|bet365|betano|betboo|betclic|betfair|betsson|"
+              + @"betway|betwinner|bilyoner|bovada|bwin|casino|coinplay|"
+              + @"draftkings|fanduel|hollywoodbets|iddaa|i̇ddaa|ladbrokes|"
+              + @"leovegas|melbet|misli|mostbet|nesine|paddypower|parimatch|"
+              + @"pinnacle|pokerstars|sportingbet|sportwetten|stake|"
+              + @"superbet|tipbet|tipico|tonybet|unibet|williamhill)\M";
+
             var sql = $"""
                 select tv.id, tv.name, tv.url, tv.image_path
                 from football.fixture_tv_stations fts
@@ -242,6 +261,7 @@ namespace PreOddsApi.WebApi.V3.Data
                 where fts.fixture_id = @fixture_id
                   and tv.name is not null
                   and tv.name not like 'tv-station-%'
+                  and lower(tv.name) !~ '{bookmakerRegex}'
                   {countryClause}
                 order by tv.name
                 limit 20;
