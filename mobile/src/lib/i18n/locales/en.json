@@ -134,7 +134,7 @@
     "apply": "APPLY",
     "strategy": "STRATEGY",
     "presets": {
-      "banker": { "label": "Banker", "description": "Safe pick, high hit rate — solid leg" },
+      "banker": { "label": "Solid", "description": "Low risk, high hit rate — steady pick" },
       "value": { "label": "Value", "description": "System sees value — math edge" },
       "longshot": { "label": "Long shot", "description": "Rare but high-reward when it lands" },
       "modifiedHint": "Starting point — customised"
@@ -360,7 +360,7 @@
       "advertising": "Advertising"
     },
     "marketPrefs": {
-      "label": "Favourite prediction types",
+      "label": "Favourite Analysis Types",
       "hintSelected": "{{count}}/{{cap}} selected",
       "hintEmpty": "Empty means every type is shown. Pick some to narrow the list."
     },
@@ -375,15 +375,15 @@
     }
   },
   "marketPrefs": {
-    "title": "Favourite prediction types",
+    "title": "Favourite Analysis Types",
     "counter": "{{count}}/{{cap}} selected",
     "tier": {
-      "premium": "Premium: 30 prediction types",
-      "free": "Free: 10 prediction types · 30 with Premium",
-      "guest": "Guest: 3 prediction types · Sign up for 10",
-      "unverified": "Email verification pending: 3 prediction types · Verify to unlock 10"
+      "premium": "Premium: 30 analysis types",
+      "free": "Free: 10 analysis types · 30 with Premium",
+      "guest": "Guest: 3 analysis types · Sign up for 10",
+      "unverified": "Email verification pending: 3 analysis types · Verify to unlock 10"
     },
-    "searchPlaceholder": "Search prediction types",
+    "searchPlaceholder": "Search analysis types",
     "empty": "No results for this search.",
     "guestCta": "Sign up · pick up to 10",
     "save": "Save",
