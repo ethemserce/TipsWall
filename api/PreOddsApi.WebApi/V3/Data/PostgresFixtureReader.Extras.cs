@@ -91,22 +91,22 @@ namespace PreOddsApi.WebApi.V3.Data
                        poc.handicap,
                        poc.participants,
                        poc.sort_order,
-                       -- Prefer SportMonks's stamped value for markets where
-                       -- it actually computes one (has_winning_calculations).
-                       -- For the rest the field ships with a stale default,
-                       -- so we override with the score-derived value when
-                       -- the evaluator returns a non-null answer.
-                       case
-                           when coalesce(m.has_winning_calculations, false) = true then poc.winning
-                           else coalesce(
-                               odds.evaluate_outcome(
-                                   m.developer_name, poc.label, poc.total, poc.handicap,
-                                   ms.ft_h, ms.ft_a, ms.ht_h, ms.ht_a,
-                                   ms.home_name, ms.away_name
-                               ),
-                               poc.winning
-                           )
-                       end as winning,
+                       -- Source-of-truth order (changed 2026-05-19):
+                       -- our evaluate_outcome runs first for every market;
+                       -- SportMonks's poc.winning is the fallback. Previously
+                       -- we trusted SportMonks first for has_winning_calculations
+                       -- markets, but their feed lags the local score and we
+                       -- surfaced stale FALSE for BTTS / MS / DNB / O-U rows
+                       -- whose final outcome we already knew. Mirrors the
+                       -- same flip in PostgresAnalyticsReader (/signals).
+                       coalesce(
+                           odds.evaluate_outcome(
+                               m.developer_name, poc.label, poc.total, poc.handicap,
+                               ms.ft_h, ms.ft_a, ms.ht_h, ms.ht_a,
+                               ms.home_name, ms.away_name
+                           ),
+                           poc.winning
+                       ) as winning,
                        poc.value::numeric as odd_value,
                        poc.iko,
                        fs.win_count,
