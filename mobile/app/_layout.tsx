@@ -34,11 +34,27 @@ initMonitoring();
 // Initialise Google Mobile Ads SDK once. Sets the strictest content
 // filter (maxAdContentRating='G') so the inventory excludes gambling,
 // alcohol, dating and other adult categories — important for TipsWall's
-// "no betting framing" posture in TR. UMP consent flow is requested
-// lazily on first launch so EU/TR users see the proper choice screen
-// before any personalised ad is served.
+// "no betting framing" posture in TR.
+//
+// UMP (User Messaging Platform) consent flow runs first: in regulated
+// regions (EU/UK/CH + Turkey when configured in AdMob console) the
+// user sees Google's standard "personalised vs non-personalised ads"
+// choice screen. KVKK Article 5(2)(f) "legitimate interest" doesn't
+// cover personalised advertising — explicit consent is required, and
+// the UMP form is the channel. AdsConsent.gatherConsent() is a one-
+// shot helper that calls requestInfoUpdate, evaluates whether a form
+// is required, and presents it. Outside regulated regions it's a
+// no-op so the call is cheap to make unconditionally.
+//
+// On any UMP error we still initialise ads — they'll serve non-
+// personalised by default, which is the privacy-safe fallback.
 void import('react-native-google-mobile-ads')
-  .then(async ({ default: mobileAds, MaxAdContentRating }) => {
+  .then(async ({ default: mobileAds, AdsConsent, MaxAdContentRating }) => {
+    try {
+      await AdsConsent.gatherConsent();
+    } catch {
+      // Consent flow failure shouldn't block the rest of init.
+    }
     await mobileAds().setRequestConfiguration({
       maxAdContentRating: MaxAdContentRating.G,
       tagForChildDirectedTreatment: false,

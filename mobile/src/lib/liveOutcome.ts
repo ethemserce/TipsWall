@@ -125,12 +125,72 @@ export function outcomeLiveStatus(
       if (goals.plus) return target >= goals.value ? 'win' : 'loss';
       return target === goals.value ? 'win' : 'loss';
     }
+    // Asian handicap families (2-way): whole-line push refunds → null.
+    case 6: // ASIAN_HANDICAP
+    case 104: // ALTERNATIVE_ASIAN_HANDICAP
+      return evalHandicap(outcome.label, outcome.handicap, score.home, score.away, false);
+    // 3-way handicap families: the X outcome owns the level case, so 1/2
+    // at handicap-adjusted level resolve to LOSS rather than push.
+    case 9: // 3_WAY_HANDICAP
+    case 56: // HANDICAP_RESULT
+    case 94: // ALTERNATIVE_HANDICAP_RESULT
+      return evalHandicap(outcome.label, outcome.handicap, score.home, score.away, true);
     // 33/38 (First/Second Half Exact Goals) need the half-time/2nd-half-only
     // score, which the fixture summary doesn't expose — leave neutral.
     default:
       warnUnknownMarket(outcome.market_id);
       return null;
   }
+}
+
+/**
+ * Mirrors odds._eval_handicap (SQL migration 028 + 034).
+ * threeWay = true for HANDICAP_RESULT / 3_WAY_HANDICAP / ALTERNATIVE_HANDICAP_RESULT:
+ * an X outcome exists, so a handicap-adjusted level is a LOSS for 1/2 labels.
+ * threeWay = false for Asian Handicap families: whole-line level pushes → null.
+ */
+function evalHandicap(
+  rawLabel: string,
+  rawHandicap: string | null | undefined,
+  home: number,
+  away: number,
+  threeWay: boolean,
+): 'win' | 'loss' | null {
+  const hcap = parseSignedDecimal(rawHandicap);
+  if (hcap == null) return null;
+  const label = (rawLabel ?? '').toLowerCase().trim();
+  let diff: number;
+  if (label === '1' || label === 'home') {
+    diff = home + hcap - away;
+  } else if (label === '2' || label === 'away') {
+    diff = away + hcap - home;
+  } else if (label === 'x' || label === 'draw') {
+    // X label only exists on 3-way markets; level after handicap = win.
+    return home + hcap === away ? 'win' : 'loss';
+  } else {
+    return null;
+  }
+  if (diff > 0) return 'win';
+  if (diff < 0) return 'loss';
+  // Level after handicap: push on AH (null), loss on 3-way (X took it).
+  return threeWay ? 'loss' : null;
+}
+
+/**
+ * Parses "+1", "-0.5", "0", "-0.5,-1" (split-quarter lines averaged).
+ * Returns null on missing / malformed input.
+ */
+function parseSignedDecimal(raw: string | null | undefined): number | null {
+  if (raw == null) return null;
+  const trimmed = raw.trim();
+  if (trimmed === '') return null;
+  if (trimmed.includes(',')) {
+    const parts = trimmed.split(',').map((p) => Number(p.replace('+', '').trim()));
+    if (parts.length !== 2 || parts.some((n) => !Number.isFinite(n))) return null;
+    return (parts[0] + parts[1]) / 2;
+  }
+  const n = Number(trimmed.replace('+', ''));
+  return Number.isFinite(n) ? n : null;
 }
 
 /** Test-only: clear the warned-once memo so warning behaviour is deterministic. */
