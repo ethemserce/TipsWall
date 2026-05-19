@@ -596,7 +596,11 @@ namespace PreOddsApi.ExternalApis.Analytics
             int deleted;
             await using (var connection = await OpenAsync(cancellationToken))
             await using (var cmd = new NpgsqlCommand(
-                "delete from sync.api_requests where created_at < now() - make_interval(days => @days);",
+                // baseline schema (migration 001) names the timestamp column
+                // started_at, not created_at — earlier draft of this prune
+                // assumed the conventional name and the nightly job failed
+                // with "column created_at does not exist" on first run.
+                "delete from sync.api_requests where started_at < now() - make_interval(days => @days);",
                 connection))
             {
                 cmd.Parameters.Add(new NpgsqlParameter("days", apiRequestRetentionDays));
