@@ -30,10 +30,10 @@
   },
   "coupons": {
     "empty": {
-      "title": "Henüz tahmin yok",
-      "body": "Bir tahmine dokunarak ekle. Tamamlandığında buradan kaydedip takip edebilirsin.",
+      "title": "Listen henüz boş",
+      "body": "Bir seçime dokunarak ekle. Tamamlandığında buradan kaydedip takip edebilirsin.",
       "hintAnalysisLabel": "Analiz",
-      "hintAnalysisText": "HIT/ROI sıralı tahminler",
+      "hintAnalysisText": "HIT/ROI sıralı seçimler",
       "hintDetailLabel": "Detay",
       "hintDetailText": "Maç sayfasında öneriler"
     },
@@ -41,7 +41,7 @@
       "today": "Bugün",
       "week": "Bu Hafta",
       "month": "Bu Ay",
-      "empty": "Bu aralıkta tahmin yok"
+      "empty": "Bu aralıkta seçim yok"
     },
     "dateLabel": {
       "today": "Bugün",
@@ -52,20 +52,20 @@
       "lost": "ISKA",
       "pending": "BEKLEMEDE"
     },
-    "totalCount": "TAHMİN",
+    "totalCount": "SEÇİM",
     "delete": {
-      "title": "Tahmini sil",
+      "title": "Listeyi sil",
       "body": "\"{{name}}\" silinsin mi? Bu işlem geri alınamaz.",
       "cancel": "İPTAL",
       "confirm": "SİL"
     },
     "summary": {
-      "selectionsSettled": "{{count}} tahmin · {{settled}}/{{count}} sonuçlandı"
+      "selectionsSettled": "{{settled}}/{{count}} sonuçlandı"
     },
     "a11y": {
-      "deleteCoupon": "{{name}} tahminini sil",
+      "deleteCoupon": "{{name}} listesini sil",
       "deleteCouponHint": "Onay penceresi açar",
-      "shareCoupon": "{{name}} tahminini paylaş",
+      "shareCoupon": "{{name}} listesini paylaş",
       "confirmCancel": "İptal",
       "confirmDelete": "Sil ve onayla"
     },
@@ -92,16 +92,16 @@
       "a11yShow": "İstatistikleri göster",
       "kupon": "Liste",
       "won": "İsabet",
-      "hitRate": "Tutturma",
+      "hitRate": "İsabet",
       "streakHit": "Üst üste {{count}} isabet 🔥",
       "streakMiss": "Üst üste {{count}} kaçan",
-      "calibration": "KALİBRASYON ({{count}} tahmin)",
+      "calibration": "KALİBRASYON ({{count}} seçim)",
       "calibrationSystem": "Sistem",
       "calibrationUser": "Sen",
       "deltaPoints": "{{delta}} puan",
       "deltaAbove": "sistemin üstünde",
       "deltaBelow": "sistemin altında",
-      "riskProfile": "RİSK PROFİLİN ({{count}} tahmin)",
+      "riskProfile": "RİSK PROFİLİN ({{count}} seçim)",
       "riskAvgImp": "ORT. IMP",
       "riskTiers": {
         "low": "Düşük Risk",
@@ -109,21 +109,21 @@
         "high": "Cüretkâr"
       },
       "riskHints": {
-        "low": "Genelde favorisi belli tahminler seçiyorsun. Sık isabet, küçük katkı.",
+        "low": "Genelde favorisi belli seçimler yapıyorsun. Sık isabet, küçük katkı.",
         "mid": "Orta yolu tutmuşsun. Risk ve isabet dengesi makul.",
-        "high": "Cüretkâr seçimler yapıyorsun. Az tutuyor ama tuttuğunda büyük."
+        "high": "Cüretkâr seçimler yapıyorsun. Az isabet ama isabet ettiğinde büyük katkı."
       },
-      "marketBreakdown": "TAHMİN PERFORMANSI",
+      "marketBreakdown": "SEÇİM PERFORMANSI",
       "legendSystem": "Sistem (HIT ort.)",
       "legendUser": "Sen (gerçek)",
-      "legendCount": "{{count}} tahmin"
+      "legendCount": "{{count}} seçim"
     },
     "guestStats": {
-      "title": "Tahminlerini takip etmek için üye ol",
-      "body": "Üye olunca her tahminin sonucu otomatik takip edilir. Sezon boyunca ne kadar isabetli olduğunu görürsün.",
-      "bulletHit": "Tutturma yüzden + kalibrasyon",
+      "title": "Seçimlerini takip etmek için üye ol",
+      "body": "Üye olunca her seçimin sonucu otomatik takip edilir. Sezon boyunca ne kadar isabetli olduğunu görürsün.",
+      "bulletHit": "İsabet oranı + kalibrasyon",
       "bulletCalibration": "Sistemin önerdiğiyle senin tercihin karşılaştırması",
-      "bulletStreak": "Aktif seri + tahmin türüne göre performans",
+      "bulletStreak": "Aktif seri + seçim türüne göre performans",
       "signupBtn": "ÜCRETSİZ ÜYE OL",
       "loginBtn": "Giriş yap"
     }
@@ -134,9 +134,9 @@
     "apply": "UYGULA",
     "strategy": "STRATEJİ",
     "presets": {
-      "banker": { "label": "Banker", "description": "Düşük risk, yüksek isabet — sağlam tahmin" },
+      "banker": { "label": "Sağlam", "description": "Düşük risk, yüksek isabet — istikrarlı seçim" },
       "value": { "label": "Değer", "description": "Sistem değerli buluyor — HIT IMP'den yüksek" },
-      "longshot": { "label": "Cüretkâr", "description": "Az tutmuş ama tuttuğunda büyük katkı" },
+      "longshot": { "label": "Cüretkâr", "description": "Az isabet ama isabet ettiğinde büyük katkı" },
       "modifiedHint": "Başlangıç noktası — özelleştirildi"
     },
     "topPerFixture": {
@@ -167,27 +167,27 @@
   "legend": {
     "title": "Açıklamalar",
     "metricsHeader": "METRİKLER",
-    "marketsHeader": "TAHMİN KISALTMALARI",
+    "marketsHeader": "ANALİZ KISALTMALARI",
     "metrics": {
       "dso": {
         "short": "HIT",
-        "long": "Tutturma Yüzdesi (HIT)",
-        "description": "Geçmiş örneklemde bu tahminin tutma yüzdesi. 5 maçtan 3'ünde tuttuysa %60."
+        "long": "İsabet Yüzdesi (HIT)",
+        "description": "Geçmiş örneklemde bu seçimin isabet oranı. 5 maçtan 3'ünde doğru çıkmışsa %60."
       },
       "vbet": {
         "short": "ROI",
-        "long": "Beklenen Getiri (ROI)",
-        "description": "Geçmiş örneklemde bu tahminin sistemce ölçülen verimi. Pozitif değer sistem tarafından değerli olarak işaretlenir."
+        "long": "Beklenen Verim (ROI)",
+        "description": "Geçmiş örneklemde bu seçimin sistemce ölçülen verimi. Pozitif değer sistem tarafından değerli olarak işaretlenir."
       },
       "iko": {
         "short": "IMP",
         "long": "Sistem Olasılığı (IMP)",
-        "description": "Marj temizlenmiş olasılık tahmini. Aynı tahmin türü içinde tüm sonuçlar 100'e tamamlanır. HIT, IMP'den büyükse değer vardır."
+        "description": "Marj temizlenmiş olasılık tahmini. Aynı analiz tipi içinde tüm sonuçlar 100'e tamamlanır. HIT, IMP'den büyükse değer vardır."
       },
       "kzky": {
         "short": "KZ / KY",
-        "long": "Kazanan / Kaybeden (KZ / KY)",
-        "description": "Geçmiş örneklemde aynı tahminin kaç kez kazandığı (KZ) ve kaç kez kaybettiği (KY). Toplamı 3'ten az olan istatistikler bu sayfada gösterilmez — anlamlı olmuyor."
+        "long": "İsabet / Iska (KZ / KY)",
+        "description": "Geçmiş örneklemde aynı seçimin kaç kez isabet ettiği (KZ) ve kaç kez ıska geçtiği (KY). Toplamı 3'ten az olan istatistikler bu sayfada gösterilmez — anlamlı olmuyor."
       }
     },
     "_marketsDeprecated": "MARKET_CATALOG owns these now — see lib/marketShort.ts"
@@ -217,9 +217,9 @@
   },
   "quotaLimit": {
     "title": "Bugünkü hakkını kullandın",
-    "body": "Misafir olarak günde {{limit}} tahmin yapabilirsin. Ücretsiz üye ol, sınırsız tahmin yap.",
-    "bulletUnlimited": "Sınırsız tahmin ekleme",
-    "bulletHistory": "Tahmin geçmişi ve istatistikler",
+    "body": "Misafir olarak günde {{limit}} seçim yapabilirsin. Ücretsiz üye ol, sınırsız seçim yap.",
+    "bulletUnlimited": "Sınırsız seçim ekleme",
+    "bulletHistory": "Seçim geçmişi ve istatistikler",
     "bulletFavorites": "Favori takım ve lig kaydı",
     "signupBtn": "ÜCRETSİZ ÜYE OL",
     "dismiss": "Yarın tekrar dene"
@@ -241,7 +241,7 @@
     },
     "login": {
       "title": "Giriş Yap",
-      "subtitle": "Tahminlerini ve favorilerini takip etmek için hesabına gir.",
+      "subtitle": "Seçimlerini takip etmek için hesabına gir.",
       "submit": "GİRİŞ YAP",
       "forgotPassword": "Şifremi unuttum",
       "noAccount": "Hesabın yok mu?",
@@ -249,7 +249,7 @@
     },
     "signup": {
       "title": "Üye Ol",
-      "subtitle": "Tahminlerini kaydet, favori takımlarını seç, geçmişini gör.",
+      "subtitle": "Seçimlerini kaydet ve geçmişini gör.",
       "submit": "ÜYE OL",
       "usernameHint": "3-32 karakter — harf, rakam ve _",
       "passwordHint": "En az {{min}} karakter",
@@ -257,9 +257,9 @@
       "haveAccount": "Zaten üye misin?",
       "loginLink": "Giriş yap",
       "migrationToastTitle": "Hoş geldin 🎉",
-      "migrationToastBody": "{{count}} tahminin hesabına bağlandı.",
+      "migrationToastBody": "{{count}} seçimin hesabına bağlandı.",
       "welcomeToastTitle": "Hoş geldin 🎉",
-      "welcomeToastBody": "Hesabın hazır. Tahmin etmeye başlayabilirsin."
+      "welcomeToastBody": "Hesabın hazır. Seçimlerini eklemeye başlayabilirsin."
     },
     "forgot": {
       "title": "Şifremi Unuttum",
@@ -291,17 +291,17 @@
     "account": {
       "header": "Hesap",
       "guestTitle": "Henüz üye değilsin",
-      "guestHint": "Tahminlerini ve favorilerini kaydetmek için ücretsiz üye ol.",
+      "guestHint": "Seçimlerini kaydetmek için ücretsiz üye ol.",
       "signupBtn": "ÜYE OL",
       "loginBtn": "GİRİŞ YAP",
       "memberTitle": "Ücretsiz üye",
-      "memberHint": "Tahminlerini ve favorilerini takip et. Premium için yakında.",
+      "memberHint": "Seçimlerini takip et. Premium için yakında.",
       "premiumTitle": "Premium üye",
       "premiumHint": "Reklamsız kullanım + tüm gelişmiş analizler açık.",
       "logoutBtn": "ÇIKIŞ YAP",
       "deleteAccount": "Hesabımı sil",
       "deleteConfirmTitle": "Hesabını silmek istediğinden emin misin?",
-      "deleteConfirmBody": "Tüm tahminlerin, favorilerin ve hesap bilgilerin kaldırılır. Bu işlem geri alınamaz.",
+      "deleteConfirmBody": "Tüm seçimlerin, favorilerin ve hesap bilgilerin kaldırılır. Bu işlem geri alınamaz.",
       "deleteConfirmKvkk": "KVKK Madde 11 kapsamında veri silme talebin 30 gün içinde sonuçlandırılır; kişisel bilgilerin anonimleştirilir. Detaylar Ayarlar → Hukuki → KVKK Aydınlatma Metni'nde.",
       "deleteConfirm": "Hesabı sil"
     },
@@ -329,7 +329,7 @@
       "header": "Görünüm",
       "showOdds": {
         "label": "Olasılık değerlerini göster",
-        "hint": "Maç detayında ve tahmin kartlarında olasılık değerlerini görünür yapar"
+        "hint": "Maç detayında ve analiz kartlarında olasılık değerlerini görünür yapar"
       }
     },
     "analytics": {
@@ -352,13 +352,13 @@
       "advertising": "Reklam"
     },
     "marketPrefs": {
-      "label": "Favori Tahmin Tipleri",
-      "hintSelected": "{{count}}/{{cap}} tahmin tipi seçili",
+      "label": "Favori Analiz Tipleri",
+      "hintSelected": "{{count}}/{{cap}} analiz tipi seçili",
       "hintEmpty": "Boş bırakırsan her tipi gelir. Seçim yaparsan sadece onlar görünür."
     },
     "verifyEmail": {
       "title": "Email adresini onayla",
-      "hint": "Hesap güvenliği için mailini onayla. Onaylamadan tahmin kaydedemezsin.",
+      "hint": "Hesap güvenliği için mailini onayla. Onaylamadan seçim kaydedemezsin.",
       "sentHint": "Gelen kutuna bir doğrulama linki gönderdik. Linke tıkladıktan sonra \"Onayladım\"a bas.",
       "errorHint": "Mail gönderilemedi. Sonra tekrar dene.",
       "sendBtn": "Mail gönder",
@@ -367,17 +367,17 @@
     }
   },
   "marketPrefs": {
-    "title": "Favori Tahmin Tipleri",
+    "title": "Favori Analiz Tipleri",
     "counter": "{{count}}/{{cap}} seçili",
     "tier": {
-      "premium": "Premium: 30 tahmin tipi",
-      "free": "Free: 10 tahmin tipi · Premium ile 30",
-      "guest": "Misafir: 3 tahmin tipi · Üye ol, 10 tipe çıkar",
-      "unverified": "Mail onayı bekleniyor: 3 tahmin tipi · Onayladığında 10 tipe çıkarsın"
+      "premium": "Premium: 30 analiz tipi",
+      "free": "Free: 10 analiz tipi · Premium ile 30",
+      "guest": "Misafir: 3 analiz tipi · Üye ol, 10 tipe çıkar",
+      "unverified": "Mail onayı bekleniyor: 3 analiz tipi · Onayladığında 10 tipe çıkarsın"
     },
-    "searchPlaceholder": "Tahmin tipi ara",
+    "searchPlaceholder": "Analiz tipi ara",
     "empty": "Bu aramada sonuç yok.",
-    "guestCta": "Üye ol · 10 tahmin tipine kadar seç",
+    "guestCta": "Üye ol · 10 analiz tipine kadar seç",
     "save": "Kaydet",
     "errors": {
       "overCap": "Seçim sınırı aşıldı.",
@@ -530,7 +530,7 @@
   "analysis": {
     "filtersButton": "Filtre",
     "empty": {
-      "filteredTitle": "Bu filtrelere uyan tahmin yok",
+      "filteredTitle": "Bu filtrelere uyan seçim yok",
       "openFilters": "Filtreleri Aç",
       "resetFilters": "Sıfırla",
       "suggest": {
@@ -548,7 +548,7 @@
       "empty": "Bugün için filtrelerine uyan öne çıkan veri yok."
     },
     "hitStats": {
-      "a11y": "{{won}} / {{finished}} bitmiş tahmin tuttu, %{{rate}} isabet"
+      "a11y": "{{won}} / {{finished}} seçim isabet etti, %{{rate}} isabet oranı"
     }
   },
   "leagueScope": {
@@ -567,10 +567,10 @@
   },
   "markets": {
     "tbd": "TBD",
-    "fallback": "Tahmin #{{id}}",
-    "noInfo": "Bu tahmin türü için açıklama henüz eklenmemiş.",
+    "fallback": "Seçim #{{id}}",
+    "noInfo": "Bu analiz tipi için açıklama henüz eklenmemiş.",
     "cols": {
-      "pick": "TAHMİN",
+      "pick": "SEÇİM",
       "odd": "DEĞER",
       "roi": "ROI",
       "hit": "HIT",
@@ -579,11 +579,11 @@
       "loss": "KY"
     },
     "colInfo": {
-      "roi": "Yatırılan tutarın ortalama getirisi (Return On Investment). Yüksekse her tahmin başına daha çok kâr.",
-      "hit": "Tutturma oranı (Hit rate). Yüzdesel olarak ne sıklıkla kazandığı.",
+      "roi": "Beklenen verim göstergesi (Return On Investment). Pozitif değer seçimin değerli olduğuna işaret eder.",
+      "hit": "İsabet oranı (Hit rate). Yüzdesel olarak ne sıklıkla doğru çıktığı.",
       "imp": "Modelin ima ettiği olasılık (Implied probability). Olasılık yüksekse beklenen kazanç düşer.",
-      "win": "Kazanan örnek sayısı (KZ). Geçmişte aynı tahminin kaç kez tuttuğu.",
-      "loss": "Kaybeden örnek sayısı (KY). Aynı tahminin kaç kez tutmadığı."
+      "win": "İsabet örnek sayısı (KZ). Geçmişte aynı seçimin kaç kez doğru çıktığı.",
+      "loss": "Iska örnek sayısı (KY). Aynı seçimin kaç kez doğru çıkmadığı."
     },
     "info": {
       "1": {
@@ -907,9 +907,9 @@
     "noResults": "Bu filtreyle sonuç bulunamadı.",
     "couldNotLoad": "{{title}} yüklenemedi",
     "titles": {
-      "hot": "Sıcak Tahminler",
-      "winning": "Kazanan Tahminler",
-      "earning": "Kârlı Tahminler"
+      "hot": "Sıcak Analizler",
+      "winning": "İsabet Analizleri",
+      "earning": "Kârlı Analizler"
     }
   }
 }
