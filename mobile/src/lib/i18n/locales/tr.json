@@ -302,6 +302,7 @@
       "deleteAccount": "Hesabımı sil",
       "deleteConfirmTitle": "Hesabını silmek istediğinden emin misin?",
       "deleteConfirmBody": "Tüm tahminlerin, favorilerin ve hesap bilgilerin kaldırılır. Bu işlem geri alınamaz.",
+      "deleteConfirmKvkk": "KVKK Madde 11 kapsamında veri silme talebin 30 gün içinde sonuçlandırılır; kişisel bilgilerin anonimleştirilir. Detaylar Ayarlar → Hukuki → KVKK Aydınlatma Metni'nde.",
       "deleteConfirm": "Hesabı sil"
     },
     "appearance": {

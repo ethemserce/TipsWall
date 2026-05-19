@@ -583,6 +583,10 @@ export function SettingsScreen() {
             <ThemedText style={[styles.modalBody, { color: c.textMuted }]}>
               {t('settings.account.deleteConfirmBody')}
             </ThemedText>
+            <ThemedText
+              style={[styles.modalBody, { color: c.textMuted, fontSize: 11, marginTop: 8 }]}>
+              {t('settings.account.deleteConfirmKvkk')}
+            </ThemedText>
             <View style={styles.modalActions}>
               <Pressable
                 onPress={() => !deleting && setDeleteOpen(false)}

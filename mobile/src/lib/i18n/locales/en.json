@@ -302,6 +302,7 @@
       "deleteAccount": "Delete account",
       "deleteConfirmTitle": "Delete your account?",
       "deleteConfirmBody": "All your picks, favourites and account data will be removed. This can't be undone.",
+      "deleteConfirmKvkk": "Under KVKK Article 11, your deletion request is processed within 30 days and personal data is anonymised. Details in Settings → Legal → KVKK Notice.",
       "deleteConfirm": "Delete account"
     },
     "appearance": {
