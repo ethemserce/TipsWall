@@ -385,47 +385,52 @@ export function SettingsScreen() {
         </View>
 
         {/* Display — opt-in surfaces. Default is the no-betting framing
-            (no odd values anywhere); users who want to see the raw odds
-            can flip this on. State lives in settingsStore so every odds
-            card reads the same flag. */}
-        <SectionHeader label={t('settings.display.header')} />
-        <Pressable
-          onPress={() => setOddsHidden(!oddsHidden)}
-          style={[
-            styles.card,
-            { backgroundColor: c.surfaceElevated, borderColor: c.borderSoft },
-          ]}
-          accessibilityRole="switch"
-          accessibilityState={{ checked: !oddsHidden }}>
-          <View style={styles.toggleRow}>
-            <View style={styles.toggleText}>
-              <ThemedText style={[styles.rowTitle, { color: c.text }]}>
-                {t('settings.display.showOdds.label')}
-              </ThemedText>
-              <ThemedText style={[styles.rowHint, { color: c.textMuted }]}>
-                {t('settings.display.showOdds.hint')}
-              </ThemedText>
-            </View>
-            <View
+            (no odd values anywhere); registered users who want to see
+            raw odds can flip this on. Guests don't see this section at
+            all — odd values are unconditionally hidden for them, and
+            the toggle row is omitted so the option isn't discoverable. */}
+        {tier !== 'guest' && (
+          <>
+            <SectionHeader label={t('settings.display.header')} />
+            <Pressable
+              onPress={() => setOddsHidden(!oddsHidden)}
               style={[
-                styles.toggle,
-                {
-                  backgroundColor: !oddsHidden ? c.brand : c.borderSoft,
-                  borderColor: !oddsHidden ? c.brand : c.border,
-                },
-              ]}>
-              <View
-                style={[
-                  styles.toggleKnob,
-                  {
-                    backgroundColor: c.textInverse,
-                    transform: [{ translateX: !oddsHidden ? 14 : 0 }],
-                  },
-                ]}
-              />
-            </View>
-          </View>
-        </Pressable>
+                styles.card,
+                { backgroundColor: c.surfaceElevated, borderColor: c.borderSoft },
+              ]}
+              accessibilityRole="switch"
+              accessibilityState={{ checked: !oddsHidden }}>
+              <View style={styles.toggleRow}>
+                <View style={styles.toggleText}>
+                  <ThemedText style={[styles.rowTitle, { color: c.text }]}>
+                    {t('settings.display.showOdds.label')}
+                  </ThemedText>
+                  <ThemedText style={[styles.rowHint, { color: c.textMuted }]}>
+                    {t('settings.display.showOdds.hint')}
+                  </ThemedText>
+                </View>
+                <View
+                  style={[
+                    styles.toggle,
+                    {
+                      backgroundColor: !oddsHidden ? c.brand : c.borderSoft,
+                      borderColor: !oddsHidden ? c.brand : c.border,
+                    },
+                  ]}>
+                  <View
+                    style={[
+                      styles.toggleKnob,
+                      {
+                        backgroundColor: c.textInverse,
+                        transform: [{ translateX: !oddsHidden ? 14 : 0 }],
+                      },
+                    ]}
+                  />
+                </View>
+              </View>
+            </Pressable>
+          </>
+        )}
 
         {/* Analytics — KVKK opt-in toggle. Mirrors the consent state from
             the AnalyticsConsentBanner; flipping here is the canonical

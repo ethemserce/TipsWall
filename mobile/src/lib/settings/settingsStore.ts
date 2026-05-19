@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useState } from 'react';
 
+import { useTier } from '@/src/lib/auth/authStore';
+
 export type ThemeMode = 'system' | 'light' | 'dark';
 export type LanguageMode = 'system' | 'en' | 'tr';
 
@@ -130,8 +132,17 @@ export function useLanguageMode(): LanguageMode {
   return useSettings().languageMode;
 }
 
+/**
+ * Guests (no account) can never see odd values — the no-betting-framing
+ * is enforced for unauthenticated users regardless of any locally stored
+ * preference. Free / Premium users keep their saved toggle. The Settings
+ * screen also hides the toggle row for guests so they can't even discover
+ * the option.
+ */
 export function useOddsHidden(): boolean {
-  return useSettings().oddsHidden;
+  const tier = useTier();
+  const userPref = useSettings().oddsHidden;
+  return tier === 'guest' ? true : userPref;
 }
 
 // Given a user-selected mode, resolves to a concrete 'light' | 'dark' the
