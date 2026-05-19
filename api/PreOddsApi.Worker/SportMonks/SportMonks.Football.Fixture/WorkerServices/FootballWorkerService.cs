@@ -644,9 +644,14 @@ namespace SportMonks.Football.FixtureWorker.Services
 
             _nightlySnapshotAttemptCount++;
             var attempt = _nightlySnapshotAttemptCount;
+            // Capture the actual start time so RecordRun can persist a
+            // real duration (the legacy RecordRun overload stamped now()
+            // for both started + completed, which made the admin grid
+            // useless — every run showed 0s).
+            var startedAt = DateTimeOffset.UtcNow;
             _logger.LogInformation(
                 "NightlySnapshot attempt {Attempt} starting at {NowUtc}",
-                attempt, DateTime.UtcNow);
+                attempt, startedAt);
 
             try
             {
@@ -681,7 +686,14 @@ namespace SportMonks.Football.FixtureWorker.Services
                 _logger.LogInformation(
                     "NightlySnapshot success on attempt {Attempt}: outcomes_finalized={Finalized} snapshot_rows={Rows} pruned_api_requests={Pruned} (lookback={LookbackHours}h)",
                     attempt, finalized, snapshotRows, prunedApiRequests, finalizeLookbackHours);
-                _scheduler.RecordRun(ScheduleKey.NightlySnapshot);
+                // Persist with the real metadata so the admin grid shows
+                // a duration + row count. snapshotRows is the canonical
+                // "did we produce useful output" number.
+                _scheduler.RecordRun(
+                    ScheduleKey.NightlySnapshot,
+                    startedAt,
+                    status: "success",
+                    itemsCount: snapshotRows);
                 _nightlySnapshotLastRunDate = todayUtc;
                 _nightlySnapshotNextRetryAt = null;
             }
@@ -703,8 +715,15 @@ namespace SportMonks.Football.FixtureWorker.Services
                 {
                     // Out of retries — mark the day done so we don't burn
                     // CPU all day, and email an admin so they can poke at
-                    // it manually.
-                    _scheduler.RecordRun(ScheduleKey.NightlySnapshot);
+                    // it manually. Persist with status='failure' + the
+                    // exception message so the admin grid surfaces what
+                    // actually broke instead of a false "ok" pill.
+                    _scheduler.RecordRun(
+                        ScheduleKey.NightlySnapshot,
+                        startedAt,
+                        status: "failure",
+                        itemsCount: null,
+                        errorMessage: $"{ex.GetType().Name}: {ex.Message}");
                     _nightlySnapshotLastRunDate = todayUtc;
                     _nightlySnapshotNextRetryAt = null;
                     await TrySendNightlySnapshotFailureEmailAsync(ex, attempt, cancellationToken);

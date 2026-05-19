@@ -50,8 +50,28 @@ namespace PreOddsApi.ExternalApis.SportMonks.Sync
 
         public void RecordRun(string scheduleKey)
         {
+            // Legacy shape — same timestamp for started + completed,
+            // status hardcoded 'success'. Kept for the dozen-or-so
+            // callers that don't track their own start time. New
+            // callers should use the overload with full audit detail.
             var now = DateTimeOffset.UtcNow;
-            _cache[scheduleKey] = now;
+            RecordRun(scheduleKey, now, status: "success", itemsCount: null, errorMessage: null);
+        }
+
+        public void RecordRun(
+            string scheduleKey,
+            DateTimeOffset startedAt,
+            string status = "success",
+            int? itemsCount = null,
+            string? errorMessage = null)
+        {
+            var completedAt = DateTimeOffset.UtcNow;
+            // The cache stores the last *successful* run because that's
+            // what ShouldRun reads to decide "interval has elapsed".
+            // Failure rows go to the audit table but don't reset the
+            // schedule clock — the next tick should still try again.
+            if (string.Equals(status, "success", StringComparison.OrdinalIgnoreCase))
+                _cache[scheduleKey] = completedAt;
 
             if (string.IsNullOrWhiteSpace(_connectionString))
                 return;
@@ -61,11 +81,16 @@ namespace PreOddsApi.ExternalApis.SportMonks.Sync
                 using var connection = new NpgsqlConnection(_connectionString);
                 connection.Open();
                 using var command = new NpgsqlCommand(
-                    "insert into sync.job_runs (job_key, started_at, completed_at, status) " +
-                    "values ($1, $2, $2, 'success')",
+                    "insert into sync.job_runs " +
+                    "(job_key, started_at, completed_at, status, items_count, error_message) " +
+                    "values ($1, $2, $3, $4, $5, $6)",
                     connection);
                 command.Parameters.AddWithValue(scheduleKey);
-                command.Parameters.AddWithValue(now);
+                command.Parameters.AddWithValue(startedAt);
+                command.Parameters.AddWithValue(completedAt);
+                command.Parameters.AddWithValue(status);
+                command.Parameters.AddWithValue((object?)itemsCount ?? DBNull.Value);
+                command.Parameters.AddWithValue((object?)errorMessage ?? DBNull.Value);
                 command.ExecuteNonQuery();
             }
             catch (Exception ex)
