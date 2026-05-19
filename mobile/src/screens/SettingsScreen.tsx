@@ -538,7 +538,7 @@ export function SettingsScreen() {
             styles.card,
             { backgroundColor: c.surfaceElevated, borderColor: c.borderSoft, padding: 0, gap: 0 },
           ]}>
-          {(['terms', 'privacy', 'kvkk'] as const).map((topic, idx) => (
+          {(['terms', 'privacy', 'kvkk', 'disclaimer', 'imprint', 'contact', 'advertising'] as const).map((topic, idx) => (
             <Pressable
               key={topic}
               onPress={() => router.push(`/legal/${topic}` as never)}

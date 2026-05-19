@@ -344,7 +344,11 @@
       "header": "Hukuki",
       "terms": "Kullanım Koşulları",
       "privacy": "Gizlilik Politikası",
-      "kvkk": "KVKK Aydınlatma Metni"
+      "kvkk": "KVKK Aydınlatma Metni",
+      "disclaimer": "Sorumluluk Reddi",
+      "imprint": "Künye",
+      "contact": "Bize Ulaşın",
+      "advertising": "Reklam"
     },
     "marketPrefs": {
       "label": "Favori Tahmin Tipleri",

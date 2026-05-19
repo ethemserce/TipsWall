@@ -344,7 +344,11 @@
       "header": "Legal",
       "terms": "Terms of Use",
       "privacy": "Privacy Policy",
-      "kvkk": "KVKK Personal Data Notice"
+      "kvkk": "KVKK Personal Data Notice",
+      "disclaimer": "Disclaimer",
+      "imprint": "Imprint",
+      "contact": "Contact",
+      "advertising": "Advertising"
     },
     "marketPrefs": {
       "label": "Favourite prediction types",

@@ -28,6 +28,7 @@ import { AttackMomentumCard } from '@/src/components/AttackMomentumCard';
 import { DetailTabBar, type DetailTab } from '@/src/components/DetailTabBar';
 import { EventTimelineCard } from '@/src/components/EventTimelineCard';
 import { MarketLegendButton } from '@/src/components/MarketLegendButton';
+import { AppDisclaimerFooter } from '@/src/components/AppDisclaimerFooter';
 import { FixtureDetailHero } from '@/src/components/FixtureDetailHero';
 import { FixtureTopPicksCard } from '@/src/components/FixtureTopPicksCard';
 import { H2HTab } from '@/src/components/H2HTab';
@@ -522,6 +523,7 @@ export function FixtureDetailScreen({ fixtureId }: FixtureDetailScreenProps) {
             ]}
           />
         ) : null}
+        <AppDisclaimerFooter />
       </Reanimated.ScrollView>
       </View>
     </SafeAreaView>

@@ -24,6 +24,7 @@ import {
 } from '@/src/components/AnalysisFiltersSheet';
 import { AnalysisQuickPicksSheet } from '@/src/components/AnalysisQuickPicksSheet';
 import { AppBrand } from '@/src/components/AppBrand';
+import { AppDisclaimerFooter } from '@/src/components/AppDisclaimerFooter';
 import { DateBar } from '@/src/components/DateBar';
 import { LeagueHeader } from '@/src/components/LeagueHeader';
 import { LeagueScopeSheet, type LeagueScopeRow } from '@/src/components/LeagueScopeSheet';
@@ -684,11 +685,14 @@ export function AnalysisScreen() {
           onEndReached={handleEndReached}
           onEndReachedThreshold={0.4}
           ListFooterComponent={
-            isFetchingNextPage ? (
-              <View style={styles.footerLoading}>
-                <ActivityIndicator color={c.brand} />
-              </View>
-            ) : null
+            <>
+              {isFetchingNextPage ? (
+                <View style={styles.footerLoading}>
+                  <ActivityIndicator color={c.brand} />
+                </View>
+              ) : null}
+              <AppDisclaimerFooter />
+            </>
           }
           renderItem={({ item, index }) => {
             const league = leagueLookup.get(item.leagueId);

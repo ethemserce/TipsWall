@@ -11,7 +11,24 @@
 // this file, keep that framing intact; the legal review of the app
 // hinges on it.
 
-export type LegalTopic = 'terms' | 'privacy' | 'kvkk';
+export type LegalTopic =
+  | 'terms'
+  | 'privacy'
+  | 'kvkk'
+  | 'disclaimer'
+  | 'imprint'
+  | 'contact'
+  | 'advertising';
+
+/**
+ * Short single-sentence disclaimer shown app-wide as a footer line on
+ * the analysis, home, and fixture-detail screens. The full version
+ * with elaboration lives in the `disclaimer` legal doc.
+ */
+export const DISCLAIMER_SHORT_TR =
+  'Uygulama içindeki tüm veriler bilgilendirme amaçlıdır. Bilgilerin doğruluğunu onaylamak kullanıcı sorumluluğundadır.';
+export const DISCLAIMER_SHORT_EN =
+  'All data in the app is for informational purposes only. Verifying accuracy is the user\'s responsibility.';
 
 export interface LegalDoc {
   title: string;
@@ -96,10 +113,82 @@ const KVKK_TR: LegalDoc = {
   ],
 };
 
+const DISCLAIMER_TR: LegalDoc = {
+  title: 'Sorumluluk Reddi',
+  lastUpdated: LAST_UPDATED,
+  paragraphs: [
+    '# Bilgilendirme Niteliği',
+    'Uygulama içindeki tüm veriler — istatistikler, HIT / ROI / IMP yüzdeleri, geçmiş örneklem sayıları, tahmin önerileri ve maç bilgileri — yalnızca bilgilendirme amaçlıdır.',
+    '# Veri Doğruluğu',
+    'Veriler üçüncü taraf veri sağlayıcılardan (SportMonks vb.) alınır ve uygulamaya iletilir. Verilerde gecikme, eksiklik veya hatalar olabilir. Bilgilerin doğruluğunu ve güncelliğini onaylamak kullanıcının sorumluluğundadır.',
+    '# Tahminlerin Niteliği',
+    'Geçmiş örneklem üzerinden hesaplanan metrikler gelecek sonuçları için garanti niteliği taşımaz. Geçmiş başarı oranı (HIT) ya da değer göstergesi (ROI), yeni maç için aynı sonucun çıkacağını garanti etmez.',
+    '# Finansal Tavsiye Değildir',
+    'Uygulama herhangi bir finansal, yatırım veya bahis tavsiyesi sunmaz. Kullanıcının uygulamadaki bilgilere dayanarak verdiği kararlardan ve sonuçlarından TipsWall sorumlu tutulamaz.',
+    '# Hizmet Sınırı',
+    'Uygulama "olduğu gibi" sunulur. Veri kaynağındaki kesintilerden, yanlış girdilerden veya teknik aksaklıklardan kaynaklanan herhangi bir dolaylı zarardan, yasal mevzuatın izin verdiği azami sınırlar dahilinde sorumluluk reddedilir.',
+    '# İletişim',
+    'Sorumluluk reddine dair sorular için: ethemserce@gmail.com',
+  ],
+};
+
+const IMPRINT_TR: LegalDoc = {
+  title: 'Künye',
+  lastUpdated: LAST_UPDATED,
+  paragraphs: [
+    '# Hizmet Sahibi',
+    'TipsWall — Ethem Serçe',
+    '# İletişim',
+    'E-posta: ethemserce@gmail.com',
+    'Web: https://www.tipswall.com',
+    '# Faaliyet Konusu',
+    'TipsWall, futbol istatistiklerini analiz eden ve kullanıcının kendi tahminlerini kişisel olarak takip etmesine olanak tanıyan bir mobil uygulama hizmetidir. Bahis kabul etmez, para alıp yatırmaz, üçüncü taraf bahis sitelerine yönlendirme yapmaz.',
+    '# Veri Sağlayıcı',
+    'Maç ve istatistik verileri, lisanslı veri sağlayıcı SportMonks B.V. üzerinden alınmaktadır.',
+    '# Hosting',
+    'Uygulama altyapısı Avrupa\'da yerleşik veri merkezlerinde barındırılmaktadır.',
+  ],
+};
+
+const CONTACT_TR: LegalDoc = {
+  title: 'Bize Ulaşın',
+  lastUpdated: LAST_UPDATED,
+  paragraphs: [
+    '# Genel İletişim',
+    'Her türlü görüş, öneri, hata bildirimi ve geri bildiriminizi aşağıdaki e-posta adresine iletebilirsiniz.',
+    'E-posta: ethemserce@gmail.com',
+    '# Destek',
+    'Hesap, üyelik veya teknik destek konularında aynı adresten yazabilirsiniz. Talepler genellikle 1-2 iş günü içinde yanıtlanır.',
+    '# Veri ve Gizlilik',
+    'Kişisel verilerin korunması (KVKK) kapsamındaki talepler için: ethemserce@gmail.com. Talepler 30 gün içinde sonuçlandırılır.',
+    '# Hukuki Bildirimler',
+    'Resmi tebligat ve hukuki bildirimleriniz için aynı e-posta adresini kullanabilirsiniz.',
+  ],
+};
+
+const ADVERTISING_TR: LegalDoc = {
+  title: 'Reklam',
+  lastUpdated: LAST_UPDATED,
+  paragraphs: [
+    '# Reklam İşbirliği',
+    'TipsWall içinde reklam vermek veya işbirliği yapmak için lütfen iletişime geçin.',
+    'E-posta: ethemserce@gmail.com',
+    '# Reklam Politikası',
+    'Bahis sitesi reklamlarına, 18 yaş altına yönelik içeriklere ve uygulamanın "no-betting framing" duruşuyla çelişen ürünlere yer verilmez.',
+    'Uygulamada gösterilen reklamlar Google AdMob aracılığıyla servis edilir. Premium üyeler reklam görmez.',
+    '# Reklam Veren Sorumluluğu',
+    'Reklamı verilen ürün veya hizmetin doğruluğu, mevzuata uygunluğu ve içeriği reklam verenin sorumluluğundadır.',
+  ],
+};
+
 const DOCS_TR: Record<LegalTopic, LegalDoc> = {
   terms: TERMS_TR,
   privacy: PRIVACY_TR,
   kvkk: KVKK_TR,
+  disclaimer: DISCLAIMER_TR,
+  imprint: IMPRINT_TR,
+  contact: CONTACT_TR,
+  advertising: ADVERTISING_TR,
 };
 
 const TERMS_EN: LegalDoc = {
@@ -177,10 +266,82 @@ const KVKK_EN: LegalDoc = {
   ],
 };
 
+const DISCLAIMER_EN: LegalDoc = {
+  title: 'Disclaimer',
+  lastUpdated: LAST_UPDATED,
+  paragraphs: [
+    '# Informational Nature',
+    'All data in the app — statistics, HIT / ROI / IMP percentages, historical sample counts, prediction suggestions, and match info — is provided for informational purposes only.',
+    '# Data Accuracy',
+    'Data is sourced from third-party providers (e.g. SportMonks) and may contain delays, gaps, or errors. Verifying the accuracy and freshness of any information is the user\'s responsibility.',
+    '# Nature of Predictions',
+    'Metrics computed from historical samples do not guarantee future outcomes. A past hit rate (HIT) or value indicator (ROI) does not guarantee the same outcome in any upcoming match.',
+    '# Not Financial Advice',
+    'The app does not provide financial, investment, or betting advice. TipsWall is not liable for decisions or outcomes resulting from user reliance on the app\'s information.',
+    '# Service Limits',
+    'The app is provided "as is". To the maximum extent permitted by law, liability for any indirect damages arising from data source outages, incorrect inputs, or technical glitches is disclaimed.',
+    '# Contact',
+    'Questions about this disclaimer: ethemserce@gmail.com',
+  ],
+};
+
+const IMPRINT_EN: LegalDoc = {
+  title: 'Imprint',
+  lastUpdated: LAST_UPDATED,
+  paragraphs: [
+    '# Service Owner',
+    'TipsWall — Ethem Serçe',
+    '# Contact',
+    'Email: ethemserce@gmail.com',
+    'Web: https://www.tipswall.com',
+    '# Service Description',
+    'TipsWall is a mobile app service that analyses football statistics and lets users track their own predictions personally. It does not accept bets, does not handle money, and does not redirect users to third-party betting sites.',
+    '# Data Provider',
+    'Match and statistical data are sourced from the licensed data provider SportMonks B.V.',
+    '# Hosting',
+    'Application infrastructure is hosted in data centres located in Europe.',
+  ],
+};
+
+const CONTACT_EN: LegalDoc = {
+  title: 'Contact',
+  lastUpdated: LAST_UPDATED,
+  paragraphs: [
+    '# General',
+    'You can reach us with any feedback, suggestions, or bug reports at the email below.',
+    'Email: ethemserce@gmail.com',
+    '# Support',
+    'For account, membership, or technical support, write to the same address. Requests are typically answered within 1-2 business days.',
+    '# Data and Privacy',
+    'For requests under data protection law (KVKK): ethemserce@gmail.com. Requests are resolved within 30 days.',
+    '# Legal Notices',
+    'Use the same email for official notices and legal correspondence.',
+  ],
+};
+
+const ADVERTISING_EN: LegalDoc = {
+  title: 'Advertising',
+  lastUpdated: LAST_UPDATED,
+  paragraphs: [
+    '# Advertising Partnerships',
+    'To advertise on TipsWall or discuss partnership opportunities, contact us.',
+    'Email: ethemserce@gmail.com',
+    '# Advertising Policy',
+    'We do not accept advertisements for betting sites, content targeted at users under 18, or products that conflict with the app\'s "no-betting framing" stance.',
+    'Ads shown in the app are served via Google AdMob. Premium members do not see ads.',
+    '# Advertiser Responsibility',
+    'The accuracy, legal compliance, and content of any advertised product or service are the advertiser\'s responsibility.',
+  ],
+};
+
 const DOCS_EN: Record<LegalTopic, LegalDoc> = {
   terms: TERMS_EN,
   privacy: PRIVACY_EN,
   kvkk: KVKK_EN,
+  disclaimer: DISCLAIMER_EN,
+  imprint: IMPRINT_EN,
+  contact: CONTACT_EN,
+  advertising: ADVERTISING_EN,
 };
 
 export function getLegalDoc(topic: LegalTopic, lang: string | undefined): LegalDoc {
