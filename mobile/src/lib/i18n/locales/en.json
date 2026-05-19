@@ -337,8 +337,8 @@
     },
     "about": {
       "header": "About",
-      "title": "Personal prediction tracker",
-      "disclaimer": "This app does not make predictions and does not place bets. It does not accept deposits, build coupons or link out to bookmakers. It surfaces historical statistics through user-configurable filters; every choice belongs to the user."
+      "title": "Football analysis and statistics app",
+      "disclaimer": "This app does not enable betting, does not build betting coupons, does not handle deposits or withdrawals, and does not link to bookmakers. It surfaces analyses based on historical statistics; every choice belongs to the user."
     },
     "legal": {
       "header": "Legal",
@@ -756,10 +756,10 @@
       "title": "Broadcasters"
     },
     "aiPicks": {
-      "title": "AI Picks",
+      "title": "AI Signals",
       "valueBadge": "VALUE",
-      "valueLine": "High-value pick",
-      "modelLine": "Model suggestion"
+      "valueLine": "High-value signal",
+      "modelLine": "Model supports"
     },
     "score": {
       "title": "Score",

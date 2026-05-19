@@ -70,12 +70,12 @@
       "confirmDelete": "Sil ve onayla"
     },
     "sheet": {
-      "title": "Tahmin ({{count}})",
+      "title": "Analiz Listem ({{count}})",
       "clear": "TEMİZLE",
-      "empty": "Henüz tahmin yok. Bir maç tıklayınca buraya eklenir.",
+      "empty": "Listen boş. Bir maça dokununca buraya eklenir.",
       "suggestions": "TAMAMLAMAK İÇİN ÖNERİLER",
-      "totalCount": "TOPLAM TAHMİN",
-      "save": "TAHMİNİ KAYDET"
+      "totalCount": "TOPLAM SEÇİM",
+      "save": "LİSTEYİ KAYDET"
     },
     "topPicks": {
       "headerOne": "MAÇTA ÖNE ÇIKANLAR",
@@ -90,7 +90,7 @@
     "stats": {
       "title": "İstatistiklerim",
       "a11yShow": "İstatistikleri göster",
-      "kupon": "Tahmin",
+      "kupon": "Liste",
       "won": "İsabet",
       "hitRate": "Tutturma",
       "streakHit": "Üst üste {{count}} isabet 🔥",
@@ -196,7 +196,7 @@
     "home": "Maçlar",
     "analysis": "Analiz",
     "leagues": "Ligler",
-    "coupons": "Tahmin",
+    "coupons": "Liste",
     "settings": "Ayarlar",
     "winning": "Kazanma",
     "hot": "Sıcak",
@@ -337,8 +337,8 @@
     },
     "about": {
       "header": "Hakkında",
-      "title": "Kişisel tahmin takip uygulaması",
-      "disclaimer": "Bu uygulama tahmin yapmaz, bahis oynatmaz. Para yatırma, kupon oluşturma veya bahis sitesine yönlendirme içermez. Geçmiş istatistikleri filtrelenebilir biçimde sunar; her tercih kullanıcıya aittir."
+      "title": "Futbol analiz ve istatistik uygulaması",
+      "disclaimer": "Bu uygulama bahis oynatmaz, bahis kuponu oluşturmaz, para yatırma veya çekme hizmeti sunmaz ve bahis sitelerine yönlendirme yapmaz. Geçmiş istatistiklere dayalı analizler sunar; her tercih kullanıcıya aittir."
     },
     "legal": {
       "header": "Hukuki",
@@ -756,10 +756,10 @@
       "title": "Yayıncılar"
     },
     "aiPicks": {
-      "title": "Yapay Zeka Tahminleri",
+      "title": "AI Sinyalleri",
       "valueBadge": "DEĞER",
-      "valueLine": "Yüksek değerli tahmin",
-      "modelLine": "Model önerisi"
+      "valueLine": "Yüksek değerli sinyal",
+      "modelLine": "Model destekliyor"
     },
     "score": {
       "title": "Skor",
