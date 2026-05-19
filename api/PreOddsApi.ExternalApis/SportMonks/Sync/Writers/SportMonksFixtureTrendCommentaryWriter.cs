@@ -37,15 +37,39 @@ namespace PreOddsApi.ExternalApis.SportMonks.Sync.Writers
                 return;
             }
 
+            // Stream the upsert per-fixture instead of wrapping every
+            // trend in one global transaction. Three reasons:
+            //
+            //   1. Memory: the previous single-transaction shape kept
+            //      every fixture's upsert-buffer + row-version + lock
+            //      state on the heap until commit. With ~10 live
+            //      fixtures × ~100 trends each = 1000 row deltas per
+            //      tick. Per-fixture commit caps the transaction's
+            //      working set to one fixture's worth.
+            //   2. Lock contention: a single 10-fixture transaction
+            //      held row locks on fixture_trends + fixture_commentaries
+            //      for the full duration. Per-fixture commits release
+            //      locks ~10x faster, so concurrent reads (the
+            //      AttackMomentumCard query) don't queue.
+            //   3. Error isolation: a malformed trend in fixture A
+            //      previously rolled back fixtures B-Z too. Now A is
+            //      skipped, the rest succeed, and the log line tells
+            //      us which fixture broke.
+            //
+            // The trade-off — partial failure leaves the DB in a
+            // mixed state instead of all-or-nothing — is acceptable
+            // for this kind of additive analytics data. The next
+            // pulse / live tick re-pulls trends and fills the gap.
             await using var connection = await OpenConnectionAsync(cancellationToken);
-            await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+            var trendCount = 0;
+            var commentaryCount = 0;
+            var failedFixtures = 0;
 
-            try
+            foreach (var fixture in fixtureList)
             {
-                var trendCount = 0;
-                var commentaryCount = 0;
-
-                foreach (var fixture in fixtureList)
+                cancellationToken.ThrowIfCancellationRequested();
+                await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+                try
                 {
                     foreach (var trend in GetFixtureTrends(fixture))
                     {
@@ -72,19 +96,22 @@ namespace PreOddsApi.ExternalApis.SportMonks.Sync.Writers
                             commentaryCount++;
                         }
                     }
-                }
 
-                await transaction.CommitAsync(cancellationToken);
-                _logger.LogInformation(
-                    "Upserted {TrendCount} fixture trends and {CommentaryCount} fixture commentaries.",
-                    trendCount,
-                    commentaryCount);
+                    await transaction.CommitAsync(cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    failedFixtures++;
+                    try { await transaction.RollbackAsync(cancellationToken); } catch { /* tx already aborted */ }
+                    _logger.LogWarning(ex,
+                        "Trend/commentary upsert failed for fixture {FixtureId} — skipping, other fixtures continue.",
+                        fixture.Id);
+                }
             }
-            catch
-            {
-                await transaction.RollbackAsync(cancellationToken);
-                throw;
-            }
+
+            _logger.LogInformation(
+                "Upserted {TrendCount} fixture trends + {CommentaryCount} commentaries across {Total} fixtures ({Failed} failed).",
+                trendCount, commentaryCount, fixtureList.Count, failedFixtures);
         }
 
         private static IEnumerable<Trend> GetFixtureTrends(Fixture fixture)

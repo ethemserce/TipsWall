@@ -535,8 +535,15 @@ namespace SportMonks.Football.FixtureWorker.Services
                 return;
 
             const string endpoint = "livescores/latest";
+            // Live tick now optionally includes trends + pressure so the
+            // mobile AttackMomentumCard updates in (near) real-time
+            // instead of waiting for the 30-min pulse refresh. The
+            // writer was refactored to per-fixture transactions for
+            // exactly this reason — the previous single-big-transaction
+            // shape OOM'd at this cadence. Falls back to the trimmed
+            // set when SportMonksFixtureTimelineSync:Enabled=false.
             var request = SportMonksApiRequest.Create(endpoint)
-                .WithInclude(FixtureLiveTickIncludes);
+                .WithInclude(BuildLiveTickIncludes().ToArray());
 
             var timezone = NullIfWhiteSpace(_configuration["SportMonksFixtureLiveSync:Timezone"])
                 ?? NullIfWhiteSpace(_configuration["SportMonksFixtureSync:Timezone"]);
@@ -1617,6 +1624,26 @@ namespace SportMonks.Football.FixtureWorker.Services
             return GetBoolean("SportMonksFixtureMediaWeatherSync:Enabled", false) &&
                    (GetBoolean("SportMonksFixtureMediaWeatherSync:SyncFixtureTvStations", false) ||
                     GetBoolean("SportMonksFixtureMediaWeatherSync:SyncWeatherReports", false));
+        }
+
+        // Live tick include set — minimal default + optional trends /
+        // pressure when the timeline sync is enabled. We don't wrap
+        // commentary here even when SyncCommentaries is on: commentary
+        // payloads are large, change verbosely during a match, and the
+        // mobile UI doesn't render them. Pulse tier picks them up at
+        // its 30-min cadence which is enough for the niche cases.
+        private IEnumerable<string> BuildLiveTickIncludes()
+        {
+            foreach (var include in FixtureLiveTickIncludes)
+                yield return include;
+            if (!GetBoolean("SportMonksFixtureTimelineSync:Enabled", false))
+                yield break;
+            if (GetBoolean("SportMonksFixtureTimelineSync:LiveTickTrends",
+                    GetBoolean("SportMonksFixtureTimelineSync:SyncTrends", false)))
+                yield return "trends";
+            if (GetBoolean("SportMonksFixtureTimelineSync:LiveTickPressureTrends",
+                    GetBoolean("SportMonksFixtureTimelineSync:SyncPressureTrends", false)))
+                yield return "pressure";
         }
 
         private IEnumerable<string> BuildFixtureTimelineIncludes()

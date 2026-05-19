@@ -235,14 +235,17 @@ services:
       SeasonBackfill__DaysPerTick: ${SEASON_BACKFILL_DAYS_PER_TICK:-2}
       # Pulse OOM fix (2026-05-17): kill the entire fixture-timeline
       # sync. SyncTrends=false alone wasn't enough because the gate is
-      # `Enabled AND (SyncTrends OR SyncPressureTrends OR SyncCommentaries)` —
-      # production has SyncPressureTrends=true, so the writer was still
-      # invoked and SportMonks's `pressure` include populates the same
-      # `fixture.Trends` bucket the trend upsert reads from. Disabling
-      # at the Enabled gate stops every include + writer call cold.
-      # Mobile UI doesn't surface trend / pressure / commentary data;
-      # re-enable once the upsert is streamed instead of buffered.
-      SportMonksFixtureTimelineSync__Enabled: "false"
+      # TimelineSync drives the AttackMomentumCard (Hücum İvmesi) on
+      # the fixture detail screen. Writer was refactored to per-fixture
+      # transactions so the live-tick path no longer OOMs at 10s
+      # cadence × ~10 live fixtures × ~100 trends each. Pulse tier
+      # already pulls the same data at 30min — the live tick adds
+      # near-real-time refresh during a match.
+      SportMonksFixtureTimelineSync__Enabled: "true"
+      SportMonksFixtureTimelineSync__SyncTrends: "true"
+      SportMonksFixtureTimelineSync__SyncPressureTrends: "true"
+      # Commentary stays off — verbose payload, no UI surface for it.
+      SportMonksFixtureTimelineSync__SyncCommentaries: "false"
       # Archival of every SportMonks response into sync.raw_payloads was
       # the smoking gun for the Postgres OOM-kill / recovery cycles on
       # 2026-05-17: a single multi-MB JSONB insert pushed the DB over
