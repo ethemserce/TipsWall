@@ -12,7 +12,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { signup } from '@/src/api/auth';
@@ -31,6 +31,7 @@ const USERNAME_REGEX = /^[a-zA-Z0-9_]{3,32}$/;
 export default function SignupScreen() {
   const c = useTheme();
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -141,7 +142,10 @@ export default function SignupScreen() {
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
-          contentContainerStyle={styles.scroll}
+          contentContainerStyle={[
+            styles.scroll,
+            { paddingBottom: insets.bottom + 32 },
+          ]}
           keyboardShouldPersistTaps="handled">
           <ThemedText style={[styles.title, { color: c.text }]}>
             {t('auth.signup.title')}
@@ -391,9 +395,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   scroll: {
+    // paddingBottom is applied inline using insets.bottom for safe-area
+    // protection; the static value here is the base padding the
+    // component adds on top of the system inset.
     paddingHorizontal: 20,
     paddingTop: 16,
-    paddingBottom: 32,
     gap: 14,
   },
   title: {

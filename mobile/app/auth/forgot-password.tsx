@@ -12,7 +12,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { requestPasswordReset } from '@/src/api/auth';
@@ -22,6 +22,7 @@ import { useTheme } from '@/src/lib/useTheme';
 export default function ForgotPasswordScreen() {
   const c = useTheme();
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const [emailOrUsername, setEmailOrUsername] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
@@ -63,7 +64,10 @@ export default function ForgotPasswordScreen() {
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
-          contentContainerStyle={styles.scroll}
+          contentContainerStyle={[
+            styles.scroll,
+            { paddingBottom: insets.bottom + 32 },
+          ]}
           keyboardShouldPersistTaps="handled">
           <ThemedText style={[styles.title, { color: c.text }]}>
             {t('auth.forgot.title')}
@@ -164,7 +168,6 @@ const styles = StyleSheet.create({
   scroll: {
     paddingHorizontal: 20,
     paddingTop: 16,
-    paddingBottom: 32,
     gap: 14,
   },
   title: {
