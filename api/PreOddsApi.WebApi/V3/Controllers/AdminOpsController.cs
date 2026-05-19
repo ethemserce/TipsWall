@@ -1,7 +1,11 @@
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using PreOddsApi.ExternalApis.Analytics;
 using PreOddsApi.WebApi.V3.Admin;
 
 namespace PreOddsApi.WebApi.V3.Controllers
@@ -17,10 +21,17 @@ namespace PreOddsApi.WebApi.V3.Controllers
     public sealed class AdminOpsController : ApiControllerBase
     {
         private readonly IAdminOpsReader _reader;
+        private readonly IServiceScopeFactory _scopeFactory;
+        private readonly ILogger<AdminOpsController> _logger;
 
-        public AdminOpsController(IAdminOpsReader reader)
+        public AdminOpsController(
+            IAdminOpsReader reader,
+            IServiceScopeFactory scopeFactory,
+            ILogger<AdminOpsController> logger)
         {
             _reader = reader;
+            _scopeFactory = scopeFactory;
+            _logger = logger;
         }
 
         /// <summary>
@@ -46,6 +57,64 @@ namespace PreOddsApi.WebApi.V3.Controllers
         {
             var snapshot = await _reader.GetPostgresHealthAsync(ct);
             return OkResponse(snapshot);
+        }
+
+        /// <summary>
+        /// Kicks off the full analytics rebuild chain (season stats,
+        /// outcome finalizer with wide lookback, snapshot regenerate)
+        /// as a fire-and-forget background task and returns 202 Accepted
+        /// immediately. Real execution takes 5-10 min — the dashboard
+        /// polls /admin/ops/postgres to watch the long-running query
+        /// surface in SlowQueries and disappear when it finishes.
+        ///
+        /// Why fire-and-forget instead of awaiting:
+        ///   * WebAPI now caps every postgres query at 60s. Awaiting a
+        ///     10-min job here would either trip that ceiling or hold
+        ///     a request handler for ten minutes.
+        ///   * The analytics engine opens its own NpgsqlConnection (not
+        ///     from the WebAPI's data source pool), so the 60s cap
+        ///     doesn't kill the underlying batch.
+        ///   * The endpoint is admin-gated so a stray double-tap by an
+        ///     impatient admin doesn't snowball into a queue.
+        /// </summary>
+        [HttpPost("analytics/rebuild")]
+        public IActionResult TriggerAnalyticsRebuild()
+        {
+            // Spin up a detached scope so the engine + its scoped
+            // dependencies (NpgsqlDataSource is singleton, but logger
+            // factory + config are scoped through DI) outlive the
+            // controller request lifecycle. Without the explicit scope
+            // the ASP.NET request-scoped services would be disposed the
+            // instant we returned 202 and the rebuild would crash on
+            // its first DI resolution.
+            _ = Task.Run(async () =>
+            {
+                using var scope = _scopeFactory.CreateScope();
+                var engine = scope.ServiceProvider.GetRequiredService<IAnalyticsEngine>();
+                try
+                {
+                    _logger.LogInformation("Admin-triggered analytics rebuild starting at {NowUtc}.", DateTimeOffset.UtcNow);
+                    await engine.RunSeasonStatsAsync();
+                    await engine.RunSeasonTeamStatsAsync();
+                    await engine.RunSeasonPlayerStatsAsync();
+                    var finalized = await engine.RunOddOutcomeFinalizerAsync(lookbackHours: 24 * 365);
+                    var rows = await engine.RunOddAnalysisSnapshotsAsync();
+                    _logger.LogInformation(
+                        "Admin-triggered analytics rebuild success: outcomes_finalized={Finalized} snapshot_rows={Rows}",
+                        finalized, rows);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex,
+                        "Admin-triggered analytics rebuild failed. Re-run from the dashboard or wait for the next 03:00 UTC window.");
+                }
+            });
+            return Accepted(new
+            {
+                success = true,
+                accepted_at = DateTimeOffset.UtcNow,
+                note = "Rebuild started in the background; watch /admin/ops/postgres for progress.",
+            });
         }
     }
 }

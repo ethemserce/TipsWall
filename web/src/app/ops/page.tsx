@@ -1,5 +1,7 @@
 import { ApiError, apiGet } from '@/lib/api';
 
+import { RebuildButton } from './RebuildButton';
+
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
@@ -51,6 +53,15 @@ export default async function OpsPage() {
           Son güncelleme: {new Date(fetchedAt).toLocaleString('tr-TR')}
         </p>
       </header>
+
+      <section>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-fg-muted mb-3">
+          Aksiyonlar
+        </h2>
+        <div className="bg-bg border border-border rounded-md px-4 py-3">
+          <RebuildButton />
+        </div>
+      </section>
 
       <section>
         <h2 className="text-sm font-semibold uppercase tracking-wide text-fg-muted mb-3">
