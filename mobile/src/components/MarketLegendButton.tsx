@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { useMarketPreferences } from '@/src/hooks/useMarketPreferences';
 import { MARKET_CATALOG } from '@/src/lib/marketShort';
 import { useTheme } from '@/src/lib/useTheme';
 
@@ -36,14 +37,22 @@ export function MarketLegendButton() {
   const [open, setOpen] = useState(false);
 
   const isTr = (i18n.language ?? '').toLowerCase().startsWith('tr');
-  const marketEntries = useMemo(
-    () =>
-      MARKET_CATALOG.map((m) => ({
-        short: isTr ? m.shortTr : m.shortEn,
-        long: isTr ? m.longTr : m.longEn,
-      })),
-    [isTr],
-  );
+  // Show only the user's active analysis types — the full 174-row catalog
+  // is overwhelming and lists rows the user can't reach via their
+  // preferences. When no preferences are set, the analysis screen
+  // surfaces every market, so the legend mirrors that behaviour.
+  const { marketIds: favouriteMarketIds } = useMarketPreferences();
+  const marketEntries = useMemo(() => {
+    const allowed =
+      favouriteMarketIds.length > 0 ? new Set(favouriteMarketIds) : null;
+    const filtered = allowed
+      ? MARKET_CATALOG.filter((m) => allowed.has(m.id))
+      : MARKET_CATALOG;
+    return filtered.map((m) => ({
+      short: isTr ? m.shortTr : m.shortEn,
+      long: isTr ? m.longTr : m.longEn,
+    }));
+  }, [isTr, favouriteMarketIds]);
 
   return (
     <>

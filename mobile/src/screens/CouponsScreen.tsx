@@ -12,7 +12,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
+import { AdBanner } from '@/src/components/AdBanner';
 import { AppBrand } from '@/src/components/AppBrand';
+import { AppDisclaimerFooter } from '@/src/components/AppDisclaimerFooter';
 import { CouponStatsCard } from '@/src/components/CouponStatsCard';
 import { GuestStatsCTA } from '@/src/components/GuestStatsCTA';
 import { useTier } from '@/src/lib/auth/authStore';
@@ -288,6 +290,12 @@ export function CouponsScreen() {
                 </ThemedText>
               </View>
             ) : null
+          }
+          ListFooterComponent={
+            <>
+              <AdBanner />
+              <AppDisclaimerFooter />
+            </>
           }
           contentContainerStyle={styles.list}
           extraData={`${pendingDeleteId}|${fixtureLookup.size}|${dateFilter}`}
