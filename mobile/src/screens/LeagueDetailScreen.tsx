@@ -24,7 +24,7 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { FixtureCard } from '@/src/components/FixtureCard';
@@ -65,6 +65,7 @@ const SWIPE_RECOGNITION_THRESHOLD = 12;
 export function LeagueDetailScreen({ leagueId }: LeagueDetailScreenProps) {
   const c = useTheme();
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<Tab>('matches');
 
   // Long-press peek mirrors the home list. Two-phase lock: under 2s the
@@ -250,7 +251,10 @@ export function LeagueDetailScreen({ leagueId }: LeagueDetailScreenProps) {
         />
       ) : (
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: insets.bottom + 32 },
+          ]}
           refreshControl={
             <RefreshControl
               refreshing={standingsQuery.isFetching}
@@ -481,6 +485,7 @@ function MatchesListBody({
 }) {
   const c = useTheme();
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
 
   if (loading && !weekIsFull) {
     return (
@@ -568,7 +573,10 @@ function MatchesListBody({
         </View>
       )}
       stickySectionHeadersEnabled={false}
-      contentContainerStyle={styles.list}
+      contentContainerStyle={[
+        styles.list,
+        { paddingBottom: insets.bottom + 32 },
+      ]}
       refreshControl={
         <RefreshControl
           refreshing={fetching}
