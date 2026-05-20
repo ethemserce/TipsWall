@@ -25,8 +25,9 @@ interface ConsentDocumentModalProps {
 
 // Slack the bottom check by this many pixels — captures "user got to the
 // last paragraph" without demanding pixel-perfect end-of-scroll, which
-// is brittle when contentSize has fractional rendering on Android.
-const BOTTOM_THRESHOLD_PX = 24;
+// is brittle when contentSize has fractional rendering on Android and
+// iOS settles slightly above the math bottom after bounce-overscroll.
+const BOTTOM_THRESHOLD_PX = 48;
 
 /**
  * Full-screen modal that surfaces a legal document the user must read
@@ -80,12 +81,15 @@ export function ConsentDocumentModal({
     checkBottom(contentSize.height, layoutMeasurement.height, contentOffset.y);
   };
 
-  const handleContentSizeChange = (_w: number, h: number) => {
-    // Without a layout pass we can't be sure how much the user can see;
-    // the first onScroll will settle the state if the content overflows.
-    // For very short docs the initial layoutHeight is unknown, so leave
-    // detection to onScroll (which fires once on mount with offset 0).
-    void h;
+  // Backstop for the throttled onScroll: when the user finishes a swipe
+  // gesture (drag end) or the momentum animation settles (momentum end),
+  // re-check the position. This catches the iOS case where the last
+  // throttled scroll event lands just before bounce-overscroll settle,
+  // leaving offset slightly below the bottom mathematically even though
+  // the user is at the visual end.
+  const handleScrollSettle = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const { contentSize, layoutMeasurement, contentOffset } = e.nativeEvent;
+    checkBottom(contentSize.height, layoutMeasurement.height, contentOffset.y);
   };
 
   return (
@@ -121,8 +125,9 @@ export function ConsentDocumentModal({
         <ScrollView
           contentContainerStyle={styles.scroll}
           onScroll={handleScroll}
-          onContentSizeChange={handleContentSizeChange}
-          scrollEventThrottle={100}>
+          onMomentumScrollEnd={handleScrollSettle}
+          onScrollEndDrag={handleScrollSettle}
+          scrollEventThrottle={16}>
           <ThemedText style={[styles.updated, { color: c.textMuted }]}>
             {doc.lastUpdated}
           </ThemedText>
