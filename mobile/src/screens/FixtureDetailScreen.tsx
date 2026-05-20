@@ -28,6 +28,7 @@ import { AttackMomentumCard } from '@/src/components/AttackMomentumCard';
 import { DetailTabBar, type DetailTab } from '@/src/components/DetailTabBar';
 import { EventTimelineCard } from '@/src/components/EventTimelineCard';
 import { MarketLegendButton } from '@/src/components/MarketLegendButton';
+import { AdBanner } from '@/src/components/AdBanner';
 import { AppDisclaimerFooter } from '@/src/components/AppDisclaimerFooter';
 import { FixtureDetailHero } from '@/src/components/FixtureDetailHero';
 import { FixtureTopPicksCard } from '@/src/components/FixtureTopPicksCard';
@@ -386,6 +387,11 @@ export function FixtureDetailScreen({ fixtureId }: FixtureDetailScreenProps) {
           />
         }>
         <View>
+          {/* Banner above the hero — same anchored adaptive size used on
+              the home / list / analysis screens. Premium users see no
+              ad (AdBanner tier-gates itself), so this just renders
+              empty for them. */}
+          <AdBanner />
           <FixtureDetailHero
             fixture={data.fixture}
             league={league}

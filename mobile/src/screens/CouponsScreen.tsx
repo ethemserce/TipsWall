@@ -210,13 +210,30 @@ export function CouponsScreen() {
         <SectionList
           sections={sections}
           keyExtractor={(c) => c.id}
-          renderItem={({ item }) => (
-            <CouponCard
-              coupon={item}
-              fixtureLookup={fixtureLookup}
-              onRequestDelete={() => setPendingDeleteId(item.id)}
-            />
-          )}
+          renderItem={({ item, index, section }) => {
+            // SectionList passes `index` scoped to the current section,
+            // but we want a list-wide AdBanner cadence — find the
+            // global position by combining the section's offset within
+            // `sections` with the item index. Banner after every 2nd
+            // item (indices 1, 3, 5, ...). Premium users see nothing
+            // (AdBanner tier-gates itself); the cadence still matches
+            // the analysis screen pattern.
+            const sectionStart = sections
+              .slice(0, sections.indexOf(section))
+              .reduce((acc, s) => acc + s.data.length, 0);
+            const globalIndex = sectionStart + index;
+            const showBannerBelow = (globalIndex + 1) % 2 === 0;
+            return (
+              <>
+                <CouponCard
+                  coupon={item}
+                  fixtureLookup={fixtureLookup}
+                  onRequestDelete={() => setPendingDeleteId(item.id)}
+                />
+                {showBannerBelow ? <AdBanner /> : null}
+              </>
+            );
+          }}
           renderSectionHeader={({ section }) => (
             <View
               style={[
