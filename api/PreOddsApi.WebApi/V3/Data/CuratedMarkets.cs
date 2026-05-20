@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Extensions.Configuration;
 
 namespace PreOddsApi.WebApi.V3.Data
 {
@@ -78,25 +79,51 @@ namespace PreOddsApi.WebApi.V3.Data
         // Tier → cap. Used both for the upper bound on the picker and
         // for the size of the auto-filled default list when the user
         // has no saved preference yet.
-        public const int GuestCap = 3;
-        public const int RegisteredCap = 10;
-        public const int PremiumCap = 30;
+        //
+        // Backing fields are runtime-configurable: Program.cs calls
+        // CuratedMarkets.Configure(builder.Configuration) at startup so
+        // appsettings / env-var overrides take effect without a code
+        // change. Defaults below are the launch-day values (guest 3 /
+        // free 10 / premium 30) — production can later dial these to
+        // tighten the free band (e.g. drop to 5) by setting
+        // MarketCaps__Free=5 in the deploy env, no rebuild required.
+        private static int _guestCap = 3;
+        private static int _registeredCap = 10;
+        private static int _premiumCap = 30;
+
+        public static int GuestCap => _guestCap;
+        public static int RegisteredCap => _registeredCap;
+        public static int PremiumCap => _premiumCap;
+
+        /// <summary>
+        /// Reads MarketCaps:Guest / MarketCaps:Free / MarketCaps:Premium
+        /// from configuration. Missing keys fall back to the launch
+        /// defaults. Safe to call multiple times (e.g. test re-init);
+        /// each call replaces the cached values.
+        /// </summary>
+        public static void Configure(IConfiguration configuration)
+        {
+            var section = configuration.GetSection("MarketCaps");
+            _guestCap = section.GetValue("Guest", 3);
+            _registeredCap = section.GetValue("Free", 10);
+            _premiumCap = section.GetValue("Premium", 30);
+        }
 
         public static int CapFor(string tier)
-            => tier == "premium" ? PremiumCap
-             : tier == "free" ? RegisteredCap
-             : GuestCap;
+            => tier == "premium" ? _premiumCap
+             : tier == "free" ? _registeredCap
+             : _guestCap;
 
         /// <summary>
         /// Email-verification-aware variant. An unverified free user only
-        /// gets the guest cap (3) — the wider 10-market picker unlocks
+        /// gets the guest cap — the wider free-tier picker unlocks
         /// after they click the email verification link. Premium tier
         /// always trusts its own cap; the IAP flow has its own identity
         /// checks separate from this email gate.
         /// </summary>
         public static int CapFor(string tier, bool emailVerified)
         {
-            if (tier == "free" && !emailVerified) return GuestCap;
+            if (tier == "free" && !emailVerified) return _guestCap;
             return CapFor(tier);
         }
 

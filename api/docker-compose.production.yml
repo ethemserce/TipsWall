@@ -104,6 +104,14 @@ services:
       # browser-facing fetches will only succeed when the dashboard
       # is on a registered origin.
       Cors__AllowedOrigins__1: ${CORS_ORIGIN_1:-}
+      # Tier picker caps — analiz tipi selection upper bound per tier.
+      # Defaults are 3 / 10 / 30 (set in appsettings.json); override
+      # these env vars on the VPS to dial the free band without a code
+      # change. For example, MARKET_CAP_FREE=5 to tighten conversion
+      # pressure before / after launching Premium IAP.
+      MarketCaps__Guest: ${MARKET_CAP_GUEST:-3}
+      MarketCaps__Free: ${MARKET_CAP_FREE:-10}
+      MarketCaps__Premium: ${MARKET_CAP_PREMIUM:-30}
       # Social sign-in: missing values keep the buttons hidden client-
       # side and return a clear "not configured" 503 server-side.
       PREODDS_APPLE_CLIENT_ID: ${PREODDS_APPLE_CLIENT_ID:-}

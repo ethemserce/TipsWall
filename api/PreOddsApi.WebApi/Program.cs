@@ -428,6 +428,12 @@ builder.Services.AddOpenTelemetry()
 var app = builder.Build();
 IConfiguration configuration = app.Configuration;
 
+// Tier cap overrides — reads MarketCaps:Guest / :Free / :Premium from
+// appsettings / environment so we can tighten the free-tier picker
+// (e.g. drop 10 → 5 as part of a Premium-conversion experiment) by
+// flipping an env var on the VPS instead of rebuilding the image.
+PreOddsApi.WebApi.V3.Data.CuratedMarkets.Configure(configuration);
+
 // Stamp every request with a correlation id BEFORE Serilog request logging
 // so the id is in scope when UseSerilogRequestLogging emits the access log.
 app.UseMiddleware<CorrelationIdMiddleware>();
