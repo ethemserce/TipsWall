@@ -319,6 +319,15 @@ services:
       # Add more ids ("__1=5") if a second bookmaker becomes relevant
       # to the analysis pipeline.
       SportMonksPrematchOddsSync__AllowedBookmakerIds__0: "2"
+      # Per-fixture odds seed — pulls the FULL pre-match odds tree from
+      # /odds/pre-match/fixtures/{id} once per upcoming fixture, so
+      # alternative O/U lines (0.5, 1.5, 3.5, quarter lines) land in the
+      # DB. /odds/pre-match/latest only ships recently-updated rows and
+      # misses these seed-once-never-update alternatives. Defaults off,
+      # flip to true once we want to populate alternative lines. Window:
+      # 2h before kickoff through ~48h ahead (configurable below).
+      SportMonksPrematchOddsSync__SyncFixtureSeed: "true"
+      SportMonksPrematchOddsSync__SeedLookaheadHours: "48"
       # NightlySnapshot — runs once per day in the narrow [3,4) UTC window
       # to rebuild analytics.odd_analysis_snapshots (HIT/ROI/IMP per
       # market/outcome). Hour gate is now tight (single hour), so a

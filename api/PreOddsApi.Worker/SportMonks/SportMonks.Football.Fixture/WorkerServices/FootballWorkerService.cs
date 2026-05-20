@@ -1551,6 +1551,19 @@ namespace SportMonks.Football.FixtureWorker.Services
             if (ShouldSyncFixtureOdds())
                 await _prematchOddsWriter.UpsertPrematchOddsAsync(fixtures, cancellationToken);
 
+            // Per-fixture odds SEED — fetches the full pre-match odds set
+            // (every market × every line × every outcome) from
+            // /odds/pre-match/fixtures/{id}. Necessary because /odds/pre-
+            // match/latest only ships rows that updated recently, and
+            // alternative O/U lines (0.5, 1.5, 3.5, 4.5, ...) are seeded
+            // once at market open and never updated, so they never appear
+            // in /latest. Without this seed our DB has only the 2.5 main
+            // line. Runs on the same labels as predictions/value-bets to
+            // keep call volume predictable (today + backlog tiers only,
+            // not the 30s live tick).
+            if (ShouldSyncFixtureOddsSeed(label))
+                await UpsertPrematchOddsSeedForFixturesAsync(fixtures, cancellationToken);
+
             if (ShouldSyncFixturePredictions(label))
                 await UpsertPredictionsForFixturesAsync(fixtures, cancellationToken);
 
@@ -1716,6 +1729,20 @@ namespace SportMonks.Football.FixtureWorker.Services
         {
             return GetBoolean("SportMonksPrematchOddsSync:Enabled", false) &&
                    GetBoolean("SportMonksPrematchOddsSync:SyncFixtureOdds", true);
+        }
+
+        private bool ShouldSyncFixtureOddsSeed(string label)
+        {
+            // Defaults off so production has to flip the flag explicitly
+            // — adds one per-fixture API call to every pulse cycle, so
+            // we want a deliberate opt-in. Only runs on today / backlog
+            // labels (predictions schedule), never on the 30s live tick.
+            if (!GetBoolean("SportMonksPrematchOddsSync:Enabled", false) ||
+                !GetBoolean("SportMonksPrematchOddsSync:SyncFixtureSeed", false))
+                return false;
+
+            return string.Equals(label, "today", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(label, "backlog", StringComparison.OrdinalIgnoreCase);
         }
 
         private bool ShouldSyncFixturePredictions(string label)
@@ -1923,6 +1950,83 @@ namespace SportMonks.Football.FixtureWorker.Services
                         "Predictions sync failed for fixture {FixtureId}: {Message}",
                         fixture.Id,
                         exc.Message);
+                }
+            }
+        }
+
+        private async Task UpsertPrematchOddsSeedForFixturesAsync(
+            IReadOnlyList<Fixture> fixtures,
+            CancellationToken cancellationToken)
+        {
+            // SportMonks's /odds/pre-match/latest only returns rows that
+            // were recently updated, which excludes alternative O/U lines
+            // (0.5/1.5/3.5/...) that get seeded once at market open and
+            // never refreshed. The fixture-include path (`include=odds`)
+            // ships an abbreviated set too. The only endpoint that ships
+            // the FULL per-fixture odds tree (every market × every line ×
+            // every outcome) is `/odds/pre-match/fixtures/{id}`. We hit
+            // it per upcoming fixture so the alternative lines land in
+            // the DB once and then ride /latest updates from there.
+            //
+            // Window: pre-match only. Fixtures that already kicked off or
+            // are >2h finished are skipped — their odds tree is settled,
+            // re-fetching wastes quota.
+            var now = DateTimeOffset.UtcNow;
+            var lookback = TimeSpan.FromHours(2);
+            var lookahead = TimeSpan.FromHours(
+                GetInteger("SportMonksPrematchOddsSync:SeedLookaheadHours", 48));
+
+            var targets = fixtures
+                .Where(fixture => fixture != null && fixture.Id > 0)
+                .Where(fixture =>
+                {
+                    if (fixture.StartingAt == null) return false;
+                    var startsAt = new DateTimeOffset(fixture.StartingAt.Value, TimeSpan.Zero);
+                    return startsAt > now - lookback && startsAt < now + lookahead;
+                })
+                .ToList();
+
+            if (targets.Count == 0)
+                return;
+
+            foreach (var fixture in targets)
+            {
+                try
+                {
+                    var endpoint = $"odds/pre-match/fixtures/{fixture.Id}";
+                    var odds = (await _syncRunner.GetAllAsync<PreMatchOdd>(
+                        SportMonksSyncJobDefinition.Create(
+                            "sportmonks.football.odds.prematch.fixture",
+                            "odds.prematch_odds_current",
+                            "Seed full pre-match odds tree per upcoming fixture."),
+                        SportMonksApiRequest.Create(endpoint),
+                        cursorKey: endpoint,
+                        cancellationToken: cancellationToken)).ToList();
+
+                    if (odds.Count > 0)
+                    {
+                        await _prematchOddsWriter.UpsertPrematchOddsForFixtureAsync(
+                            fixture.Id, odds, cancellationToken);
+                    }
+                }
+                catch (SportMonksApiException ex)
+                    when ((int)ex.StatusCode == 403 || (int)ex.StatusCode == 404)
+                {
+                    // 404 = no odds available yet (very new fixture / off-
+                    // window league), 403 = subscription doesn't grant
+                    // per-fixture odds for that market. Both are non-fatal
+                    // for the seed loop — keep going so a single bad
+                    // fixture doesn't tank the whole pulse tick.
+                    _logger.LogDebug(
+                        "Per-fixture odds seed {Status} for fixture {FixtureId} — skipping.",
+                        (int)ex.StatusCode, fixture.Id);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(
+                        ex,
+                        "Per-fixture odds seed failed for fixture {FixtureId}: {Message}",
+                        fixture.Id, ex.Message);
                 }
             }
         }
