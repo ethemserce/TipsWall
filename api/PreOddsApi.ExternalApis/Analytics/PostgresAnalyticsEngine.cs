@@ -492,9 +492,26 @@ namespace PreOddsApi.ExternalApis.Analytics
 
             await using var connection = await OpenAsync(cancellationToken);
             await using var command = new NpgsqlCommand(sql, connection);
-            var rows = await command.ExecuteNonQueryAsync(cancellationToken);
+            // ExecuteNonQueryAsync sums affected rows across every statement
+            // in the multi-statement script: retention DELETE + today
+            // DELETE + INSERT. On a manual-rebuild + nightly-retry sequence
+            // the sum doubles (DELETE removes today's 1.1M, INSERT writes
+            // a fresh 1.1M → 2.2M reported, surfaced misleadingly in the
+            // admin "items_count" column as if the snapshot grew). We
+            // discard the summed value and re-read the canonical row count
+            // for today below — that's what the admin grid actually wants.
+            await command.ExecuteNonQueryAsync(cancellationToken);
 
-            _logger.LogInformation("Analytics odd_analysis_snapshots refresh affected {Rows} rows.", rows);
+            await using var countCmd = new NpgsqlCommand(
+                """
+                select count(*)::int from analytics.odd_analysis_snapshots
+                 where as_of_date = current_date;
+                """,
+                connection);
+            var todayRows = await countCmd.ExecuteScalarAsync(cancellationToken);
+            var rows = todayRows is int i ? i : 0;
+
+            _logger.LogInformation("Analytics odd_analysis_snapshots refresh wrote {Rows} rows for today.", rows);
             return rows;
         }
 
