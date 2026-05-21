@@ -2014,6 +2014,19 @@ namespace SportMonks.Football.FixtureWorker.Services
                 ",",
                 allowedBookmakers.Select(id => id.ToString(CultureInfo.InvariantCulture)));
 
+            // SportMonks caps `per_page` at 25 for /odds/pre-match (verified
+            // 2026-05-21 — passing per_page=200 still returns count=25 with
+            // has_more=true). Without a `markets:N` filter, fixtures with
+            // many markets get split across many pages and the alternative
+            // O/U lines (market 80) end up on a later page — pagination
+            // unreliable. Scope to specific markets so each call returns a
+            // single-page response containing all alt lines for that market.
+            // Default to 80 (Total Goals O/U) since that's the mobile UI's
+            // first need; configurable so we can expand to AH/1st-half/etc.
+            // later.
+            var marketsCsv = NullIfWhiteSpace(
+                _configuration["SportMonksPrematchOddsSync:SeedMarketIds"]) ?? "80";
+
             // Pace the loop so we don't burst the Odds rate-limit bucket.
             // 1s between fixtures × ~50 fixtures/day ≈ 50s total — fine
             // for the nightly tier, gentle on the SportMonks quota.
@@ -2048,7 +2061,8 @@ namespace SportMonks.Football.FixtureWorker.Services
                         SportMonksApiRequest.Create(endpoint)
                             .WithFilters(
                                 $"bookmakers:{bookmakersFilter}",
-                                $"fixtures:{fixture.Id.ToString(CultureInfo.InvariantCulture)}"),
+                                $"fixtures:{fixture.Id.ToString(CultureInfo.InvariantCulture)}",
+                                $"markets:{marketsCsv}"),
                         cursorKey: cursorKey,
                         cancellationToken: cancellationToken)).ToList();
 
