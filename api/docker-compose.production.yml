@@ -328,6 +328,17 @@ services:
       # 2h before kickoff through ~48h ahead (configurable below).
       SportMonksPrematchOddsSync__SyncFixtureSeed: "true"
       SportMonksPrematchOddsSync__SeedLookaheadHours: "48"
+      # Markets to seed alternative lines for. Each market gets its OWN
+      # call (per fixture × per market) so per_page=50 always fits the
+      # response in one page. Verified market IDs:
+      #   80 = Goals Over/Under (full match) — main O/U line
+      #   53 = 2nd Half Goals (Over/Under)
+      #   28 = 1st Half Goals (Over/Under)
+      # Each fixture × market call costs ~1 Odds-bucket call. With 50
+      # fixtures × 3 markets = 150 calls per nightly backlog — well
+      # within the 2500/hour Odds bucket.
+      SportMonksPrematchOddsSync__SeedMarketIds: "80,53,28"
+      SportMonksPrematchOddsSync__SeedDelayMs: "500"
       # NightlySnapshot — runs once per day in the narrow [3,4) UTC window
       # to rebuild analytics.odd_analysis_snapshots (HIT/ROI/IMP per
       # market/outcome). Hour gate is now tight (single hour), so a

@@ -99,6 +99,31 @@ export function OddsRatesCard({
   // its presence equals "match is no longer upcoming".
   const couponLocked = liveScore != null;
 
+  // Group Over/Under markets by total — for market 80 (Goals O/U) and
+  // similar (53 = 2nd Half, 28 = 1st Half), SportMonks ships 18 totals
+  // (0.5/1.25/1.5/.../5.5/6.5) all with the same label ("Over"/"Under").
+  // Rendering them as a flat list of 36 rows is unreadable. Instead we
+  // sort by (total ASC, label) so each total's Over+Under appear as a
+  // consecutive pair, and insert a thin divider showing the total value
+  // between groups. The label cell drops the total suffix since the
+  // divider now carries that information.
+  const isPairedTotalsMarket = useMemo(
+    () => market.outcomes.some((o) => o.total != null),
+    [market.outcomes],
+  );
+  const sortedOutcomes = useMemo(() => {
+    if (!isPairedTotalsMarket) return market.outcomes;
+    return [...market.outcomes].sort((a, b) => {
+      const ta = parseFloat(a.total ?? '0');
+      const tb = parseFloat(b.total ?? '0');
+      if (Number.isFinite(ta) && Number.isFinite(tb) && ta !== tb) return ta - tb;
+      // Within the same total, Over sorts before Under (rough alphabetical
+      // works for both EN "Over/Under" and bookmaker localizations since
+      // we canonicalise label upstream in the writer's OutcomeKey).
+      return (a.label ?? '').localeCompare(b.label ?? '');
+    });
+  }, [market.outcomes, isPairedTotalsMarket]);
+
   if (market.outcomes.length === 0) return null;
 
   return (
@@ -163,7 +188,15 @@ export function OddsRatesCard({
         </ThemedText>
       </View>
 
-      {market.outcomes.map((outcome) => {
+      {sortedOutcomes.map((outcome, idx) => {
+        // Insert a thin "total" divider when starting a new total group
+        // (paired-totals markets only). For non-paired markets this
+        // condition never fires and we render a plain row sequence.
+        const previousOutcome = idx > 0 ? sortedOutcomes[idx - 1] : null;
+        const showTotalDivider =
+          isPairedTotalsMarket &&
+          outcome.total != null &&
+          (previousOutcome == null || previousOutcome.total !== outcome.total);
         const iko = outcome.iko;
         const sample = outcome.win_count + outcome.lost_count;
         const hasSample = sample > 0;
@@ -230,9 +263,23 @@ export function OddsRatesCard({
           });
         };
 
+        // In paired-totals markets the divider above the group carries the
+        // total value, so the label cell just needs the side ("Üst"/"Alt").
+        // Outside that case fall back to the standard "Üst 2.5" form.
+        const rowLabel = isPairedTotalsMarket
+          ? shortenOutcome(outcome.label, market.market_id, homeName, awayName)
+          : formatLabel(outcome, market.market_id, homeName, awayName);
         return (
           <View
-            key={`${outcome.label}-${outcome.total ?? ''}-${outcome.handicap ?? ''}`}
+            key={`${outcome.label}-${outcome.total ?? ''}-${outcome.handicap ?? ''}`}>
+            {showTotalDivider ? (
+              <View style={[styles.totalDivider, { borderTopColor: c.border, backgroundColor: c.surface }]}>
+                <ThemedText style={[styles.totalDividerText, { color: c.textMuted }]}>
+                  {outcome.total}
+                </ThemedText>
+              </View>
+            ) : null}
+          <View
             style={[
               styles.row,
               { borderTopColor: c.border },
@@ -255,10 +302,10 @@ export function OddsRatesCard({
               accessibilityRole="button"
               accessibilityLabel={
                 inCoupon
-                  ? `${formatLabel(outcome, market.market_id, homeName, awayName)} kaldır`
+                  ? `${rowLabel} kaldır`
                   : tapDisabled
-                    ? `${formatLabel(outcome, market.market_id, homeName, awayName)} eklenemez`
-                    : `${formatLabel(outcome, market.market_id, homeName, awayName)} ekle`
+                    ? `${rowLabel} eklenemez`
+                    : `${rowLabel} ekle`
               }
               accessibilityState={{ selected: inCoupon, disabled: tapDisabled && !inCoupon }}
               style={[
@@ -283,7 +330,7 @@ export function OddsRatesCard({
                 ]}
                 numberOfLines={2}>
                 {inCoupon ? '✓ ' : isValueBet ? '★ ' : ''}
-                {formatLabel(outcome, market.market_id, homeName, awayName)}
+                {rowLabel}
               </ThemedText>
             </Pressable>
             {showOdd ? (
@@ -320,6 +367,7 @@ export function OddsRatesCard({
               style={[styles.cell, styles.cellNarrow, styles.numberValue, { color: c.textMuted }]}>
               {hasSample ? outcome.lost_count : '-'}
             </ThemedText>
+          </View>
           </View>
         );
       })}
@@ -449,5 +497,20 @@ const styles = StyleSheet.create({
   numberValue: {
     fontVariant: ['tabular-nums'],
     fontWeight: '600',
+  },
+  // Thin header strip that separates Over/Under pairs in totals markets.
+  // Carries the total value so each pair below doesn't have to repeat it
+  // ("Üst" / "Alt" alone in the label cell is enough).
+  totalDivider: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    alignItems: 'flex-start',
+  },
+  totalDividerText: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    fontVariant: ['tabular-nums'],
   },
 });
