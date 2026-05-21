@@ -113,15 +113,21 @@ export function OddsRatesCard({
   );
   const sortedOutcomes = useMemo(() => {
     if (!isPairedTotalsMarket) return market.outcomes;
-    return [...market.outcomes].sort((a, b) => {
-      const ta = parseFloat(a.total ?? '0');
-      const tb = parseFloat(b.total ?? '0');
-      if (Number.isFinite(ta) && Number.isFinite(tb) && ta !== tb) return ta - tb;
-      // Within the same total, Over sorts before Under (rough alphabetical
-      // works for both EN "Over/Under" and bookmaker localizations since
-      // we canonicalise label upstream in the writer's OutcomeKey).
-      return (a.label ?? '').localeCompare(b.label ?? '');
-    });
+    return [...market.outcomes]
+      // Hide stray total=NULL Over/Under rows that arrive via the embedded
+      // include=odds path (writer leaves total blank when SportMonks does).
+      // Their alt-line counterparts already render the proper pair —
+      // showing the NULL row creates a header-less ghost group.
+      .filter((o) => o.total != null && o.total !== '')
+      .sort((a, b) => {
+        const ta = parseFloat(a.total ?? '0');
+        const tb = parseFloat(b.total ?? '0');
+        if (Number.isFinite(ta) && Number.isFinite(tb) && ta !== tb) return ta - tb;
+        // Within the same total, Over sorts before Under (rough alphabetical
+        // works for both EN "Over/Under" and bookmaker localizations since
+        // we canonicalise label upstream in the writer's OutcomeKey).
+        return (a.label ?? '').localeCompare(b.label ?? '');
+      });
   }, [market.outcomes, isPairedTotalsMarket]);
 
   if (market.outcomes.length === 0) return null;
