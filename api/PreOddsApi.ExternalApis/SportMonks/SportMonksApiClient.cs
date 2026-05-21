@@ -298,11 +298,26 @@ namespace PreOddsApi.ExternalApis.SportMonks
 
                 query.Append(Uri.EscapeDataString(queryParameter.Key));
                 query.Append('=');
-                query.Append(Uri.EscapeDataString(queryParameter.Value));
+                query.Append(EncodeQueryValue(queryParameter.Value));
             }
 
             builder.Query = query.ToString();
             return builder.Uri;
+        }
+
+        // SportMonks' `filters` parameter uses literal ':' between
+        // (filter-name, value) and ';' between successive filters
+        // (e.g. `filters=fixtures:19708880;bookmakers:2`). Uri.EscapeDataString
+        // encodes both to %3A / %3B, and SportMonks returns 400. Per RFC 3986
+        // these are sub-delims and allowed unencoded in a query value, so we
+        // selectively un-encode them after EscapeDataString does the heavy
+        // lifting.
+        private static string EncodeQueryValue(string value)
+        {
+            return Uri.EscapeDataString(value)
+                .Replace("%3A", ":", StringComparison.OrdinalIgnoreCase)
+                .Replace("%3B", ";", StringComparison.OrdinalIgnoreCase)
+                .Replace("%2C", ",", StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool ShouldRetry(HttpStatusCode statusCode)
