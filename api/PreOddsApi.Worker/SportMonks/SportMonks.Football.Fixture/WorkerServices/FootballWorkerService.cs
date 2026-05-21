@@ -1989,19 +1989,41 @@ namespace SportMonks.Football.FixtureWorker.Services
             if (targets.Count == 0)
                 return;
 
+            // SportMonks rejects `filters=fixtures:N` standing alone with
+            // 400 ("You requested filters do not exist"). At least one
+            // companion filter is required — pair with the bookmaker
+            // allowlist so the response is also scoped to the bookmaker(s)
+            // the writer keeps (everything else gets dropped at the writer
+            // anyway). Verified on 2026-05-21: fixtures-only → 400,
+            // bookmakers+fixtures → 200 with the full alternative-line tree.
+            var allowedBookmakers = _configuration
+                .GetSection("SportMonksPrematchOddsSync:AllowedBookmakerIds")
+                .Get<long[]>() ?? Array.Empty<long>();
+            if (allowedBookmakers.Length == 0)
+            {
+                _logger.LogWarning(
+                    "Per-fixture odds seed skipped: SportMonksPrematchOddsSync:AllowedBookmakerIds is empty " +
+                    "(SportMonks requires a companion filter alongside `fixtures:N`).");
+                return;
+            }
+            var bookmakersFilter = string.Join(
+                ",",
+                allowedBookmakers.Select(id => id.ToString(CultureInfo.InvariantCulture)));
+
             foreach (var fixture in targets)
             {
                 try
                 {
                     // IMPORTANT — use the /odds/pre-match listing endpoint
-                    // with `filters=fixtures:{id}`, NOT /odds/pre-match/
-                    // fixtures/{id}. The per-fixture path returns only the
-                    // single "main line" per market (2.5 for O/U, +0/-0 for
-                    // AH), while the listing endpoint scoped to one fixture
-                    // returns all alternative lines (0.5/1.5/3.5/4.5/...
-                    // and quarter lines). Verified against fixture
-                    // 19708880 on 2026-05-21: per-fixture path → 2 rows,
-                    // filter path → 25 rows.
+                    // with `filters=bookmakers:{ids};fixtures:{id}`, NOT
+                    // /odds/pre-match/fixtures/{id}. The per-fixture path
+                    // returns only the single "main line" per market (2.5
+                    // for O/U, +0/-0 for AH), while the listing endpoint
+                    // scoped to one fixture returns all alternative lines
+                    // (0.5/1.5/3.5/4.5/... and quarter lines). Verified
+                    // against fixture 19708880 on 2026-05-21: per-fixture
+                    // path → 2 rows, filter path → 25 rows for market 80
+                    // alone (plus the full AH/result/etc. tree).
                     var endpoint = "odds/pre-match";
                     var cursorKey = $"odds/pre-match/seed/{fixture.Id}";
                     var odds = (await _syncRunner.GetAllAsync<PreMatchOdd>(
@@ -2010,7 +2032,9 @@ namespace SportMonks.Football.FixtureWorker.Services
                             "odds.prematch_odds_current",
                             "Seed full pre-match odds tree per upcoming fixture."),
                         SportMonksApiRequest.Create(endpoint)
-                            .WithFilter("fixtures", fixture.Id.ToString(CultureInfo.InvariantCulture)),
+                            .WithFilters(
+                                $"bookmakers:{bookmakersFilter}",
+                                $"fixtures:{fixture.Id.ToString(CultureInfo.InvariantCulture)}"),
                         cursorKey: cursorKey,
                         cancellationToken: cancellationToken)).ToList();
 
