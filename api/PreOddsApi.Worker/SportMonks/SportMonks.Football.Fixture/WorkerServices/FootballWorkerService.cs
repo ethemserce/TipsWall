@@ -1733,16 +1733,20 @@ namespace SportMonks.Football.FixtureWorker.Services
 
         private bool ShouldSyncFixtureOddsSeed(string label)
         {
-            // Defaults off so production has to flip the flag explicitly
-            // — adds one per-fixture API call to every pulse cycle, so
-            // we want a deliberate opt-in. Only runs on today / backlog
-            // labels (predictions schedule), never on the 30s live tick.
+            // Defaults off so production has to flip the flag explicitly.
+            // BACKLOG ONLY — not today. Alternative O/U lines (0.5/1.5/
+            // 3.5/...) seed once at market open and don't update, so we
+            // only need to capture them once per day. Running on every
+            // pulse "today" tick (every 30 min) burned through the Odds
+            // rate-limit bucket on 2026-05-21: 14 fixtures × ~5 paginated
+            // pages = 70 calls × 2/hour = quota exhaustion + cascading
+            // 429s. Backlog tier runs nightly, alongside predictions/
+            // valuebets, when API quota is full.
             if (!GetBoolean("SportMonksPrematchOddsSync:Enabled", false) ||
                 !GetBoolean("SportMonksPrematchOddsSync:SyncFixtureSeed", false))
                 return false;
 
-            return string.Equals(label, "today", StringComparison.OrdinalIgnoreCase) ||
-                   string.Equals(label, "backlog", StringComparison.OrdinalIgnoreCase);
+            return string.Equals(label, "backlog", StringComparison.OrdinalIgnoreCase);
         }
 
         private bool ShouldSyncFixturePredictions(string label)
@@ -2010,8 +2014,18 @@ namespace SportMonks.Football.FixtureWorker.Services
                 ",",
                 allowedBookmakers.Select(id => id.ToString(CultureInfo.InvariantCulture)));
 
+            // Pace the loop so we don't burst the Odds rate-limit bucket.
+            // 1s between fixtures × ~50 fixtures/day ≈ 50s total — fine
+            // for the nightly tier, gentle on the SportMonks quota.
+            var throttle = TimeSpan.FromMilliseconds(
+                GetInteger("SportMonksPrematchOddsSync:SeedDelayMs", 1000));
+
+            var first = true;
             foreach (var fixture in targets)
             {
+                if (!first && throttle > TimeSpan.Zero)
+                    await Task.Delay(throttle, cancellationToken);
+                first = false;
                 try
                 {
                     // IMPORTANT — use the /odds/pre-match listing endpoint
