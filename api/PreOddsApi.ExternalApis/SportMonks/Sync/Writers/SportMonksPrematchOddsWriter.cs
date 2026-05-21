@@ -382,20 +382,73 @@ namespace PreOddsApi.ExternalApis.SportMonks.Sync.Writers
             return connection;
         }
 
+        // SportMonks ships bookmaker labels in whatever locale the bookmaker
+        // uses for the specific market. bet365 (id=2) returns Portuguese
+        // ("Mais de"/"Menos de"), French ("Plus de"/"Moins de"), Spanish
+        // ("Más de"/"Menos de"), and English ("Over"/"Under") rows on the
+        // same fixture/market depending on how SportMonks scraped it. Without
+        // a canonical label, the unique constraint (feed_type, fixture_id,
+        // bookmaker_id, market_id, outcome_key) treats these as distinct
+        // outcomes, producing duplicate rows in odds.prematch_odds_current
+        // and breaking the analytics JOIN on outcome_key.
+        private static readonly Dictionary<string, string> LabelCanon =
+            new(StringComparer.OrdinalIgnoreCase)
+            {
+                // Over / Under (market 80, 53, etc.)
+                ["over"] = "over",
+                ["mais de"] = "over",
+                ["plus de"] = "over",
+                ["más de"] = "over",
+                ["mas de"] = "over",
+                ["sobre"] = "over",
+                ["uber"] = "over",
+                ["über"] = "over",
+                ["under"] = "under",
+                ["menos de"] = "under",
+                ["moins de"] = "under",
+                ["bajo"] = "under",
+                ["unter"] = "under",
+                ["sotto"] = "under",
+                // 1X2 / Match Winner (market 1)
+                ["1"] = "1",
+                ["x"] = "x",
+                ["2"] = "2",
+                ["home"] = "1",
+                ["draw"] = "x",
+                ["away"] = "2",
+                // Both Teams to Score (market 14)
+                ["yes"] = "yes",
+                ["sim"] = "yes",
+                ["oui"] = "yes",
+                ["sí"] = "yes",
+                ["si"] = "yes",
+                ["ja"] = "yes",
+                ["no"] = "no",
+                ["não"] = "no",
+                ["nao"] = "no",
+                ["non"] = "no",
+                ["nein"] = "no",
+            };
+
         private static string OutcomeKey(PreMatchOdd odd)
         {
-            var label = NullIfWhiteSpace(odd.Label);
+            // Prefer SportMonks's original_label when present — it's the
+            // canonical English form that survives bookmaker localization.
+            // Fall back to label, then the lookup table to fold the dozen
+            // common non-English variants we've observed.
+            var label = NullIfWhiteSpace(odd.original_label) ?? NullIfWhiteSpace(odd.Label);
             if (label == null)
                 return odd.Id.ToString();
+
+            var canonical = LabelCanon.GetValueOrDefault(label.Trim(), label.Trim().ToLowerInvariant());
 
             // O/U lines (market_id=80) ship 18 totals (0.5, 1.5, 2.5, 3.5 …)
             // all with the same label ("Over" / "Under"); Asian Handicap
             // (market_id=28) ships per-line handicap with the same label
             // ("Home" / "Away"). Encoding total + handicap into the key
             // disambiguates so each line gets its own row in
-            // prematch_odds_current (and the ON CONFLICT upsert stops
-            // collapsing them to one).
-            var key = label.ToLowerInvariant();
+            // prematch_odds_current.
+            var key = canonical;
             var total = NullIfWhiteSpace(odd.Total);
             if (total != null) key += "|t:" + total;
             var handicap = NullIfWhiteSpace(odd.Handicap);

@@ -183,6 +183,7 @@ namespace SportMonks.Football.FixtureWorker.Services
         private readonly IConfiguration _configuration;
         private readonly ISyncJobScheduler _scheduler;
         private readonly ISportMonksSyncRunner _syncRunner;
+        private readonly ISportMonksApiClient _apiClient;
         private readonly ISportMonksCompetitionReferenceWriter _competitionReferenceWriter;
         private readonly ISportMonksFootballCoreReferenceWriter _footballCoreReferenceWriter;
         private readonly ISportMonksFixtureCoreWriter _fixtureCoreWriter;
@@ -226,6 +227,7 @@ namespace SportMonks.Football.FixtureWorker.Services
             IConfiguration configuration,
             ISyncJobScheduler scheduler,
             ISportMonksSyncRunner syncRunner,
+            ISportMonksApiClient apiClient,
             ISportMonksCompetitionReferenceWriter competitionReferenceWriter,
             ISportMonksFootballCoreReferenceWriter footballCoreReferenceWriter,
             ISportMonksFixtureCoreWriter fixtureCoreWriter,
@@ -253,6 +255,7 @@ namespace SportMonks.Football.FixtureWorker.Services
             _configuration = configuration;
             _scheduler = scheduler;
             _syncRunner = syncRunner;
+            _apiClient = apiClient;
             _competitionReferenceWriter = competitionReferenceWriter;
             _footballCoreReferenceWriter = footballCoreReferenceWriter;
             _fixtureCoreWriter = fixtureCoreWriter;
@@ -1962,19 +1965,28 @@ namespace SportMonks.Football.FixtureWorker.Services
             IReadOnlyList<Fixture> fixtures,
             CancellationToken cancellationToken)
         {
-            // SportMonks's /odds/pre-match/latest only returns rows that
-            // were recently updated, which excludes alternative O/U lines
-            // (0.5/1.5/3.5/...) that get seeded once at market open and
-            // never refreshed. The fixture-include path (`include=odds`)
-            // ships an abbreviated set too. The only endpoint that ships
-            // the FULL per-fixture odds tree (every market × every line ×
-            // every outcome) is `/odds/pre-match/fixtures/{id}`. We hit
-            // it per upcoming fixture so the alternative lines land in
-            // the DB once and then ride /latest updates from there.
+            // ALT-LINE INGEST (2026-05-21 redesign).
             //
-            // Window: pre-match only. Fixtures that already kicked off or
-            // are >2h finished are skipped — their odds tree is settled,
-            // re-fetching wastes quota.
+            // Goal: pull every total/handicap line for a configurable set of
+            // markets (default: market 80 / Total Goals O/U) per upcoming
+            // fixture, so the mobile fixture detail screen shows 0.5/1.5/
+            // 2.5/.../5.5 instead of just the 2.5 main line.
+            //
+            // Endpoint shape (verified via Postman):
+            //   GET /v3/football/odds/pre-match
+            //     ?filters=bookmakers:N;fixtures:M;markets:K
+            //     &per_page=50
+            //   Returns up to ~25 rows for a single (bookmaker, fixture,
+            //   market) tuple. SportMonks caps per_page at 50 — that fits
+            //   in a single page, so we BYPASS SyncRunner's pagination loop
+            //   entirely (it was looping forever earlier today because
+            //   the listing endpoint reports has_more=true even when the
+            //   single page already contains every row).
+            //
+            // We use _apiClient.GetAsync directly to read exactly one page.
+            // One call per (fixture, market). No SyncRunner pagination, no
+            // raw_payloads archival, no cursor row — those add overhead
+            // that's pointless for an idempotent line-tree refresh.
             var now = DateTimeOffset.UtcNow;
             var lookback = TimeSpan.FromHours(2);
             var lookahead = TimeSpan.FromHours(
@@ -1994,103 +2006,112 @@ namespace SportMonks.Football.FixtureWorker.Services
                 return;
 
             // SportMonks rejects `filters=fixtures:N` standing alone with
-            // 400 ("You requested filters do not exist"). At least one
-            // companion filter is required — pair with the bookmaker
-            // allowlist so the response is also scoped to the bookmaker(s)
-            // the writer keeps (everything else gets dropped at the writer
-            // anyway). Verified on 2026-05-21: fixtures-only → 400,
-            // bookmakers+fixtures → 200 with the full alternative-line tree.
+            // 400 ("You requested filters do not exist"). Pair fixtures
+            // filter with the bookmaker allowlist (writer drops anything
+            // outside that list anyway) — also scopes the response to
+            // the bookmaker we care about, smaller payload, no waste.
             var allowedBookmakers = _configuration
                 .GetSection("SportMonksPrematchOddsSync:AllowedBookmakerIds")
                 .Get<long[]>() ?? Array.Empty<long>();
             if (allowedBookmakers.Length == 0)
             {
                 _logger.LogWarning(
-                    "Per-fixture odds seed skipped: SportMonksPrematchOddsSync:AllowedBookmakerIds is empty " +
-                    "(SportMonks requires a companion filter alongside `fixtures:N`).");
+                    "Alt-line seed skipped: SportMonksPrematchOddsSync:AllowedBookmakerIds is empty " +
+                    "(SportMonks rejects `filters=fixtures:N` without a companion filter).");
                 return;
             }
             var bookmakersFilter = string.Join(
                 ",",
                 allowedBookmakers.Select(id => id.ToString(CultureInfo.InvariantCulture)));
 
-            // SportMonks caps `per_page` at 25 for /odds/pre-match (verified
-            // 2026-05-21 — passing per_page=200 still returns count=25 with
-            // has_more=true). Without a `markets:N` filter, fixtures with
-            // many markets get split across many pages and the alternative
-            // O/U lines (market 80) end up on a later page — pagination
-            // unreliable. Scope to specific markets so each call returns a
-            // single-page response containing all alt lines for that market.
-            // Default to 80 (Total Goals O/U) since that's the mobile UI's
-            // first need; configurable so we can expand to AH/1st-half/etc.
-            // later.
+            // Comma-separated list of market IDs to seed. Default 80 only
+            // (Total Goals O/U). Expand to "80,28" once we want Asian
+            // Handicap full handicap tree too. Each market_id is sent in
+            // its OWN call so per_page=50 always fits the response in
+            // one page (single market × ~25 rows max).
             var marketsCsv = NullIfWhiteSpace(
                 _configuration["SportMonksPrematchOddsSync:SeedMarketIds"]) ?? "80";
+            var marketIds = marketsCsv
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .ToList();
 
             // Pace the loop so we don't burst the Odds rate-limit bucket.
-            // 1s between fixtures × ~50 fixtures/day ≈ 50s total — fine
-            // for the nightly tier, gentle on the SportMonks quota.
+            // 500ms × ~50 fixtures × ~1 market ≈ 25s — fits comfortably
+            // inside the nightly backlog window without starving the
+            // /odds/pre-match/latest pulse tier.
             var throttle = TimeSpan.FromMilliseconds(
-                GetInteger("SportMonksPrematchOddsSync:SeedDelayMs", 1000));
+                GetInteger("SportMonksPrematchOddsSync:SeedDelayMs", 500));
 
+            var totalUpserted = 0;
             var first = true;
             foreach (var fixture in targets)
             {
-                if (!first && throttle > TimeSpan.Zero)
-                    await Task.Delay(throttle, cancellationToken);
-                first = false;
-                try
+                foreach (var marketIdStr in marketIds)
                 {
-                    // IMPORTANT — use the /odds/pre-match listing endpoint
-                    // with `filters=bookmakers:{ids};fixtures:{id}`, NOT
-                    // /odds/pre-match/fixtures/{id}. The per-fixture path
-                    // returns only the single "main line" per market (2.5
-                    // for O/U, +0/-0 for AH), while the listing endpoint
-                    // scoped to one fixture returns all alternative lines
-                    // (0.5/1.5/3.5/4.5/... and quarter lines). Verified
-                    // against fixture 19708880 on 2026-05-21: per-fixture
-                    // path → 2 rows, filter path → 25 rows for market 80
-                    // alone (plus the full AH/result/etc. tree).
-                    var endpoint = "odds/pre-match";
-                    var cursorKey = $"odds/pre-match/seed/{fixture.Id}";
-                    var odds = (await _syncRunner.GetAllAsync<PreMatchOdd>(
-                        SportMonksSyncJobDefinition.Create(
-                            "sportmonks.football.odds.prematch.fixture",
-                            "odds.prematch_odds_current",
-                            "Seed full pre-match odds tree per upcoming fixture."),
-                        SportMonksApiRequest.Create(endpoint)
+                    if (!first && throttle > TimeSpan.Zero)
+                        await Task.Delay(throttle, cancellationToken);
+                    first = false;
+
+                    try
+                    {
+                        var request = SportMonksApiRequest.Create("odds/pre-match")
                             .WithFilters(
                                 $"bookmakers:{bookmakersFilter}",
                                 $"fixtures:{fixture.Id.ToString(CultureInfo.InvariantCulture)}",
-                                $"markets:{marketsCsv}"),
-                        cursorKey: cursorKey,
-                        cancellationToken: cancellationToken)).ToList();
+                                $"markets:{marketIdStr}")
+                            .WithQueryParameter("per_page", "50");
 
-                    if (odds.Count > 0)
+                        // Direct single-page read — NO pagination loop.
+                        // SportMonks's has_more is unreliable on this
+                        // endpoint shape and would otherwise spin until
+                        // cancellation.
+                        var response = await _apiClient.GetAsync<List<PreMatchOdd>>(
+                            request, cancellationToken);
+                        var odds = response.Data ?? new List<PreMatchOdd>();
+
+                        if (odds.Count > 0)
+                        {
+                            await _prematchOddsWriter.UpsertPrematchOddsForFixtureAsync(
+                                fixture.Id, odds, cancellationToken);
+                            totalUpserted += odds.Count;
+                        }
+                    }
+                    catch (SportMonksApiException ex)
+                        when ((int)ex.StatusCode == 403 || (int)ex.StatusCode == 404)
                     {
-                        await _prematchOddsWriter.UpsertPrematchOddsForFixtureAsync(
-                            fixture.Id, odds, cancellationToken);
+                        // 403/404 = subscription doesn't cover this market for
+                        // this fixture, or no odds yet. Non-fatal.
+                        _logger.LogDebug(
+                            "Alt-line seed {Status} for fixture {FixtureId} market {MarketId} — skipping.",
+                            (int)ex.StatusCode, fixture.Id, marketIdStr);
+                    }
+                    catch (SportMonksApiException ex)
+                        when ((int)ex.StatusCode == 429)
+                    {
+                        // Rate limit hit — back off and abort the seed pass.
+                        // The Odds bucket resets within ~10-60 min; better
+                        // to leave alternative lines stale for one cycle
+                        // than to spam 429s and grow the back-off queue.
+                        _logger.LogWarning(
+                            "Alt-line seed hit rate limit on fixture {FixtureId} market {MarketId} — aborting seed pass.",
+                            fixture.Id, marketIdStr);
+                        return;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(
+                            ex,
+                            "Alt-line seed failed for fixture {FixtureId} market {MarketId}: {Message}",
+                            fixture.Id, marketIdStr, ex.Message);
                     }
                 }
-                catch (SportMonksApiException ex)
-                    when ((int)ex.StatusCode == 403 || (int)ex.StatusCode == 404)
-                {
-                    // 404 = no odds available yet (very new fixture / off-
-                    // window league), 403 = subscription doesn't grant
-                    // per-fixture odds for that market. Both are non-fatal
-                    // for the seed loop — keep going so a single bad
-                    // fixture doesn't tank the whole pulse tick.
-                    _logger.LogDebug(
-                        "Per-fixture odds seed {Status} for fixture {FixtureId} — skipping.",
-                        (int)ex.StatusCode, fixture.Id);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(
-                        ex,
-                        "Per-fixture odds seed failed for fixture {FixtureId}: {Message}",
-                        fixture.Id, ex.Message);
-                }
+            }
+
+            if (totalUpserted > 0)
+            {
+                _logger.LogInformation(
+                    "Alt-line seed upserted {RowCount} odds across {FixtureCount} fixtures × {MarketCount} markets.",
+                    totalUpserted, targets.Count, marketIds.Count);
             }
         }
 
