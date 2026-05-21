@@ -327,10 +327,19 @@ namespace PreOddsApi.ExternalApis.SportMonks.Sync.Writers
         private static string OutcomeKey(InplayOdd odd)
         {
             var label = NullIfWhiteSpace(odd.Label);
-            if (label != null)
-                return label.ToLowerInvariant();
+            if (label == null)
+                return odd.Id.ToString();
 
-            return odd.Id.ToString();
+            // Same multi-line collision as the prematch writer: O/U and
+            // Asian Handicap markets ship multiple totals/handicaps with
+            // identical labels. Encoding them into the key keeps each
+            // line as its own row.
+            var key = label.ToLowerInvariant();
+            var total = NullIfWhiteSpace(odd.Total);
+            if (total != null) key += "|t:" + total;
+            var handicap = NullIfWhiteSpace(odd.Handicap);
+            if (handicap != null) key += "|h:" + handicap;
+            return key;
         }
 
         private static decimal? ParseDecimal(string? value)

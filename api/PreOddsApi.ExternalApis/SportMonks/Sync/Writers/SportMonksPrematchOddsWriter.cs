@@ -385,10 +385,22 @@ namespace PreOddsApi.ExternalApis.SportMonks.Sync.Writers
         private static string OutcomeKey(PreMatchOdd odd)
         {
             var label = NullIfWhiteSpace(odd.Label);
-            if (label != null)
-                return label.ToLowerInvariant();
+            if (label == null)
+                return odd.Id.ToString();
 
-            return odd.Id.ToString();
+            // O/U lines (market_id=80) ship 18 totals (0.5, 1.5, 2.5, 3.5 …)
+            // all with the same label ("Over" / "Under"); Asian Handicap
+            // (market_id=28) ships per-line handicap with the same label
+            // ("Home" / "Away"). Encoding total + handicap into the key
+            // disambiguates so each line gets its own row in
+            // prematch_odds_current (and the ON CONFLICT upsert stops
+            // collapsing them to one).
+            var key = label.ToLowerInvariant();
+            var total = NullIfWhiteSpace(odd.Total);
+            if (total != null) key += "|t:" + total;
+            var handicap = NullIfWhiteSpace(odd.Handicap);
+            if (handicap != null) key += "|h:" + handicap;
+            return key;
         }
 
         private static decimal? ParseDecimal(string? value)
